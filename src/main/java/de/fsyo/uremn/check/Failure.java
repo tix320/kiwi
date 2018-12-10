@@ -1,10 +1,10 @@
 package de.fsyo.uremn.check;
 
-final class Failure<F extends Throwable> implements Try<F>{
+final class Failure<C extends Throwable> implements Try<C> {
 	
-	private final F cause;
+	private final C cause;
 
-	public Failure(F cause) {
+	public Failure(C cause) {
 		this.cause = cause;
 	}
 
@@ -19,7 +19,7 @@ final class Failure<F extends Throwable> implements Try<F>{
 	}
 
 	@Override
-	public F get() {
+	public C get() {
 		return cause;
 	}
 }

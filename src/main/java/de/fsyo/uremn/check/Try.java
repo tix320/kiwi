@@ -1,6 +1,5 @@
 package de.fsyo.uremn.check;
 
-import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -8,25 +7,33 @@ import java.util.function.Supplier;
 public interface Try<T> {
 
 	static <T> Try<T> success(T value) {
+		if (value == null) {
+			return empty();
+		}
 		return new Success<>(value);
 	}
 
-	static <T> Try<T> success(Supplier<T> supplier) {
-		return new Success<>(supplier.get());
+	static <T> Try<T> success(Supplier<? extends T> supplier) {
+		return success(supplier.get());
 	}
 
-	static Try<?> failure(Throwable value) {
-		return new Failure<>(value);
+	static <T> Try<T> failure(Throwable throwable) {
+		if (throwable == null) {
+			throw new IllegalArgumentException("throwable cannot be null");
+		}
+		@SuppressWarnings("unchecked")
+		Try<T> t = (Try<T>) new Failure<>(throwable);
+		return t;
 	}
 
 	static Try<?> failure(Supplier<Throwable> supplier) {
-		return new Failure<>(supplier.get());
+		return failure(supplier.get());
 	}
 
 	static Try<?> run(Runnable runnable) {
 		try {
 			runnable.run();
-			return Success.EMPTY;
+			return empty();
 		}
 		catch (Throwable e) {
 			return new Failure<>(e);
@@ -39,40 +46,33 @@ public interface Try<T> {
 		}
 		try {
 			if (predicate.test(get())) {
-				return new Success<>(get());
+				return success(get());
 			}
 			else {
-				@SuppressWarnings("unchecked")
-				Try<T> t = (Try<T>) Success.EMPTY;
-				return t;
+				return empty();
 			}
 		}
 		catch (Throwable e) {
-			@SuppressWarnings("unchecked")
-			Try<T> failure = (Try<T>) new Failure<>(e);
-			return failure;
+			return failure(e);
+
 		}
 
 	}
 
 	default <M> Try<M> map(Function<? super T, ? extends M> mapper) {
 		if (isFailure() || isEmpty()) {
-			@SuppressWarnings("unchecked")
-			Try<M> t = (Try<M>) this;
-			return t;
+			return current();
 		}
 		try {
-			return new Success<>(mapper.apply(get()));
+			return success(mapper.apply(get()));
 		}
 		catch (Throwable e) {
-			@SuppressWarnings("unchecked")
-			Try<M> failure = (Try<M>) new Failure<>(e);
-			return failure;
+			return failure(e);
 		}
 	}
 
 	default <X extends Throwable> T getOrElseThrow(Supplier<? extends X> exSupplier) throws X {
-		if (isFailure()) {
+		if (isFailure() || isEmpty()) {
 			throw exSupplier.get();
 		}
 		else {
@@ -81,19 +81,21 @@ public interface Try<T> {
 	}
 
 	default <X extends Throwable> T getOrElseThrow(Function<T, ? extends X> exMapper) throws X {
-		if (isFailure()) {
-			throw exMapper.apply(get());
-		}
-		if (isEmpty()) {
-			@SuppressWarnings("unchecked")
-			T noSuchElementException = (T) new NoSuchElementException();
-			throw exMapper.apply(noSuchElementException);
-		}
-		return get();
+		return getOrElseThrow(() -> exMapper.apply(get()));
 	}
 
 	private boolean isEmpty() {
 		return this == Success.EMPTY;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> Try<T> empty() {
+		return (Try<T>) Success.EMPTY;
+	}
+
+	@SuppressWarnings("unchecked")
+	private <M> Try<M> current() {
+		return (Try<M>) this;
 	}
 
 	boolean isSuccess();
