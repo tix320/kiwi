@@ -1,107 +1,170 @@
 package de.fsyo.uremn.check;
 
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
 public interface Try<T> {
 
-	static <T> Try<T> success(T value) {
-		if (value == null) {
-			return empty();
-		}
-		return new Success<>(value);
-	}
+    static <T> Try<T> success(T value) {
+        if (value == null) {
+            return empty();
+        }
+        return new Success<>(value);
+    }
 
-	static <T> Try<T> success(Supplier<? extends T> supplier) {
-		return success(supplier.get());
-	}
+    static <T> Try<T> success(CheckedSupplier<? extends T> supplier) {
+        try {
+            return success(supplier.get());
+        } catch (Throwable throwable) {
+            throw new IllegalStateException("An error occurred in success supplier", throwable);
+        }
+    }
 
-	static <T> Try<T> failure(Throwable throwable) {
-		if (throwable == null) {
-			throw new IllegalArgumentException("throwable cannot be null");
-		}
-		@SuppressWarnings("unchecked")
-		Try<T> t = (Try<T>) new Failure<>(throwable);
-		return t;
-	}
+    static <T> Try<T> failure(Throwable throwable) {
+        if (throwable == null) {
+            throw new IllegalArgumentException("throwable cannot be null");
+        }
+        @SuppressWarnings("unchecked")
+        Try<T> t = (Try<T>) new Failure<>(throwable);
+        return t;
+    }
 
-	static Try<?> failure(Supplier<Throwable> supplier) {
-		return failure(supplier.get());
-	}
+    static Try<?> failure(CheckedSupplier<Throwable> supplier) {
+        try {
+            return failure(supplier.get());
+        } catch (Throwable throwable) {
+            throw new IllegalStateException("An error occurred in failure supplier", throwable);
+        }
+    }
 
-	static Try<?> run(Runnable runnable) {
-		try {
-			runnable.run();
-			return empty();
-		}
-		catch (Throwable e) {
-			return new Failure<>(e);
-		}
-	}
+    static Try<?> run(CheckedRunnable runnable) {
+        try {
+            runnable.run();
+            return empty();
+        } catch (Throwable e) {
+            return failure(e);
+        }
+    }
 
-	default Try<T> filter(Predicate<? super T> predicate) {
-		if (isFailure() || isEmpty()) {
-			return this;
-		}
-		try {
-			if (predicate.test(get())) {
-				return success(get());
-			}
-			else {
-				return empty();
-			}
-		}
-		catch (Throwable e) {
-			return failure(e);
+    static <T> Try<T> supply(CheckedSupplier<T> supplier) {
+        try {
+            return success(supplier.get());
+        } catch (Throwable e) {
+            return failure(e);
+        }
+    }
 
-		}
+    default Try<T> peek(CheckedConsumer<T> consumer) {
+        if (isFailure() || isEmpty()) {
+            return this;
+        }
+        try {
+            consumer.accept(get());
+            return this;
+        } catch (Throwable throwable) {
+            return failure(throwable);
+        }
+    }
 
-	}
+    default Try<?> peek(CheckedRunnable runnable) {
+        if (isFailure()) {
+            return this;
+        }
+        try {
+            runnable.run();
+            return this;
+        } catch (Throwable throwable) {
+            return failure(throwable);
+        }
+    }
 
-	default <M> Try<M> map(Function<? super T, ? extends M> mapper) {
-		if (isFailure() || isEmpty()) {
-			return current();
-		}
-		try {
-			return success(mapper.apply(get()));
-		}
-		catch (Throwable e) {
-			return failure(e);
-		}
-	}
+    default Try<T> filter(CheckedPredicate<? super T> predicate) {
+        if (isFailure() || isEmpty()) {
+            return this;
+        }
+        try {
+            if (predicate.test(get())) {
+                return success(get());
+            } else {
+                return empty();
+            }
+        } catch (Throwable e) {
+            return failure(e);
+        }
+    }
 
-	default <X extends Throwable> T getOrElseThrow(Supplier<? extends X> exSupplier) throws X {
-		if (isFailure() || isEmpty()) {
-			throw exSupplier.get();
-		}
-		else {
-			return get();
-		}
-	}
+    default <M> Try<M> map(CheckedFunction<? super T, ? extends M> mapper) {
+        if (isFailure() || isEmpty()) {
+            return current();
+        }
+        try {
+            return success(mapper.apply(get()));
+        } catch (Throwable e) {
+            return failure(e);
+        }
+    }
 
-	default <X extends Throwable> T getOrElseThrow(Function<T, ? extends X> exMapper) throws X {
-		return getOrElseThrow(() -> exMapper.apply(get()));
-	}
+    default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
+        if (isFailure() || isEmpty()) {
+            try {
+                throw exSupplier.get();
+            } catch (Throwable throwable) {
+                throw new IllegalStateException("An error occurred in failure supplier", throwable);
+            }
+        } else {
+            return get();
+        }
+    }
 
-	private boolean isEmpty() {
-		return this == Success.EMPTY;
-	}
+    default <X extends Throwable> T getOrElseThrow(CheckedFunction<T, ? extends X> exMapper) throws X {
+        return getOrElseThrow(() -> exMapper.apply(get()));
+    }
 
-	@SuppressWarnings("unchecked")
-	private static <T> Try<T> empty() {
-		return (Try<T>) Success.EMPTY;
-	}
+    default Try<T> onFailure(CheckedConsumer<Throwable> consumer) {
+        if (isFailure()) {
+            try {
+                consumer.accept((Throwable) get());
+            } catch (Throwable throwable) {
+                throw new IllegalStateException("An error occurred in failure consumer", throwable);
+            }
+        }
+        return this;
+    }
 
-	@SuppressWarnings("unchecked")
-	private <M> Try<M> current() {
-		return (Try<M>) this;
-	}
+    default Try<T> onFailure(CheckedRunnable runnable) {
+        return onFailure(throwable -> runnable.run());
+    }
 
-	boolean isSuccess();
+    default Try<T> onSuccess(CheckedConsumer<T> consumer) {
+        if (isSuccess()) {
+            try {
+                consumer.accept(get());
+            } catch (Throwable throwable) {
+                throw new IllegalStateException("An error occurred in success consumer", throwable);
+            }
+        }
+        return this;
+    }
 
-	boolean isFailure();
+    default Try<T> onSuccess(CheckedRunnable runnable) {
+        return onSuccess(value -> runnable.run());
+    }
 
-	T get();
+    private boolean isEmpty() {
+        return this == Success.EMPTY;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Try<T> empty() {
+        return (Try<T>) Success.EMPTY;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <M> Try<M> current() {
+        return (Try<M>) this;
+    }
+
+    boolean isSuccess();
+
+    boolean isFailure();
+
+    T get();
 
 }
