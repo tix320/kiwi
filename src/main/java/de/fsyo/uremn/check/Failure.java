@@ -1,7 +1,7 @@
 package de.fsyo.uremn.check;
 
 final class Failure<C extends Throwable> implements Try<C> {
-	
+
 	private final C cause;
 
 	public Failure(C cause) {
