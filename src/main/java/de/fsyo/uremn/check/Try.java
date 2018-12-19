@@ -1,5 +1,7 @@
 package de.fsyo.uremn.check;
 
+import de.fsyo.uremn.check.exception.internal.TryException;
+
 public interface Try<T> {
 
 	static <T> Try<T> success(T value) {
@@ -14,13 +16,13 @@ public interface Try<T> {
 			return success(supplier.get());
 		}
 		catch (Throwable throwable) {
-			throw new IllegalStateException("An error occurred in success supplier", throwable);
+			throw new TryException("An error occurred in success supplier", throwable);
 		}
 	}
 
 	static <T> Try<T> failure(Throwable throwable) {
 		if (throwable == null) {
-			throw new IllegalArgumentException("throwable cannot be null");
+			throw new TryException("throwable cannot be null");
 		}
 		@SuppressWarnings("unchecked")
 		Try<T> t = (Try<T>) new Failure<>(throwable);
@@ -32,7 +34,7 @@ public interface Try<T> {
 			return failure(supplier.get());
 		}
 		catch (Throwable throwable) {
-			throw new IllegalStateException("An error occurred in failure supplier", throwable);
+			throw new TryException("An error occurred in failure supplier", throwable);
 		}
 	}
 
@@ -110,14 +112,32 @@ public interface Try<T> {
 		}
 	}
 
-	default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
-		if (isFailure() || isEmpty()) {
+	default <X extends Throwable> T throwIfFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
+		if (isFailure()) {
+			X x;
 			try {
-				throw exSupplier.get();
+				x = exSupplier.apply((Throwable) get());
 			}
 			catch (Throwable throwable) {
-				throw new IllegalStateException("An error occurred in failure supplier", throwable);
+				throw new TryException("An error occurred in failure supplier", throwable);
 			}
+			throw x;
+		}
+		else {
+			return get();
+		}
+	}
+
+	default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
+		if (isFailure() || isEmpty()) {
+			X x;
+			try {
+				x = exSupplier.get();
+			}
+			catch (Throwable throwable) {
+				throw new TryException("An error occurred in failure supplier", throwable);
+			}
+			throw x;
 		}
 		else {
 			return get();
@@ -134,7 +154,7 @@ public interface Try<T> {
 				consumer.accept((Throwable) get());
 			}
 			catch (Throwable throwable) {
-				throw new IllegalStateException("An error occurred in failure consumer", throwable);
+				throw new TryException("An error occurred in failure consumer", throwable);
 			}
 		}
 		return this;
@@ -150,7 +170,7 @@ public interface Try<T> {
 				consumer.accept(get());
 			}
 			catch (Throwable throwable) {
-				throw new IllegalStateException("An error occurred in success consumer", throwable);
+				throw new TryException("An error occurred in success consumer", throwable);
 			}
 		}
 		return this;
@@ -170,12 +190,16 @@ public interface Try<T> {
 		return (Try<M>) this;
 	}
 
-	default boolean isEmpty() {
+	private boolean isEmpty() {
 		return this == Success.EMPTY;
 	}
 
 	default boolean isPresent() {
 		return isSuccess() && !isEmpty();
+	}
+
+	default boolean isUseless() {
+		return isFailure() || isEmpty();
 	}
 
 	boolean isSuccess();
