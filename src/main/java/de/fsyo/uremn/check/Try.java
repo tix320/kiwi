@@ -1,8 +1,15 @@
 package de.fsyo.uremn.check;
 
 import de.fsyo.uremn.check.exception.internal.TryException;
+import de.fsyo.uremn.check.internal.Failure;
+import de.fsyo.uremn.check.internal.Success;
 
 public interface Try<T> {
+
+	@SuppressWarnings("unchecked")
+	private static <T> Try<T> empty() {
+		return (Try<T>) Success.EMPTY;
+	}
 
 	static <T> Try<T> success(T value) {
 		if (value == null) {
@@ -12,30 +19,32 @@ public interface Try<T> {
 	}
 
 	static <T> Try<T> success(CheckedSupplier<? extends T> supplier) {
+		T value;
 		try {
-			return success(supplier.get());
+			value = supplier.get();
 		}
 		catch (Throwable throwable) {
 			throw new TryException("An error occurred in success supplier", throwable);
 		}
+		return success(value);
 	}
 
-	static <T> Try<T> failure(Throwable throwable) {
+	static Try<?> failure(Throwable throwable) {
 		if (throwable == null) {
 			throw new TryException("throwable cannot be null");
 		}
-		@SuppressWarnings("unchecked")
-		Try<T> t = (Try<T>) new Failure<>(throwable);
-		return t;
+		return new Failure(throwable);
 	}
 
 	static Try<?> failure(CheckedSupplier<Throwable> supplier) {
+		Throwable throwable;
 		try {
-			return failure(supplier.get());
+			throwable = supplier.get();
 		}
-		catch (Throwable throwable) {
-			throw new TryException("An error occurred in failure supplier", throwable);
+		catch (Throwable e) {
+			throw new TryException("An error occurred in failure supplier", e);
 		}
+		return failure(throwable);
 	}
 
 	static Try<?> run(CheckedRunnable runnable) {
@@ -48,75 +57,79 @@ public interface Try<T> {
 		}
 	}
 
-	static <T> Try<T> supply(CheckedSupplier<T> supplier) {
+	static <T> Try<T> supply(CheckedSupplier<? extends T> supplier) {
+		T value;
 		try {
-			return success(supplier.get());
+			value = supplier.get();
 		}
 		catch (Throwable e) {
-			return failure(e);
+			return typedFailure(e);
 		}
+		return success(value);
 	}
 
-	default Try<T> peek(CheckedConsumer<T> consumer) {
-		if (isFailure() || isEmpty()) {
-			return this;
+	default Try<T> peek(CheckedConsumer<? super T> consumer) {
+		if (isPresent()) {
+			try {
+				consumer.accept(get());
+				return this;
+			}
+			catch (Throwable e) {
+				return typedFailure(e);
+			}
 		}
-		try {
-			consumer.accept(get());
-			return this;
-		}
-		catch (Throwable throwable) {
-			return failure(throwable);
-		}
+		return this;
 	}
 
-	default Try<?> peek(CheckedRunnable runnable) {
-		if (isFailure()) {
-			return this;
+	default Try<T> peek(CheckedRunnable runnable) {
+		if (isSuccess()) {
+			try {
+				runnable.run();
+				return this;
+			}
+			catch (Throwable e) {
+				return typedFailure(e);
+			}
 		}
-		try {
-			runnable.run();
-			return this;
-		}
-		catch (Throwable throwable) {
-			return failure(throwable);
-		}
+		return this;
 	}
 
 	default Try<T> filter(CheckedPredicate<? super T> predicate) {
-		if (isFailure() || isEmpty()) {
-			return this;
-		}
-		try {
-			if (predicate.test(get())) {
-				return success(get());
+		if (isPresent()) {
+			try {
+				if (predicate.test(get())) {
+					return this;
+				}
+				else {
+					return empty();
+				}
 			}
-			else {
-				return empty();
+			catch (Throwable e) {
+				return typedFailure(e);
 			}
 		}
-		catch (Throwable e) {
-			return failure(e);
-		}
+		return this;
 	}
 
 	default <M> Try<M> map(CheckedFunction<? super T, ? extends M> mapper) {
-		if (isFailure() || isEmpty()) {
-			return current();
+		if (isPresent()) {
+			M value;
+			try {
+				value = mapper.apply(get());
+			}
+			catch (Throwable e) {
+				return typedFailure(e);
+			}
+			return success(value);
 		}
-		try {
-			return success(mapper.apply(get()));
-		}
-		catch (Throwable e) {
-			return failure(e);
-		}
+		return current();
 	}
 
-	default <X extends Throwable> T throwIfFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
+	default <X extends Throwable> Try<T> throwIfFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
 		if (isFailure()) {
 			X x;
 			try {
-				x = exSupplier.apply((Throwable) get());
+				x = exSupplier.apply(getCause());
 			}
 			catch (Throwable throwable) {
 				throw new TryException("An error occurred in failure supplier", throwable);
@@ -124,24 +137,26 @@ public interface Try<T> {
 			throw x;
 		}
 		else {
-			return get();
+			return this;
 		}
 	}
 
+	default <X extends Throwable> Try<T> throwIfFailed(CheckedSupplier<? extends X> exSupplier) throws X {
+		return throwIfFailed(throwable -> exSupplier.get());
+	}
+
 	default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
-		if (isFailure() || isEmpty()) {
-			X x;
-			try {
-				x = exSupplier.get();
-			}
-			catch (Throwable throwable) {
-				throw new TryException("An error occurred in failure supplier", throwable);
-			}
-			throw x;
-		}
-		else {
+		if (isPresent()) {
 			return get();
 		}
+		X x;
+		try {
+			x = exSupplier.get();
+		}
+		catch (Throwable throwable) {
+			throw new TryException("An error occurred in failure supplier", throwable);
+		}
+		throw x;
 	}
 
 	default <X extends Throwable> T getOrElseThrow(CheckedFunction<T, ? extends X> exMapper) throws X {
@@ -151,7 +166,7 @@ public interface Try<T> {
 	default Try<T> onFailure(CheckedConsumer<Throwable> consumer) {
 		if (isFailure()) {
 			try {
-				consumer.accept((Throwable) get());
+				consumer.accept(getCause());
 			}
 			catch (Throwable throwable) {
 				throw new TryException("An error occurred in failure consumer", throwable);
@@ -164,7 +179,7 @@ public interface Try<T> {
 		return onFailure(throwable -> runnable.run());
 	}
 
-	default Try<T> onSuccess(CheckedConsumer<T> consumer) {
+	default Try<T> onSuccess(CheckedConsumer<? super T> consumer) {
 		if (isSuccess()) {
 			try {
 				consumer.accept(get());
@@ -178,20 +193,6 @@ public interface Try<T> {
 
 	default Try<T> onSuccess(CheckedRunnable runnable) {
 		return onSuccess(value -> runnable.run());
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <T> Try<T> empty() {
-		return (Try<T>) Success.EMPTY;
-	}
-
-	@SuppressWarnings("unchecked")
-	private <M> Try<M> current() {
-		return (Try<M>) this;
-	}
-
-	private boolean isEmpty() {
-		return this == Success.EMPTY;
 	}
 
 	default boolean isPresent() {
@@ -208,4 +209,21 @@ public interface Try<T> {
 
 	T get();
 
+	@SuppressWarnings("unchecked")
+	private <M> Try<M> current() {
+		return (Try<M>) this;
+	}
+
+	private boolean isEmpty() {
+		return this == Success.EMPTY;
+	}
+
+	private Throwable getCause() {
+		return ((Failure) (this)).getCause();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <M> Try<M> typedFailure(Throwable throwable) {
+		return (Try<M>) failure(throwable);
+	}
 }

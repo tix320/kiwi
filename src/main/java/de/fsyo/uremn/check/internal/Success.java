@@ -1,12 +1,14 @@
-package de.fsyo.uremn.check;
+package de.fsyo.uremn.check.internal;
 
-final class Success<T> implements Try<T> {
+import de.fsyo.uremn.check.Try;
 
-	static final Success<?> EMPTY = new Success<>(null);
+public final class Success<T> implements Try<T> {
+
+	public static final Success<?> EMPTY = new Success<>(null);
 
 	private final T value;
 
-	Success(T value) {
+	public Success(T value) {
 		this.value = value;
 	}
 
