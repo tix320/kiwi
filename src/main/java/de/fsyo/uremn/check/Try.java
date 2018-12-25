@@ -125,7 +125,7 @@ public interface Try<T> {
 		return current();
 	}
 
-	default <X extends Throwable> Try<T> throwIfFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
+	default <X extends Throwable> Try<T> throwWhenFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
 		if (isFailure()) {
 			X x;
 			try {
@@ -141,8 +141,8 @@ public interface Try<T> {
 		}
 	}
 
-	default <X extends Throwable> Try<T> throwIfFailed(CheckedSupplier<? extends X> exSupplier) throws X {
-		return throwIfFailed(throwable -> exSupplier.get());
+	default <X extends Throwable> Try<T> throwWhenFailed(CheckedSupplier<? extends X> exSupplier) throws X {
+		return throwWhenFailed(throwable -> exSupplier.get());
 	}
 
 	default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
