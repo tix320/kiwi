@@ -159,8 +159,8 @@ public interface Try<T> {
 		throw x;
 	}
 
-	default <X extends Throwable> T getOrElseThrow(CheckedFunction<T, ? extends X> exMapper) throws X {
-		return getOrElseThrow(() -> exMapper.apply(get()));
+	default <X extends Throwable> T getOrElseThrow(CheckedFunction<Throwable, ? extends X> exMapper) throws X {
+		return getOrElseThrow(() -> exMapper.apply(getCause()));
 	}
 
 	default Try<T> onFailure(CheckedConsumer<Throwable> consumer) {
