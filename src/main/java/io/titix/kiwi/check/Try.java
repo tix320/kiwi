@@ -1,8 +1,8 @@
-package io.titix.check;
+package io.titix.kiwi.check;
 
-import io.titix.check.internal.TryException;
-import io.titix.check.internal.Failure;
-import io.titix.check.internal.Success;
+import io.titix.kiwi.check.internal.TryException;
+import io.titix.kiwi.check.internal.Failure;
+import io.titix.kiwi.check.internal.Success;
 
 public interface Try<T> {
 

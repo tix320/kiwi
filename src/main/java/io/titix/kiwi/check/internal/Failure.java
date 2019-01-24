@@ -1,8 +1,8 @@
-package io.titix.check.internal;
+package io.titix.kiwi.check.internal;
 
 import java.util.NoSuchElementException;
 
-import io.titix.check.Try;
+import io.titix.kiwi.check.Try;
 
 public final class Failure implements Try<Throwable> {
 

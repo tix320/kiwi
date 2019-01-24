@@ -1,4 +1,4 @@
-package io.titix.check.internal;
+package io.titix.kiwi.check.internal;
 
 /**
  * @author Tigran.Sargsyan on 19-Dec-18

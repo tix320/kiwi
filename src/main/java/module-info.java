@@ -1,3 +1,3 @@
 module kiwi {
-	exports io.titix.check;
+	exports io.titix.kiwi.check;
 }

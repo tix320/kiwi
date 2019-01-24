@@ -1,4 +1,4 @@
-package io.titix.check;
+package io.titix.kiwi.check;
 
 public interface CheckedFunction<T, R> {
 

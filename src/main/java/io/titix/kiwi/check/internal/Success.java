@@ -1,6 +1,6 @@
-package io.titix.check.internal;
+package io.titix.kiwi.check.internal;
 
-import io.titix.check.Try;
+import io.titix.kiwi.check.Try;
 
 public final class Success<T> implements Try<T> {
 
