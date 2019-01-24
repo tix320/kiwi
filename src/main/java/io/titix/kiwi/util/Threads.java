@@ -3,6 +3,7 @@ package io.titix.kiwi.util;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 /**
  * @author Tigran.Sargsyan on 14-Dec-18
@@ -42,6 +43,20 @@ public final class Threads {
 			}
 			catch (ExecutionException e) {
 				throw (RuntimeException) e.getCause();
+			}
+		});
+	}
+
+	public static void handleFutureEx(Future<?> future, Consumer<Throwable> errorHandler) {
+		runDaemon(() -> {
+			try {
+				future.get();
+			}
+			catch (InterruptedException e) {
+				errorHandler.accept(e);
+			}
+			catch (ExecutionException e) {
+				errorHandler.accept(e.getCause());
 			}
 		});
 	}
