@@ -1,8 +1,8 @@
-package de.fsyo.uremn.check;
+package io.titix.check;
 
-import de.fsyo.uremn.check.exception.internal.TryException;
-import de.fsyo.uremn.check.internal.Failure;
-import de.fsyo.uremn.check.internal.Success;
+import io.titix.check.internal.TryException;
+import io.titix.check.internal.Failure;
+import io.titix.check.internal.Success;
 
 public interface Try<T> {
 

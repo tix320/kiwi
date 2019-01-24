@@ -1,8 +1,8 @@
-package de.fsyo.uremn.check.internal;
+package io.titix.check.internal;
 
 import java.util.NoSuchElementException;
 
-import de.fsyo.uremn.check.Try;
+import io.titix.check.Try;
 
 public final class Failure implements Try<Throwable> {
 

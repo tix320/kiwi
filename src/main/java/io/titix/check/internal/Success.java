@@ -1,6 +1,6 @@
-package de.fsyo.uremn.check.internal;
+package io.titix.check.internal;
 
-import de.fsyo.uremn.check.Try;
+import io.titix.check.Try;
 
 public final class Success<T> implements Try<T> {
 

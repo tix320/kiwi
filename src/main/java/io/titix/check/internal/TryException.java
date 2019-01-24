@@ -1,4 +1,4 @@
-package de.fsyo.uremn.check.exception.internal;
+package io.titix.check.internal;
 
 /**
  * @author Tigran.Sargsyan on 19-Dec-18

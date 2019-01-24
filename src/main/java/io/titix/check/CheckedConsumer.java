@@ -1,4 +1,4 @@
-package de.fsyo.uremn.check;
+package io.titix.check;
 
 public interface CheckedConsumer<T> {
 
