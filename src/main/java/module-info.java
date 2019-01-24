@@ -1,3 +1,3 @@
 module kiwi {
-	exports de.fsyo.uremn.check;
+	exports io.titix.check;
 }
