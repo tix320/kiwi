@@ -1,8 +1,8 @@
 package io.titix.kiwi.check;
 
-import io.titix.kiwi.check.internal.TryException;
 import io.titix.kiwi.check.internal.Failure;
 import io.titix.kiwi.check.internal.Success;
+import io.titix.kiwi.check.internal.TryException;
 
 public interface Try<T> {
 
@@ -123,6 +123,16 @@ public interface Try<T> {
 			return success(value);
 		}
 		return current();
+	}
+
+	default Try<T> whatever(CheckedRunnable runnable) {
+		try {
+			runnable.run();
+			return this;
+		}
+		catch (Throwable e) {
+			return typedFailure(e);
+		}
 	}
 
 	default <X extends Throwable> Try<T> throwWhenFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
