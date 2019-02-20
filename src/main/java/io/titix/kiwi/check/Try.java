@@ -1,5 +1,7 @@
 package io.titix.kiwi.check;
 
+import java.util.function.Function;
+
 import io.titix.kiwi.check.internal.Failure;
 import io.titix.kiwi.check.internal.Success;
 import io.titix.kiwi.check.internal.TryException;
@@ -66,6 +68,24 @@ public interface Try<T> {
 			return typedFailure(e);
 		}
 		return success(value);
+	}
+
+	static <X extends Throwable> void runChecked(CheckedRunnable runnable, Function<Throwable, ? extends X> exMapper) throws X {
+		try {
+			runnable.run();
+		}
+		catch (Throwable throwable) {
+			throw exMapper.apply(throwable);
+		}
+	}
+
+	static <T, X extends Throwable> T supplyChecked(CheckedSupplier<T> supplier, Function<Throwable, ? extends X> exMapper) throws X {
+		try {
+			return supplier.get();
+		}
+		catch (Throwable throwable) {
+			throw exMapper.apply(throwable);
+		}
 	}
 
 	default Try<T> peek(CheckedConsumer<? super T> consumer) {
