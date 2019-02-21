@@ -79,7 +79,7 @@ public interface Try<T> {
 		}
 	}
 
-	static <T, X extends Throwable> T supplyChecked(CheckedSupplier<T> supplier, Function<Throwable, ? extends X> exMapper) throws X {
+	static <T, X extends Throwable> T supplyChecked(CheckedSupplier<? extends T> supplier, Function<Throwable, ? extends X> exMapper) throws X {
 		try {
 			return supplier.get();
 		}
