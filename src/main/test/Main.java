@@ -1,7 +1,5 @@
 import io.titix.kiwi.observable.Observable;
 import io.titix.kiwi.observable.Subject;
-import io.titix.kiwi.observable.Subscription;
-import io.titix.kiwi.observable.internal.DefaultSubject;
 
 /**
  * @author tix32 on 21-Feb-19
@@ -12,17 +10,19 @@ public class Main {
 		Subject<Integer> defaultSubject = Subject.create();
 
 		Observable<Integer> observable = defaultSubject.asObservable();
-		observable.subscribe(o -> System.out.println(o+1));
+		observable.subscribe(o -> System.out.println("lol " + o));
 		defaultSubject.next(10);
-		System.out.println();
-		Subscription subscribe = observable.subscribe(o -> System.out.println(o + 2));
+
+		observable.take(4).subscribe(integer -> System.out.println("hey " + integer));
+
+		observable.one().subscribe(integer -> System.out.println("mihat" + integer));
+
 		defaultSubject.next(10);
-		System.out.println();
-		observable.subscribe(o -> System.out.println(o+3));
-		subscribe.unsubscribe();
 		defaultSubject.next(10);
-		System.out.println();
-		observable.subscribe(o -> System.out.println(o+4));
+		defaultSubject.next(10);
+		defaultSubject.next(10);
+		defaultSubject.next(10);
+		defaultSubject.next(10);
 		defaultSubject.next(10);
 
 	}

@@ -11,28 +11,12 @@ import io.titix.kiwi.observable.Subscription;
 /**
  * @author tix32 on 21-Feb-19
  */
-public final class CountingSubject<T> implements Subject<T>, Observable<T> {
+public final class CountingSubject<T> implements Subject<T> {
 
-	private final List<Observer<T>> observers;
+	private final List<Consumer<T>> observers;
 
 	public CountingSubject() {
 		observers = new LinkedList<>();
-	}
-
-	@Override
-	public Subscription subscribe(Consumer<T> consumer) {
-		//observers.add(new ObserverNode<>())
-		return null;
-	}
-
-	@Override
-	public Observable<T> take(long count) {
-		return null;
-	}
-
-	@Override
-	public Observable<T> one() {
-		return null;
 	}
 
 	@Override

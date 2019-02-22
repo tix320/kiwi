@@ -9,7 +9,36 @@ public interface Observable<T> {
 
 	Subscription subscribe(Consumer<T> consumer);
 
-	Observable<T> take(long count);
+	default Observable<T> take(long count) {
+		long real = count < 1 ? 1 : count;
+		return consumer -> {
+			var subscription = new Object() {
+				Subscription $;
+				long limit = real;
+			};
+			subscription.$ = this.subscribe(t -> {
+				subscription.limit--;
+				consumer.accept(t);
+				if (subscription.limit == 0) {
+					subscription.$.unsubscribe();
+				}
+			});
 
-	Observable<T> one();
+			return subscription.$;
+
+		};
+	}
+
+	default Observable<T> one() {
+		return consumer -> {
+			var subscription = new Object() {
+				Subscription $;
+			};
+			subscription.$ = this.subscribe(t -> {
+				consumer.accept(t);
+				subscription.$.unsubscribe();
+			});
+			return subscription.$;
+		};
+	}
 }
