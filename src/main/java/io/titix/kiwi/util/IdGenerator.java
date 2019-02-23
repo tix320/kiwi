@@ -11,7 +11,7 @@ public final class IdGenerator {
 	private final Queue<Long> availableNumbers;
 
 	public IdGenerator() {
-		current = new AtomicLong();
+		current = new AtomicLong(Long.MIN_VALUE);
 		availableNumbers = new ConcurrentLinkedQueue<>();
 	}
 
@@ -22,7 +22,10 @@ public final class IdGenerator {
 		return current.getAndIncrement();
 	}
 
-	public void detach(long id) {
+	public void free(long id) {
+		if (id >= current.get()) {
+			throw new IllegalArgumentException("id " + id + " is already free");
+		}
 		availableNumbers.add(id);
 	}
 }

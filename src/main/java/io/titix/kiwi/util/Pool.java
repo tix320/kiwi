@@ -11,11 +11,14 @@ public final class Pool<O> {
 
 	private final Queue<O> pool;
 
-	public Pool() {
+	private final Supplier<O> factory;
+
+	public Pool(Supplier<O> factory) {
 		this.pool = new ConcurrentLinkedQueue<>();
+		this.factory = factory;
 	}
 
-	public O getProxies(Supplier<O> factory) {
+	public O get() {
 		O object = pool.poll();
 		if (object == null) {
 			return factory.get();
