@@ -1,17 +1,18 @@
 package io.titix.kiwi.rx.internal.subject;
 
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.function.Consumer;
 
+import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subject;
-import io.titix.kiwi.rx.internal.observer.Observer;
+import io.titix.kiwi.rx.internal.observer.SourceObservable;
 
 /**
  * @author tix32 on 23-Feb-19
  */
- abstract class BaseSubject<T> implements Subject<T> {
+abstract class BaseSubject<T> implements Subject<T> {
 
-	final Collection<Observer<T>> observers;
+	final Collection<Consumer<T>> observers;
 
 	BaseSubject() {
 		this.observers = container();
@@ -22,15 +23,8 @@ import io.titix.kiwi.rx.internal.observer.Observer;
 
 	public final void next(T object) {
 		preNext(object);
-		Iterator<Observer<T>> iterator = observers.iterator();
-		while (iterator.hasNext()) {
-			Observer<T> observer = iterator.next();
-			if (observer.needMore()) {
-				observer.next(object);
-			}
-			else {
-				iterator.remove();
-			}
+		for (Consumer<T> observer : observers) {
+			observer.accept(object);
 		}
 		postNext(object);
 	}
@@ -40,5 +34,12 @@ import io.titix.kiwi.rx.internal.observer.Observer;
 		// do nothing
 	}
 
-	abstract Collection<Observer<T>> container();
+	@Override
+	public final Observable<T> asObservable() {
+		return source();
+	}
+
+	abstract SourceObservable<T> source();
+
+	abstract Collection<Consumer<T>> container();
 }

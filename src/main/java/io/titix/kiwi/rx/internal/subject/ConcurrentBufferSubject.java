@@ -4,8 +4,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import io.titix.kiwi.rx.internal.observer.Observer;
+import java.util.function.Consumer;
 
 
 /**
@@ -23,7 +22,7 @@ public final class ConcurrentBufferSubject<T> extends BufferSubject<T> {
 	}
 
 	@Override
-	Collection<Observer<T>> container() {
+	Collection<Consumer<T>> container() {
 		return new ConcurrentLinkedQueue<>();
 	}
 }

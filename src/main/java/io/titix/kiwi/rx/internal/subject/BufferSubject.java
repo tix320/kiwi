@@ -1,13 +1,9 @@
 package io.titix.kiwi.rx.internal.subject;
 
 import java.util.Deque;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observer.BaseObservable;
-import io.titix.kiwi.rx.internal.observer.Observer;
+import io.titix.kiwi.rx.internal.observer.SourceObservable;
 
 /**
  * @author tix32 on 21-Feb-19
@@ -32,36 +28,13 @@ abstract class BufferSubject<T> extends BaseSubject<T> {
 	}
 
 	@Override
-	public Observable<T> asObservable() {
-		return new BaseObservable<>() {
-
-			@Override
-			public Subscription subscribe(Consumer<T> consumer, BooleanSupplier predicate) {
-				Observer<T> observer = new Observer<>(consumer, predicate);
-				observers.add(observer);
-				fillFromBuffer(observer);
-				return () -> observers.remove(observer);
-			}
-
-			@Override
-			public Subscription subscribe(Consumer<T> consumer) {
-				Observer<T> observer = new Observer<>(consumer, () -> true);
-				observers.add(observer);
-				fillFromBuffer(observer);
-				return () -> observers.remove(observer);
-			}
-		};
+	public SourceObservable<T> source() {
+		return new SourceObservable<>(observers, this::fillFromBuffer);
 	}
 
-	private void fillFromBuffer(Observer<T> observer) {
+	private void fillFromBuffer(Consumer<T> consumer) {
 		for (T object : buffer) {
-			if (observer.needMore()) {
-				observer.next(object);
-			}
-			else {
-				observers.remove(observer);
-				break;
-			}
+			consumer.accept(object);
 		}
 	}
 

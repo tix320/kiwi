@@ -3,8 +3,6 @@ package io.titix.kiwi.rx.internal.subject;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import io.titix.kiwi.rx.internal.observer.Observer;
-
 /**
  * @author tix32 on 23-Feb-19
  */
