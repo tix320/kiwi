@@ -5,20 +5,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 
 /**
- * @author tix32 on 05-Jan-19
+ * @author tix32 on 24-Feb-19
  */
-public final class Pool<O> {
+public final class PostPool<O> {
 
 	private final Queue<O> pool;
 
-	private final Supplier<O> factory;
-
-	public Pool(Supplier<O> factory) {
+	public PostPool() {
 		this.pool = new ConcurrentLinkedQueue<>();
-		this.factory = factory;
 	}
 
-	public O get() {
+	public O get(Supplier<O> factory) {
 		O object = pool.poll();
 		if (object == null) {
 			return factory.get();
