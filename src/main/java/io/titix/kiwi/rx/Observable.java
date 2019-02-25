@@ -23,8 +23,8 @@ public interface Observable<T> {
 		return new OneTimeObservable<>(this);
 	}
 
-	default <T, R> Observable<R> map(Function<T, R> mapper) {
-		return
+	default <R> Observable<R> map(Function<T, R> mapper) {
+		return consumer -> this.subscribe(object -> consumer.accept(mapper.apply(object)));
 	}
 
 	static <T> Observable<T> of(T value) {
@@ -35,6 +35,6 @@ public interface Observable<T> {
 
 	@SafeVarargs
 	static <T> Observable<T> concat(Observable<T>... observables) {
-		new ConcatObservable<>(observables);
+		return new ConcatObservable<>(observables);
 	}
 }
