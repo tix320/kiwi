@@ -5,7 +5,9 @@ package io.titix.kiwi.rx.internal.observer;
  */
 public interface Filter<T> {
 
-	T get();
+	boolean finish();
 
-	void unsubscribe();
+	boolean needMore();
+
+	void consume(T object);
 }

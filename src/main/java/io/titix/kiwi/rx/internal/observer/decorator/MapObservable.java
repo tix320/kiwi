@@ -21,6 +21,6 @@ public final class MapObservable<T, R> extends DecoratorObservable<T> {
 
 	@Override
 	Predicate<Filter> filter() {
-		return filter -> filter. ; // TODO decorator may change object
+		return filter -> filter.get() ; // TODO decorator may change object
 	}
 }

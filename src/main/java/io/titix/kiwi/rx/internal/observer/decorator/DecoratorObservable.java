@@ -1,6 +1,8 @@
 package io.titix.kiwi.rx.internal.observer.decorator;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.titix.kiwi.rx.Observable;
@@ -21,12 +23,33 @@ public abstract class DecoratorObservable<T> extends BaseObservable<T> {
 
 	@Override
 	public final Subscription subscribe(Consumer<T> consumer) {
-		return ((BaseObservable<T>) observable).subscribe(consumer, filter());
+		return ((BaseObservable<T>) observable).subscribe(object -> {
+
+			AtomicLong limit = new AtomicLong(4);
+
+			return new Filter<>() {
+				@Override
+				public boolean finish() {
+					return limit.get() == 0;
+				}
+
+				@Override
+				public boolean needMore() {
+					return limit.getAndDecrement() == 0;
+				}
+
+				@Override
+				public void consume(T object) {
+					consumer.accept(object);
+				}
+			};
+		});
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<T> consumer, Predicate<Filter> filter) {
-		return ((BaseObservable<T>) observable).subscribe(consumer, filter.and(filter()));
+	public Subscription subscribe(Function<T, Filter<T>> filterFactory) {
+		((BaseObservable<T>) observable).subscribe(objec -> );
+		return null;
 	}
 
 	abstract Predicate<Filter> filter();

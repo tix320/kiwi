@@ -1,6 +1,7 @@
 package io.titix.kiwi.rx.internal.observer;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.titix.kiwi.rx.Observable;
@@ -11,5 +12,5 @@ import io.titix.kiwi.rx.Subscription;
  */
 public abstract class BaseObservable<T> implements Observable<T> {
 
-	public abstract Subscription subscribe(Consumer<T> consumer, Predicate<Filter> filter);
+	public abstract Subscription subscribe(Function<T, Filter<T>> filterFactory);
 }

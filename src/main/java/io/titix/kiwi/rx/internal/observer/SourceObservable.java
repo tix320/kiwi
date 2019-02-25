@@ -2,7 +2,8 @@ package io.titix.kiwi.rx.internal.observer;
 
 import java.util.Collection;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import io.titix.kiwi.rx.Subscription;
 
@@ -21,12 +22,16 @@ public final class SourceObservable<T> extends BaseObservable<T> {
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<T> consumer, Predicate<Subscription> filter) {
+	public final Subscription subscribe(Function<T, Filter<T>> filterFactory) {
 		Consumer<T> filteredConsumer = new Consumer<>() {
 			@Override
 			public void accept(T object) {
-				if (filter.test(() -> observers.remove(this))) {
-					consumer.accept(object);
+				Filter<T> filter = filterFactory.apply(object);
+				if (filter.finish()) {
+					observers.remove(this);
+				}
+				else if (filter.needMore()) {
+					filter.consume(object);
 				}
 			}
 		};
