@@ -5,20 +5,18 @@ import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subject;
+import io.titix.kiwi.rx.internal.observer.ObserverManager;
 import io.titix.kiwi.rx.internal.observer.SourceObservable;
 
 /**
  * @author tix32 on 23-Feb-19
  */
-abstract class BaseSubject<T> implements Subject<T> {
+public abstract class BaseSubject<T> implements Subject<T> {
 
-	final Collection<Consumer<T>> observers;
+	protected final Collection<Consumer<T>> observers;
 
-	BaseSubject() {
+	protected BaseSubject() {
 		this.observers = container();
-	}
-
-	void preNext(T object) {
 	}
 
 	public final void next(T object) {
@@ -29,17 +27,35 @@ abstract class BaseSubject<T> implements Subject<T> {
 		postNext(object);
 	}
 
+	@Override
+	public final void next(T[] objects) {
+		for (T object : objects) {
+			next(object);
+		}
+	}
+
+	@Override
+	public final void next(Iterable<T> objects) {
+		for (T object : objects) {
+			next(object);
+		}
+	}
+
+	protected void preNext(T object) {
+		// do nothing
+	}
+
 	@SuppressWarnings("all")
-	void postNext(T object) {
+	protected void postNext(T object) {
 		// do nothing
 	}
 
 	@Override
 	public final Observable<T> asObservable() {
-		return source();
+		return new SourceObservable<>(manager());
 	}
 
-	abstract SourceObservable<T> source();
+	protected abstract ObserverManager<T> manager();
 
-	abstract Collection<Consumer<T>> container();
+	protected abstract Collection<Consumer<T>> container();
 }

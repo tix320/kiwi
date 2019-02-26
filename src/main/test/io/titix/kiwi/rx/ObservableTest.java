@@ -2,7 +2,11 @@ package io.titix.kiwi.rx;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author tix32 on 24-Feb-19
  */
-public class ObservableTest {
+class ObservableTest {
 
 	@Test
 	void ofTest() {
@@ -55,4 +59,148 @@ public class ObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
+	@Test
+	void concatWithDecoratorTest() {
+
+		List<Integer> expected = Arrays.asList(10, 20, 30, 40, 50, 60, 70);
+		List<Integer> actual = new ArrayList<>();
+
+		Observable<Integer> observable1 = Observable.of(10, 20, 30);
+
+		Observable<Integer> observable2 = Observable.of(40, 50, 60);
+
+		Subject<Integer> subject = Subject.single();
+
+		Observable<Integer> observable3 = subject.asObservable();
+
+		Observable.concat(observable1, observable2, observable3)
+				.take(7)
+				.subscribe(actual::add);
+
+		subject.next(new Integer[]{70, 80});
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void mapTest() {
+
+		List<String> expected = Arrays.asList("10lol", "20lol", "20lol", "25lol");
+		List<String> actual = new ArrayList<>();
+
+		Subject<Integer> subject = Subject.single();
+
+		Observable<Integer> observable = subject.asObservable();
+
+		Subscription subscription = observable.map(integer -> integer + "lol").subscribe(actual::add);
+
+		subject.next(10);
+		observable.map(integer -> integer + "lol").one().subscribe(actual::add);
+
+		subject.next(20);
+		subject.next(25);
+
+		subscription.unsubscribe();
+
+		subject.next(50);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void untilTest() {
+
+		List<Integer> expected = Arrays.asList(10, 20, 25);
+		List<Integer> actual = new ArrayList<>();
+
+		Subject<Integer> subject = Subject.single();
+
+		Observable<Integer> observable = subject.asObservable();
+
+		Subject<Object> untilSubject = Subject.single();
+
+		Observable<?> untilObservable = untilSubject.asObservable();
+
+		observable.takeUntil(untilObservable).subscribe(actual::add);
+
+		subject.next(10);
+		subject.next(20);
+		subject.next(25);
+
+		untilSubject.next(new Object());
+
+		subject.next(50);
+		subject.next(60);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void intervalTest() throws InterruptedException {
+		List<Integer> actual = new CopyOnWriteArrayList<>();
+
+		AtomicInteger index = new AtomicInteger(1);
+		InfiniteObservable<Integer> observable = Observable.interval(index::getAndIncrement, 100, TimeUnit.MILLISECONDS);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(110);
+
+		assertEquals(Collections.singletonList(1), actual);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(1, 2), actual);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(1, 2, 3, 3), actual);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(1, 2, 3, 3, 4, 4), actual);
+
+		Thread.sleep(110);
+
+		observable.stop();
+
+		assertEquals(Arrays.asList(1, 2, 3, 3, 4, 4, 5, 5), actual);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(1, 2, 3, 3, 4, 4, 5, 5), actual);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(1, 2, 3, 3, 4, 4, 5, 5), actual);
+	}
+
+	@Test
+	void intervalWithDecoratorTest() throws InterruptedException {
+		List<Integer> actual = new ArrayList<>();
+
+		AtomicInteger index = new AtomicInteger();
+		Observable<Integer> observable = Observable.interval(index::getAndIncrement, 100, TimeUnit.MILLISECONDS)
+				.take(2);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(110);
+
+		assertEquals(Collections.singletonList(0), actual);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(0, 1, 1), actual);
+
+		Thread.sleep(110);
+
+		assertEquals(Arrays.asList(0, 1, 1, 2), actual);
+	}
 }
+

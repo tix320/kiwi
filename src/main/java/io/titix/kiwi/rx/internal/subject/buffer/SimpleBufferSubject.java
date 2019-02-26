@@ -1,8 +1,9 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.internal.subject.buffer;
 
 import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.function.Consumer;
 
 
 /**
@@ -20,7 +21,7 @@ public final class SimpleBufferSubject<T> extends BufferSubject<T> {
 	}
 
 	@Override
-	Collection<Observer<T>> container() {
+	protected Collection<Consumer<T>> container() {
 		return new LinkedList<>();
 	}
 }

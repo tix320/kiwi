@@ -5,6 +5,8 @@ package io.titix.kiwi.check.internal;
  */
 public class TryException extends RuntimeException {
 
+	private static final long serialVersionUID = -2990942621623055959L;
+
 	public TryException(String message) {
 		super(message);
 	}

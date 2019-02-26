@@ -1,9 +1,10 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.internal.subject.buffer;
 
 import java.util.Deque;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.internal.observer.SourceObservable;
+import io.titix.kiwi.rx.internal.observer.ObserverManager;
+import io.titix.kiwi.rx.internal.subject.BaseSubject;
 
 /**
  * @author tix32 on 21-Feb-19
@@ -28,9 +29,11 @@ abstract class BufferSubject<T> extends BaseSubject<T> {
 	}
 
 	@Override
-	public SourceObservable<T> source() {
-		return new SourceObservable<>(observers, this::fillFromBuffer);
+	public ObserverManager<T> manager() {
+		return new ObserverManagerImpl();
 	}
+
+	abstract Deque<T> buffer();
 
 	private void fillFromBuffer(Consumer<T> consumer) {
 		for (T object : buffer) {
@@ -38,5 +41,17 @@ abstract class BufferSubject<T> extends BaseSubject<T> {
 		}
 	}
 
-	abstract Deque<T> buffer();
+	private final class ObserverManagerImpl implements ObserverManager<T> {
+
+		@Override
+		public void add(Consumer<T> consumer) {
+			observers.add(consumer);
+			fillFromBuffer(consumer);
+		}
+
+		@Override
+		public void remove(Consumer<T> consumer) {
+			observers.remove(consumer);
+		}
+	}
 }

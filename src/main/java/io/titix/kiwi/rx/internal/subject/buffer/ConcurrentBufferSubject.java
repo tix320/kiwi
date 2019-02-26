@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.internal.subject.buffer;
 
 import java.util.Collection;
 import java.util.Deque;
@@ -22,7 +22,7 @@ public final class ConcurrentBufferSubject<T> extends BufferSubject<T> {
 	}
 
 	@Override
-	Collection<Consumer<T>> container() {
+	protected Collection<Consumer<T>> container() {
 		return new ConcurrentLinkedQueue<>();
 	}
 }

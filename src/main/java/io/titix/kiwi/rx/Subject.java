@@ -1,9 +1,9 @@
 package io.titix.kiwi.rx;
 
-import io.titix.kiwi.rx.internal.subject.ConcurrentBufferSubject;
-import io.titix.kiwi.rx.internal.subject.ConcurrentSingleSubject;
-import io.titix.kiwi.rx.internal.subject.SimpleBufferSubject;
-import io.titix.kiwi.rx.internal.subject.SimpleSingleSubject;
+import io.titix.kiwi.rx.internal.subject.buffer.ConcurrentBufferSubject;
+import io.titix.kiwi.rx.internal.subject.buffer.SimpleBufferSubject;
+import io.titix.kiwi.rx.internal.subject.single.ConcurrentSingleSubject;
+import io.titix.kiwi.rx.internal.subject.single.SimpleSingleSubject;
 
 /**
  * @author tix32 on 21-Feb-19
@@ -11,6 +11,10 @@ import io.titix.kiwi.rx.internal.subject.SimpleSingleSubject;
 public interface Subject<T> {
 
 	void next(T object);
+
+	void next(T[] objects);
+
+	void next(Iterable<T> objects);
 
 	Observable<T> asObservable();
 

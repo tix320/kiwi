@@ -1,7 +1,8 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.internal.subject.single;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 /**
  * @author tix32 on 23-Feb-19
@@ -9,7 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public final class ConcurrentSingleSubject<T> extends SingleSubject<T> {
 
 	@Override
-	Collection<Observer<T>> container() {
+	protected Collection<Consumer<T>> container() {
 		return new ConcurrentLinkedQueue<>();
 	}
 }

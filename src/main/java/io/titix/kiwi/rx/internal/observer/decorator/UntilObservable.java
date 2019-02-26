@@ -7,24 +7,26 @@ import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
 
 /**
- * @author tix32 on 22-Feb-19
+ * @author Tigran.Sargsyan on 26-Feb-19
  */
-public final class OneTimeObservable<T> extends DecoratorObservable<T, T> {
+public class UntilObservable<T> extends DecoratorObservable<T, T> {
 
-	public OneTimeObservable(Observable<T> observable) {
+	private final Observable<?> until;
+
+	public UntilObservable(Observable<T> observable, Observable<?> until) {
 		super(observable);
+		this.until = until;
 	}
 
 	@Override
 	BiFunction<Subscription, T, Result<T>> filter() {
 		AtomicBoolean need = new AtomicBoolean(true);
+		until.subscribe(ignored -> need.set(false));
 		return (subscription, object) -> {
-			if (need.getAndSet(false)) {
+			if (need.get()) {
 				return Result.forNext(object);
 			}
 			return Result.end();
 		};
 	}
-
-
 }

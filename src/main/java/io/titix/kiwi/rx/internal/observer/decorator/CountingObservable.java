@@ -1,16 +1,15 @@
 package io.titix.kiwi.rx.internal.observer.decorator;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observer.BaseObservable;
 
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class CountingObservable<T> extends DecoratorObservable<T> {
+public final class CountingObservable<T> extends DecoratorObservable<T, T> {
 
 	private final long count;
 
@@ -19,23 +18,17 @@ public final class CountingObservable<T> extends DecoratorObservable<T> {
 		this.count = count < 1 ? 1 : count;
 	}
 
-
 	@Override
-	public Subscription subscribe(Consumer<T> consumer) {
+	BiFunction<Subscription, T, Result<T>> filter() {
 		AtomicLong limit = new AtomicLong(count);
-		Consumer<T> filteredConsumer = new Consumer<>() {
-			@Override
-			public void accept(T object) {
-				if (limit.getAndDecrement() != 0) {
-					consumer.accept(object);
-				}
-				else {
-					observers().remove(this);
-				}
+		return (subscription, object) -> {
+			if (limit.getAndDecrement() > 0) {
+				return Result.forNext(object);
 			}
+			else {
+				subscription.unsubscribe();
+			}
+			return Result.end();
 		};
-		observable.subscribe(filteredConsumer);
-
-		return () -> observers().remove(filteredConsumer);
 	}
 }
