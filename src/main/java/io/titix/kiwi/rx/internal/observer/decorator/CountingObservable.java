@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class CountingObservable<T> extends DecoratorObservable<T, T> {
+public final class CountingObservable<T> extends FilterObservable<T, T> {
 
 	private final long count;
 

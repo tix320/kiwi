@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-public class UntilObservable<T> extends DecoratorObservable<T, T> {
+public class UntilObservable<T> extends FilterObservable<T, T> {
 
 	private final Observable<?> until;
 

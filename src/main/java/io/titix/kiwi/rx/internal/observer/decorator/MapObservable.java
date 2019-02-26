@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 24-Feb-19
  */
-public final class MapObservable<T, R> extends DecoratorObservable<T, R> {
+public final class MapObservable<T, R> extends FilterObservable<T, R> {
 
 	private final Function<T, R> mapper;
 

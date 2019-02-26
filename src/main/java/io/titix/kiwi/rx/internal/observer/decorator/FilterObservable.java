@@ -9,11 +9,11 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 24-Feb-19
  */
-abstract class DecoratorObservable<T, R> implements Observable<R> {
+abstract class FilterObservable<T, R> implements Observable<R> {
 
 	private final Observable<T> observable;
 
-	DecoratorObservable(Observable<T> observable) {
+	FilterObservable(Observable<T> observable) {
 		this.observable = observable;
 	}
 
@@ -24,13 +24,13 @@ abstract class DecoratorObservable<T, R> implements Observable<R> {
 		};
 		BiFunction<Subscription, T, Result<R>> filter = filter();
 		subscription.$ = observable.subscribe(object -> {
-			Result<R> filtered = filter.apply(() -> {
+			Result<R> result = filter.apply(() -> {
 				if (subscription.$ != null) {
 					subscription.$.unsubscribe();
 				}
 			}, object);
-			if (!filtered.done) {
-				consumer.accept(filtered.object);
+			if (!result.done) {
+				consumer.accept(result.object);
 			}
 
 		});
