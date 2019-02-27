@@ -1,12 +1,9 @@
 package io.titix.kiwi.rx;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import io.titix.kiwi.rx.internal.observer.ConcatObservable;
-import io.titix.kiwi.rx.internal.observer.IntervalObservable;
 import io.titix.kiwi.rx.internal.observer.decorator.CountingObservable;
 import io.titix.kiwi.rx.internal.observer.decorator.MapObservable;
 import io.titix.kiwi.rx.internal.observer.decorator.OneTimeObservable;
@@ -47,10 +44,6 @@ public interface Observable<T> {
 		ConcurrentBufferSubject<T> subject = new ConcurrentBufferSubject<>(values.length);
 		subject.next(values);
 		return subject.asObservable();
-	}
-
-	static <T> InfiniteObservable<T> interval(Supplier<T> supplier, long value, TimeUnit timeUnit) {
-		return new IntervalObservable<>(supplier, value, timeUnit);
 	}
 
 	@SafeVarargs

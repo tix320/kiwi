@@ -35,7 +35,7 @@ abstract class BufferSubject<T> extends BaseSubject<T> {
 
 	abstract Deque<T> buffer();
 
-	private void fillFromBuffer(Consumer<T> consumer) {
+	private void nextFromBuffer(Consumer<T> consumer) {
 		for (T object : buffer) {
 			consumer.accept(object);
 		}
@@ -46,7 +46,7 @@ abstract class BufferSubject<T> extends BaseSubject<T> {
 		@Override
 		public void add(Consumer<T> consumer) {
 			observers.add(consumer);
-			fillFromBuffer(consumer);
+			nextFromBuffer(consumer);
 		}
 
 		@Override

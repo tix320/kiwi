@@ -24,7 +24,6 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		for (Consumer<T> observer : observers) {
 			observer.accept(object);
 		}
-		postNext(object);
 	}
 
 	@Override
@@ -42,11 +41,6 @@ public abstract class BaseSubject<T> implements Subject<T> {
 	}
 
 	protected void preNext(T object) {
-		// do nothing
-	}
-
-	@SuppressWarnings("all")
-	protected void postNext(T object) {
 		// do nothing
 	}
 

@@ -1,5 +1,6 @@
 package io.titix.kiwi.rx.internal.observer.decorator;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -19,22 +20,21 @@ abstract class FilterObservable<T, R> implements Observable<R> {
 
 	@Override
 	public final Subscription subscribe(Consumer<R> consumer) {
-		var subscription = new Object() {
-			Subscription $;
-		};
+		AtomicReference<Subscription> subscription = new AtomicReference<>();
 		BiFunction<Subscription, T, Result<R>> filter = filter();
-		subscription.$ = observable.subscribe(object -> {
+		subscription.set(observable.subscribe(object -> {
 			Result<R> result = filter.apply(() -> {
-				if (subscription.$ != null) {
-					subscription.$.unsubscribe();
+				Subscription sub = subscription.get();
+				if (sub != null) {
+					sub.unsubscribe();
 				}
 			}, object);
 			if (!result.done) {
 				consumer.accept(result.object);
 			}
 
-		});
-		return subscription.$;
+		}));
+		return subscription.get();
 	}
 
 	abstract BiFunction<Subscription, T, Result<R>> filter();
