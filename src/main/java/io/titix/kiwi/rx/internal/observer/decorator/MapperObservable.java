@@ -9,15 +9,14 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 24-Feb-19
  */
-public final class MapObservable<T, R> extends FilterObservable<T, R> {
+public final class MapperObservable<T, R> extends FilterObservable<T, R> {
 
-	private final Function<T, R> mapper;
+	private final Function<? super T, ? extends R> mapper;
 
-	public MapObservable(Observable<T> observable, Function<T, R> mapper) {
+	public MapperObservable(Observable<T> observable, Function<? super T, ? extends R> mapper) {
 		super(observable);
 		this.mapper = mapper;
 	}
-
 
 	@Override
 	BiFunction<Subscription, T, Result<R>> filter() {

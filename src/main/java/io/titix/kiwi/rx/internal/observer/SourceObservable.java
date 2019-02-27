@@ -10,15 +10,15 @@ import io.titix.kiwi.rx.Subscription;
  */
 public final class SourceObservable<T> implements Observable<T> {
 
-	private final ObserverManager<T> observerManager;
+	private final Manager<T> manager;
 
-	public SourceObservable(ObserverManager<T> observerManager) {
-		this.observerManager = observerManager;
+	public SourceObservable(Manager<T> manager) {
+		this.manager = manager;
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<T> consumer) {
-		observerManager.add(consumer);
-		return () -> observerManager.remove(consumer);
+	public final Subscription subscribe(Consumer<? super T> consumer) {
+		manager.add(consumer);
+		return () -> manager.remove(consumer);
 	}
 }

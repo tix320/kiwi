@@ -14,12 +14,12 @@ abstract class FilterObservable<T, R> implements Observable<R> {
 
 	private final Observable<T> observable;
 
-	FilterObservable(Observable<T> observable) {
+	FilterObservable(Observable< T> observable) {
 		this.observable = observable;
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<R> consumer) {
+	public final Subscription subscribe(Consumer<? super R> consumer) {
 		AtomicReference<Subscription> subscription = new AtomicReference<>();
 		BiFunction<Subscription, T, Result<R>> filter = filter();
 		subscription.set(observable.subscribe(object -> {
