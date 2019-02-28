@@ -14,7 +14,7 @@ abstract class FilterObservable<T, R> implements Observable<R> {
 
 	private final Observable<T> observable;
 
-	FilterObservable(Observable< T> observable) {
+	FilterObservable(Observable<T> observable) {
 		this.observable = observable;
 	}
 
@@ -35,6 +35,11 @@ abstract class FilterObservable<T, R> implements Observable<R> {
 
 		}));
 		return subscription.get();
+	}
+
+	@Override
+	public final void onComplete(Runnable runnable) {
+		observable.onComplete(runnable);
 	}
 
 	abstract BiFunction<Subscription, T, Result<R>> filter();

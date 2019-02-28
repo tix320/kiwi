@@ -62,16 +62,20 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
 	@Override
 	public final Observable<T> asObservable() {
-		return consumer -> {
-			boolean need = addObserver(consumer);
-			if (need) {
-				observers.add(consumer);
+		return new Observable<>() {
+			@Override
+			public Subscription subscribe(Consumer<? super T> consumer) {
+
 			}
-			return () -> observers.remove(consumer);
+
+			@Override
+			public void onComplete(Runnable runnable) {
+				completedObservers.add(runnable);
+			}
 		};
 	}
 
-	protected final Subscription onComplete(Runnable runnable) {
+	public final Subscription onComplete(Runnable runnable) {
 		if (completed.get()) {
 			runnable.run();
 		}

@@ -1,5 +1,6 @@
 package io.titix.kiwi.rx.internal.observer;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.Observable;
@@ -27,5 +28,17 @@ public final class ConcatObservable<T> implements Observable<T> {
 				subscription.unsubscribe();
 			}
 		};
+	}
+
+	@Override
+	public void onComplete(Runnable runnable) {
+		AtomicInteger count = new AtomicInteger(observables.length);
+		for (Observable<T> observable : observables) {
+			observable.onComplete(() -> {
+				if (count.decrementAndGet() == 0) {
+					runnable.run();
+				}
+			});
+		}
 	}
 }
