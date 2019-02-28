@@ -56,7 +56,7 @@ class BufferSubjectTest {
 
 	@Test
 	void concurrentTest() {
-		Subject<String> subject = Subject.concurrentBuffered(15);
+		Subject<String> subject = Subject.buffered(15);
 		Observable<String> observable = subject.asObservable();
 
 		Stream.iterate('a', character -> (char) (character + 1))

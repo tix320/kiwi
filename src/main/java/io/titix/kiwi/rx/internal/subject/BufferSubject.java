@@ -4,8 +4,6 @@ import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.internal.observer.Manager;
-
 /**
  * @author tix32 on 21-Feb-19
  */
@@ -15,7 +13,7 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
 	private final long bufferSize;
 
-	BufferSubject(int bufferSize) {
+	public BufferSubject(int bufferSize) {
 		buffer = new ConcurrentLinkedDeque<>();
 		this.bufferSize = bufferSize < 1 ? 1 : bufferSize;
 	}
@@ -29,14 +27,9 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 	}
 
 	@Override
-	protected void addObserver(Consumer<T> consumer) {
-		observers.add(consumer);
+	protected boolean addObserver(Consumer<? super T> consumer) {
 		nextFromBuffer(consumer);
-	}
-
-	@Override
-	protected void removeObserver(Consumer<T> consumer) {
-		observers.remove(consumer);
+		return true;
 	}
 
 	private void nextFromBuffer(Consumer<? super T> consumer) {

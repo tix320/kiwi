@@ -17,7 +17,7 @@ public final class ConcatObservable<T> implements Observable<T> {
 	}
 
 	@Override
-	public Subscription subscribe(Consumer<T> consumer) {
+	public Subscription subscribe(Consumer<? super T> consumer) {
 		Subscription[] subscriptions = new Subscription[observables.length];
 		for (int i = 0; i < observables.length; i++) {
 			subscriptions[i] = observables[i].subscribe(consumer);

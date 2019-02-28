@@ -7,8 +7,7 @@ import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subject;
-import io.titix.kiwi.rx.internal.observer.Manager;
-import io.titix.kiwi.rx.internal.observer.SourceObservable;
+import io.titix.kiwi.rx.Subscription;
 
 /**
  * @author tix32 on 23-Feb-19
@@ -63,34 +62,30 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
 	@Override
 	public final Observable<T> asObservable() {
-		return new SourceObservable<>(new ManagerImpl());
+		return consumer -> {
+			boolean need = addObserver(consumer);
+			if (need) {
+				observers.add(consumer);
+			}
+			return () -> observers.remove(consumer);
+		};
 	}
 
-	protected final void onComplete(Runnable runnable) {
-		this.completedObservers.add(runnable);
+	protected final Subscription onComplete(Runnable runnable) {
+		if (completed.get()) {
+			runnable.run();
+		}
+		else {
+			this.completedObservers.add(runnable);
+		}
+		return () -> this.completedObservers.remove(runnable);
 	}
 
-	protected abstract void addObserver(Consumer<T> consumer);
-
-	protected abstract void removeObserver(Consumer<T> consumer);
+	protected abstract boolean addObserver(Consumer<? super T> consumer);
 
 	private void checkCompleted() {
 		if (completed.get()) {
 			throw new IllegalStateException("Subject is completed");
-		}
-	}
-
-	private final class ManagerImpl implements Manager<T> {
-
-		@Override
-		public void add(Consumer<? super T> consumer) {
-			observers.add(consumer);
-			addObserver();
-		}
-
-		@Override
-		public void remove(Consumer<? super T> consumer) {
-			observers.remove(consumer);
 		}
 	}
 }

@@ -102,7 +102,7 @@ class SingleSubjectTest {
 
 	@Test
 	void concurrentTest() {
-		Subject<String> subject = Subject.concurrentSingle();
+		Subject<String> subject = Subject.single();
 		Observable<String> observable = subject.asObservable();
 
 		Stream.iterate('a', character -> (char) (character + 1))

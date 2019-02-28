@@ -19,6 +19,8 @@ public interface Observable<T> {
 
 	Subscription subscribe(Consumer<? super T> consumer);
 
+	void onComplete(Runnable runnable);
+
 	default Observable<T> take(long count) {
 		return new CountingObservable<>(this, count);
 	}
@@ -36,7 +38,7 @@ public interface Observable<T> {
 	}
 
 	default <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
-return new ToMapCollector<>()
+		return new ToMapCollector<>(this, keyMapper, valueMapper);
 	}
 
 	static <T> Observable<T> of(T value) {
@@ -49,6 +51,7 @@ return new ToMapCollector<>()
 	static <T> Observable<T> of(T... values) {
 		BufferSubject<T> subject = new BufferSubject<>(values.length);
 		subject.next(values);
+		subject.complete();
 		return subject.asObservable();
 	}
 
