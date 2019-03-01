@@ -3,6 +3,7 @@ package io.titix.kiwi.test.rx;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.rx.Observable;
@@ -17,6 +18,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * @author tix32 on 24-Feb-19
  */
 class ObservableTest {
+
+	@Test
+	void emptyTest() {
+		Observable<Integer> empty = Observable.empty();
+
+		empty.subscribe(integer -> {
+			throw new IllegalStateException();
+		});
+
+		empty.one().subscribe(integer -> {
+			throw new IllegalStateException();
+		});
+
+		AtomicReference<Map<Integer, Integer>> actual = new AtomicReference<>(null);
+		empty.toMap(integer -> integer, integer -> integer).subscribe(actual::set);
+		assertEquals(Map.of(), actual.get());
+	}
 
 	@Test
 	void ofTest() {

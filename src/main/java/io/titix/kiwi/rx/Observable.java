@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.internal.observable.collect.JoinObservable;
 import io.titix.kiwi.rx.internal.observable.collect.ToMapObservable;
 import io.titix.kiwi.rx.internal.observable.filter.CountingObservable;
 import io.titix.kiwi.rx.internal.observable.filter.MapperObservable;
-import io.titix.kiwi.rx.internal.observable.filter.OneTimeObservable;
+import io.titix.kiwi.rx.internal.observable.filter.OnceObservable;
 import io.titix.kiwi.rx.internal.observable.filter.UntilObservable;
 import io.titix.kiwi.rx.internal.subject.BufferSubject;
 
@@ -29,7 +29,7 @@ public interface Observable<T> {
 	}
 
 	default Observable<T> one() {
-		return new OneTimeObservable<>(this);
+		return new OnceObservable<>(this);
 	}
 
 	default <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
@@ -48,6 +48,12 @@ public interface Observable<T> {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
 
+	static <T> Observable<T> empty() {
+		BufferSubject<T> subject = new BufferSubject<>(0);
+		subject.complete();
+		return subject.asObservable();
+	}
+
 	static <T> Observable<T> of(T value) {
 		BufferSubject<T> subject = new BufferSubject<>(1);
 		subject.next(value);
@@ -64,7 +70,7 @@ public interface Observable<T> {
 	}
 
 	@SafeVarargs
-	static <T> Observable<T> concat(Observable<T>... observables) {
+	static <T> Observable<T> concat(Observable<? extends T>... observables) {
 		return new ConcatObservable<>(observables);
 	}
 }

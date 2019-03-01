@@ -9,9 +9,9 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class OneTimeObservable<T> extends FilterObservable<T, T> {
+public final class OnceObservable<T> extends FilterObservable<T, T> {
 
-	public OneTimeObservable(Observable<T> observable) {
+	public OnceObservable(Observable<T> observable) {
 		super(observable);
 	}
 

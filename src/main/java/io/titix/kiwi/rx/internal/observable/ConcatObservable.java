@@ -14,10 +14,10 @@ public final class ConcatObservable<T> extends BaseObservable<T> {
 	private final BaseObservable<T>[] observables;
 
 	@SuppressWarnings("unchecked")
-	public ConcatObservable(Observable<T>[] observables) {
+	public ConcatObservable(Observable<? extends T>[] observables) {
 		BaseObservable<T>[] baseObservables = new BaseObservable[observables.length];
 		int index = 0;
-		for (Observable<T> observable : observables) {
+		for (Observable<? extends T> observable : observables) {
 			if (observable instanceof BaseObservable) {
 				baseObservables[index++] = (BaseObservable<T>) observable;
 			}

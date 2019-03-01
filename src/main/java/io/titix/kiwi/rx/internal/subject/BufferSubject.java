@@ -17,7 +17,7 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
 	public BufferSubject(int bufferSize) {
 		buffer = new ConcurrentLinkedDeque<>();
-		this.bufferSize = bufferSize < 1 ? 1 : bufferSize;
+		this.bufferSize = bufferSize < 0 ? 0 : bufferSize;
 	}
 
 	@Override
