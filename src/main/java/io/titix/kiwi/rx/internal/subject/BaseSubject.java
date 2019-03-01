@@ -18,7 +18,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
 	private final Collection<Runnable> completedObservers;
 
-	private final Collection<Consumer<? super T>> observers;
+	protected final Collection<Consumer<? super T>> observers;
 
 	protected BaseSubject() {
 		this.completedObservers = new ConcurrentLinkedQueue<>();
@@ -58,34 +58,24 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		completed.set(true);
 		completedObservers.forEach(Runnable::run);
+		completedObservers.clear();
 	}
 
 	@Override
 	public final Observable<T> asObservable() {
-		return new Observable<>() {
-			@Override
-			public Subscription subscribe(Consumer<? super T> consumer) {
-
-			}
-
-			@Override
-			public void onComplete(Runnable runnable) {
-				completedObservers.add(runnable);
-			}
-		};
+		return new SourceObservable<>(this);
 	}
 
-	public final Subscription onComplete(Runnable runnable) {
+	public final void onComplete(Runnable runnable) {
 		if (completed.get()) {
 			runnable.run();
 		}
 		else {
 			this.completedObservers.add(runnable);
 		}
-		return () -> this.completedObservers.remove(runnable);
 	}
 
-	protected abstract boolean addObserver(Consumer<? super T> consumer);
+	public abstract Subscription addObserver(Consumer<? super T> consumer);
 
 	private void checkCompleted() {
 		if (completed.get()) {

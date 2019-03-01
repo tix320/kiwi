@@ -4,12 +4,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import io.titix.kiwi.rx.internal.collect.ToMapCollector;
-import io.titix.kiwi.rx.internal.observer.ConcatObservable;
-import io.titix.kiwi.rx.internal.observer.decorator.CountingObservable;
-import io.titix.kiwi.rx.internal.observer.decorator.MapperObservable;
-import io.titix.kiwi.rx.internal.observer.decorator.OneTimeObservable;
-import io.titix.kiwi.rx.internal.observer.decorator.UntilObservable;
+import io.titix.kiwi.rx.internal.observable.collect.ToMapCollector;
+import io.titix.kiwi.rx.internal.observable.ConcatObservable;
+import io.titix.kiwi.rx.internal.observable.filter.CountingObservable;
+import io.titix.kiwi.rx.internal.observable.filter.MapperObservable;
+import io.titix.kiwi.rx.internal.observable.filter.OneTimeObservable;
+import io.titix.kiwi.rx.internal.observable.filter.UntilObservable;
 import io.titix.kiwi.rx.internal.subject.BufferSubject;
 
 /**
@@ -18,8 +18,6 @@ import io.titix.kiwi.rx.internal.subject.BufferSubject;
 public interface Observable<T> {
 
 	Subscription subscribe(Consumer<? super T> consumer);
-
-	void onComplete(Runnable runnable);
 
 	default Observable<T> take(long count) {
 		return new CountingObservable<>(this, count);

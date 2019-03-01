@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observer.decorator;
+package io.titix.kiwi.rx.internal.observable.filter;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;

@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observer;
+package io.titix.kiwi.rx.internal.observable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -9,12 +9,23 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 24-Feb-19
  */
-public final class ConcatObservable<T> implements Observable<T> {
+public final class ConcatObservable<T> extends BaseObservable<T> {
 
-	private final Observable<T>[] observables;
+	private final BaseObservable<T>[] observables;
 
+	@SuppressWarnings("unchecked")
 	public ConcatObservable(Observable<T>[] observables) {
-		this.observables = observables;
+		BaseObservable<T>[] baseObservables = new BaseObservable[observables.length];
+		int index = 0;
+		for (Observable<T> observable : observables) {
+			if (observable instanceof BaseObservable) {
+				baseObservables[index++] = (BaseObservable<T>) observable;
+			}
+			else {
+				throw new IllegalArgumentException("observable type must be " + BaseObservable.class.getName());
+			}
+		}
+		this.observables = baseObservables;
 	}
 
 	@Override
@@ -33,7 +44,7 @@ public final class ConcatObservable<T> implements Observable<T> {
 	@Override
 	public void onComplete(Runnable runnable) {
 		AtomicInteger count = new AtomicInteger(observables.length);
-		for (Observable<T> observable : observables) {
+		for (BaseObservable<T> observable : observables) {
 			observable.onComplete(() -> {
 				if (count.decrementAndGet() == 0) {
 					runnable.run();

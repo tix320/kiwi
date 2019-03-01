@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observer.decorator;
+package io.titix.kiwi.rx.internal.observable.filter;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -6,16 +6,22 @@ import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.internal.observable.BaseObservable;
 
 /**
  * @author tix32 on 24-Feb-19
  */
-abstract class FilterObservable<T, R> implements Observable<R> {
+abstract class FilterObservable<T, R> extends BaseObservable<R> {
 
-	private final Observable<T> observable;
+	private final BaseObservable<T> observable;
 
 	FilterObservable(Observable<T> observable) {
-		this.observable = observable;
+		if (observable instanceof BaseObservable) {
+			this.observable = (BaseObservable<T>) observable;
+		}
+		else {
+			throw new IllegalArgumentException("observable type must be " + BaseObservable.class.getName());
+		}
 	}
 
 	@Override

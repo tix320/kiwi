@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observer.decorator;
+package io.titix.kiwi.rx.internal.observable.filter;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19

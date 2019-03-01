@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -39,5 +40,16 @@ class SubjectTest {
 		});
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	void completeTest() {
+		Subject<Integer> subject = Subject.single();
+
+		subject.next(1);
+		subject.next(2);
+		subject.next(3);
+		subject.complete();
+		assertThrows(IllegalStateException.class,() -> subject.next(4));
 	}
 }
