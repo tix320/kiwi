@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.util.Threads;
 import org.junit.jupiter.api.Test;
@@ -26,54 +27,46 @@ class ThreadsTest {
 
 	@Test
 	void runAsync() throws InterruptedException {
-		var test = new Object() {
-			String $;
-		};
-		Threads.runAsync(() -> test.$ = "aaa");
-		assertNull(test.$);
+		AtomicReference<String> test = new AtomicReference<>();
+		Threads.runAsync(() -> test.set("aaa"));
+		assertNull(test.get());
 
 		Thread.sleep(100);
-		assertEquals("aaa", test.$);
+		assertEquals("aaa", test.get());
 	}
 
 	@Test
 	void runAsyncWithExecutor() throws InterruptedException {
-		var test = new Object() {
-			String $;
-		};
-		Threads.runAsync(() -> test.$ = "aaa", Executors.newSingleThreadExecutor());
-		assertNull(test.$);
+		AtomicReference<String> test = new AtomicReference<>();
+		Threads.runAsync(() -> test.set("aaa"), Executors.newSingleThreadExecutor());
+		assertNull(test.get());
 
 		Thread.sleep(100);
-		assertEquals("aaa", test.$);
+		assertEquals("aaa", test.get());
 	}
 
 	@Test
 	void runDaemon() throws InterruptedException {
-		var test = new Object() {
-			String $;
-		};
-		Threads.runDaemon(() -> test.$ = "aaa");
-		assertNull(test.$);
+		AtomicReference<String> test = new AtomicReference<>();
+		Threads.runDaemon(() -> test.set("aaa"));
+		assertNull(test.get());
 
 		Thread.sleep(100);
-		assertEquals("aaa", test.$);
+		assertEquals("aaa", test.get());
 	}
 
 	@Test
 	void daemon() throws InterruptedException {
-		var test = new Object() {
-			String $;
-		};
-		Thread thread = Threads.daemon(() -> test.$ = "aaa");
+		AtomicReference<String> test = new AtomicReference<>();
+		Thread thread = Threads.daemon(() -> test.set("aaa"));
 
-		assertNull(test.$);
+		assertNull(test.get());
 		assertTrue(thread.isDaemon());
 
 		thread.start();
 
 		Thread.sleep(100);
-		assertEquals("aaa", test.$);
+		assertEquals("aaa", test.get());
 	}
 
 	@Test

@@ -1,6 +1,7 @@
 package io.titix.kiwi.test.rx;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,12 +19,12 @@ class CollectorsTest {
 
 	@Test
 	void toMapTest() {
-
+		AtomicReference<Map<Integer, String>> actual = new AtomicReference<>();
 		Observable.of("a", "aa", "aaa", "aaaa")
 				.toMap(String::length, s -> s)
-				.subscribe(map -> assertEquals(Map.of(1, "a", 2, "aa", 3, "aaa", 4, "aaaa"), map));
+				.subscribe(actual::set);
 
-
+		assertEquals(Map.of(1, "a", 2, "aa", 3, "aaa", 4, "aaaa"), actual.get());
 	}
 
 	@Test
@@ -51,6 +52,16 @@ class CollectorsTest {
 		subject.complete();
 
 		assertEquals(Map.of(2, "2", 3, "3", 4, "4", 5, "5", 6, "6"), actualMap);
+	}
+
+	@Test
+	void toListTest() {
+		AtomicReference<List<Integer>> actual = new AtomicReference<>();
+		Observable.of(1, 2, 3, 4)
+				.toList()
+				.subscribe(actual::set);
+
+		assertEquals(List.of(1, 2, 3, 4), actual.get());
 	}
 
 	@Test

@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Observable;
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-public class JoinObservable<T> extends CollectorObservable<T, String> {
+public final class JoinObservable<T> extends CollectorObservable<T, String> {
 
 	private final Function<? super T, ? extends String> toString;
 

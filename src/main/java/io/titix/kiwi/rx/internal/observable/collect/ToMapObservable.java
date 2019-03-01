@@ -10,7 +10,7 @@ import io.titix.kiwi.rx.Observable;
 /**
  * @author tix32 on 27-Feb-19
  */
-public class ToMapObservable<T, K, V> extends CollectorObservable<T, Map<K, V>> {
+public final class ToMapObservable<T, K, V> extends CollectorObservable<T, Map<K, V>> {
 
 	private final Function<? super T, ? extends K> keyMapper;
 
