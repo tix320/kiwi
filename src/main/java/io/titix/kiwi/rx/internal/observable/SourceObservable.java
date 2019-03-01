@@ -1,9 +1,9 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.internal.observable;
 
 import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
+import io.titix.kiwi.rx.internal.subject.BaseSubject;
 
 /**
  * @author tix32 on 28-Feb-19

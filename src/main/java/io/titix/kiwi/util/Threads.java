@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 /**
  * @author Tigran.Sargsyan on 14-Dec-18
  */
+
 public final class Threads {
 
 	private Threads() {

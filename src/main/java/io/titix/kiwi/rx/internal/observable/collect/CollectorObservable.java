@@ -19,7 +19,7 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 
 	private final Queue<T> objects;
 
-	public CollectorObservable(Observable<T> observable) {
+	protected CollectorObservable(Observable<T> observable) {
 		if (observable instanceof BaseObservable) {
 			this.observable = (BaseObservable<T>) observable;
 		}

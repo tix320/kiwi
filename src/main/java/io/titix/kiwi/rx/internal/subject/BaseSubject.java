@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subject;
 import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.internal.observable.SourceObservable;
 
 /**
  * @author tix32 on 23-Feb-19

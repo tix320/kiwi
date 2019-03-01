@@ -1,8 +1,11 @@
-package io.titix.kiwi.util;
+package io.titix.kiwi.test.util;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
+import io.titix.kiwi.util.Threads;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,6 +14,15 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author tix32 on 23-Feb-19
  */
 class ThreadsTest {
+
+	@Test
+	void noInstance() {
+		assertThrows(InvocationTargetException.class, () -> {
+			Constructor<Threads> constructor = Threads.class.getDeclaredConstructor();
+			constructor.setAccessible(true);
+			constructor.newInstance();
+		});
+	}
 
 	@Test
 	void runAsync() throws InterruptedException {
@@ -66,7 +78,7 @@ class ThreadsTest {
 
 	@Test
 	void handleFutureEx() {
-		Threads.handleFutureEx(CompletableFuture.completedFuture(null));
+		Threads.handleFutureEx(CompletableFuture.failedFuture(new IllegalStateException("catching")));
 	}
 
 	@Test

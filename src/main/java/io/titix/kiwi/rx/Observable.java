@@ -4,8 +4,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import io.titix.kiwi.rx.internal.observable.collect.ToMapCollector;
 import io.titix.kiwi.rx.internal.observable.ConcatObservable;
+import io.titix.kiwi.rx.internal.observable.collect.JoinObservable;
+import io.titix.kiwi.rx.internal.observable.collect.ToMapObservable;
 import io.titix.kiwi.rx.internal.observable.filter.CountingObservable;
 import io.titix.kiwi.rx.internal.observable.filter.MapperObservable;
 import io.titix.kiwi.rx.internal.observable.filter.OneTimeObservable;
@@ -36,12 +37,21 @@ public interface Observable<T> {
 	}
 
 	default <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
-		return new ToMapCollector<>(this, keyMapper, valueMapper);
+		return new ToMapObservable<>(this, keyMapper, valueMapper);
+	}
+
+	default Observable<String> join(Function<? super T, ? extends String> toString, String delimiter) {
+		return new JoinObservable<>(this, toString, delimiter);
+	}
+
+	default Observable<String> join(Function<? super T, ? extends String> toString, String delimiter, String prefix, String suffix) {
+		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
 
 	static <T> Observable<T> of(T value) {
 		BufferSubject<T> subject = new BufferSubject<>(1);
 		subject.next(value);
+		subject.complete();
 		return subject.asObservable();
 	}
 

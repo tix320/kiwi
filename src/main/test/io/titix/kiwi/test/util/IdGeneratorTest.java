@@ -1,4 +1,4 @@
-package io.titix.kiwi.util;
+package io.titix.kiwi.test.util;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;

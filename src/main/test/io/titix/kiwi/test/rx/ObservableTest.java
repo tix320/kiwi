@@ -1,16 +1,17 @@
-package io.titix.kiwi.rx;
+package io.titix.kiwi.test.rx;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import io.titix.kiwi.rx.Observable;
+import io.titix.kiwi.rx.Subject;
+import io.titix.kiwi.rx.Subscription;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author tix32 on 24-Feb-19
@@ -82,6 +83,43 @@ class ObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
+	@Test
+	void concatOnCompleteTest() {
+		AtomicReference<String> actual = new AtomicReference<>("");
+
+		Observable<Integer> observable1 = Observable.of(10);
+
+		Observable<Integer> observable2 = Observable.of(20);
+
+		Subject<Integer> subject = Subject.single();
+
+		Observable<Integer> observable3 = subject.asObservable();
+
+		Observable.concat(observable1, observable2, observable3)
+				.join(integer -> integer + "", ",")
+				.subscribe(actual::set);
+
+		subject.next(25);
+
+		subject.next(50);
+
+		subject.complete();
+
+		assertEquals("10,20,25,50", actual.get());
+	}
+
+	@Test
+	void concatIllegalObservableTest() {
+		Observable<Integer> observable1 = Observable.of(10);
+
+		Observable<Integer> observable2 = Observable.of(20);
+
+		Observable<Integer> observable3 = consumer -> null;
+
+		assertThrows(IllegalArgumentException.class, () -> Observable.concat(observable1, observable2, observable3));
+	}
+
 
 	@Test
 	void mapTest() {

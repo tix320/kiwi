@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx;
+package io.titix.kiwi.test.rx;
 
 import java.util.ArrayList;
 import java.util.Arrays;
