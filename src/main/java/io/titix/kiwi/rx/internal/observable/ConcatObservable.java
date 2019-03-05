@@ -22,7 +22,7 @@ public final class ConcatObservable<T> extends BaseObservable<T> {
 				baseObservables[index++] = (BaseObservable<T>) observable;
 			}
 			else {
-				throw new IllegalArgumentException("observable type must be " + BaseObservable.class.getName());
+				throw new UnsupportedOperationException("It is not for your implementation :)");
 			}
 		}
 		this.observables = baseObservables;

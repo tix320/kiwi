@@ -135,7 +135,7 @@ class ObservableTest {
 
 		Observable<Integer> observable3 = consumer -> null;
 
-		assertThrows(IllegalArgumentException.class, () -> Observable.concat(observable1, observable2, observable3));
+		assertThrows(UnsupportedOperationException.class, () -> Observable.concat(observable1, observable2, observable3));
 	}
 
 

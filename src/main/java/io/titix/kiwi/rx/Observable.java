@@ -4,15 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import io.titix.kiwi.rx.internal.observable.ConcatObservable;
 import io.titix.kiwi.rx.internal.observable.collect.JoinObservable;
 import io.titix.kiwi.rx.internal.observable.collect.ToListObservable;
 import io.titix.kiwi.rx.internal.observable.collect.ToMapObservable;
-import io.titix.kiwi.rx.internal.observable.filter.CountingObservable;
-import io.titix.kiwi.rx.internal.observable.filter.MapperObservable;
-import io.titix.kiwi.rx.internal.observable.filter.OnceObservable;
-import io.titix.kiwi.rx.internal.observable.filter.UntilObservable;
+import io.titix.kiwi.rx.internal.observable.decorator.*;
 import io.titix.kiwi.rx.internal.subject.BufferSubject;
 
 /**
@@ -36,6 +34,10 @@ public interface Observable<T> {
 
 	default <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
 		return new MapperObservable<>(this, mapper);
+	}
+
+	default Observable<T> filter(Predicate<? super T> filter) {
+		return new FilterObservable<>(this, filter);
 	}
 
 	default <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {

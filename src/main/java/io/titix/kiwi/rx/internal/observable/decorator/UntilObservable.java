@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.filter;
+package io.titix.kiwi.rx.internal.observable.decorator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-public final class UntilObservable<T> extends FilterObservable<T, T> {
+public final class UntilObservable<T> extends DecoratorObservable<T, T> {
 
 	private final Observable<?> until;
 
@@ -19,14 +19,17 @@ public final class UntilObservable<T> extends FilterObservable<T, T> {
 	}
 
 	@Override
-	BiFunction<Subscription, T, Result<T>> filter() {
+	BiFunction<Subscription, T, Result<T>> transformer() {
 		AtomicBoolean need = new AtomicBoolean(true);
 		until.subscribe(ignored -> need.set(false));
 		return (subscription, object) -> {
 			if (need.get()) {
-				return Result.forNext(object);
+				return Result.of(object);
 			}
-			return Result.end();
+			else {
+				subscription.unsubscribe();
+				return Result.empty();
+			}
 		};
 	}
 }

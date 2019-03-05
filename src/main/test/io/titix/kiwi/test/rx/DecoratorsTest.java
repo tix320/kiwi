@@ -1,5 +1,6 @@
 package io.titix.kiwi.test.rx;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.rx.Observable;
@@ -11,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-class FiltersTest {
+class DecoratorsTest {
 
 
 	@Test
-	void filterOnCompleteTest() {
+	void decoratorOnCompleteTest() {
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Observable.of(10).map(integer -> integer + 5)
@@ -26,8 +27,16 @@ class FiltersTest {
 	}
 
 	@Test
-	void filterIllegalObservableTest() {
+	void decoratorIllegalObservableTest() {
 		Observable<Integer> observable3 = consumer -> null;
-		assertThrows(IllegalArgumentException.class, observable3::one);
+		assertThrows(UnsupportedOperationException.class, observable3::one);
+	}
+
+	@Test
+	void filterTest() {
+		AtomicReference<List<Integer>> actual = new AtomicReference<>();
+		Observable.of(1, 2, 3, 4, 5).filter(integer -> integer > 2).toList().subscribe(actual::set);
+		assertEquals(List.of(3, 4, 5), actual.get());
+
 	}
 }

@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.filter;
+package io.titix.kiwi.rx.internal.observable.decorator;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class CountingObservable<T> extends FilterObservable<T, T> {
+public final class CountingObservable<T> extends DecoratorObservable<T, T> {
 
 	private final long count;
 
@@ -19,16 +19,16 @@ public final class CountingObservable<T> extends FilterObservable<T, T> {
 	}
 
 	@Override
-	BiFunction<Subscription, T, Result<T>> filter() {
+	BiFunction<Subscription, T, Result<T>> transformer() {
 		AtomicLong limit = new AtomicLong(count);
 		return (subscription, object) -> {
 			if (limit.getAndDecrement() > 0) {
-				return Result.forNext(object);
+				return Result.of(object);
 			}
 			else {
 				subscription.unsubscribe();
+				return Result.empty();
 			}
-			return Result.end();
 		};
 	}
 }

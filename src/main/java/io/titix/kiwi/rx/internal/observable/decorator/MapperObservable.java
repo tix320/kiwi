@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.filter;
+package io.titix.kiwi.rx.internal.observable.decorator;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 24-Feb-19
  */
-public final class MapperObservable<T, R> extends FilterObservable<T, R> {
+public final class MapperObservable<T, R> extends DecoratorObservable<T, R> {
 
 	private final Function<? super T, ? extends R> mapper;
 
@@ -19,7 +19,7 @@ public final class MapperObservable<T, R> extends FilterObservable<T, R> {
 	}
 
 	@Override
-	BiFunction<Subscription, T, Result<R>> filter() {
-		return (subscription, object) -> Result.forNext(mapper.apply(object));
+	BiFunction<Subscription, T, Result<R>> transformer() {
+		return (subscription, object) -> Result.of(mapper.apply(object));
 	}
 }

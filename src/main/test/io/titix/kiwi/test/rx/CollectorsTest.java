@@ -128,6 +128,6 @@ class CollectorsTest {
 	@Test
 	void illegalObservableToCollectorTest() {
 		Observable<String> observable = consumer -> null;
-		assertThrows(IllegalArgumentException.class, () -> observable.join(s -> s, ","));
+		assertThrows(UnsupportedOperationException.class, () -> observable.join(s -> s, ","));
 	}
 }

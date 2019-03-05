@@ -24,7 +24,7 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 			this.observable = (BaseObservable<T>) observable;
 		}
 		else {
-			throw new IllegalArgumentException("observable type must be " + BaseObservable.class.getName());
+			throw new UnsupportedOperationException("It is not for your implementation :)");
 		}
 		this.objects = new ConcurrentLinkedQueue<>();
 		observable.subscribe(objects::add);

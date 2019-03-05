@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.filter;
+package io.titix.kiwi.rx.internal.observable.decorator;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -11,23 +11,23 @@ import io.titix.kiwi.rx.internal.observable.BaseObservable;
 /**
  * @author tix32 on 24-Feb-19
  */
-abstract class FilterObservable<T, R> extends BaseObservable<R> {
+abstract class DecoratorObservable<T, R> extends BaseObservable<R> {
 
 	private final BaseObservable<T> observable;
 
-	FilterObservable(Observable<T> observable) {
+	DecoratorObservable(Observable<T> observable) {
 		if (observable instanceof BaseObservable) {
 			this.observable = (BaseObservable<T>) observable;
 		}
 		else {
-			throw new IllegalArgumentException("observable type must be " + BaseObservable.class.getName());
+			throw new UnsupportedOperationException("It is not for your implementation :)");
 		}
 	}
 
 	@Override
 	public final Subscription subscribe(Consumer<? super R> consumer) {
 		AtomicReference<Subscription> subscription = new AtomicReference<>();
-		BiFunction<Subscription, T, Result<R>> filter = filter();
+		BiFunction<Subscription, T, Result<R>> filter = transformer();
 		subscription.set(observable.subscribe(object -> {
 			Result<R> result = filter.apply(() -> {
 				Subscription sub = subscription.get();
@@ -35,10 +35,7 @@ abstract class FilterObservable<T, R> extends BaseObservable<R> {
 					sub.unsubscribe();
 				}
 			}, object);
-			if (!result.done) {
-				consumer.accept(result.object);
-			}
-
+			result.get().ifPresent(consumer::accept);
 		}));
 		return subscription.get();
 	}
@@ -48,5 +45,5 @@ abstract class FilterObservable<T, R> extends BaseObservable<R> {
 		observable.onComplete(runnable);
 	}
 
-	abstract BiFunction<Subscription, T, Result<R>> filter();
+	abstract BiFunction<Subscription, T, Result<R>> transformer();
 }
