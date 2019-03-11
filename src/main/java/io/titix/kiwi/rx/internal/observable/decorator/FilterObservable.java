@@ -9,7 +9,7 @@ import io.titix.kiwi.rx.Subscription;
 /**
  * @author tix32 on 02-Mar-19
  */
-public class FilterObservable<T> extends DecoratorObservable<T, T> {
+public final class FilterObservable<T> extends DecoratorObservable<T, T> {
 
 	private final Predicate<? super T> filter;
 
