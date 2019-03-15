@@ -1,100 +1,107 @@
 package io.titix.kiwi.check;
 
+import java.util.Objects;
 import java.util.function.Function;
 
-import io.titix.kiwi.check.internal.Failure;
-import io.titix.kiwi.check.internal.Success;
 import io.titix.kiwi.check.internal.TryException;
 
-public interface Try<T> {
+public final class Try<T> {
 
-	@SuppressWarnings("unchecked")
-	private static <T> Try<T> empty() {
-		return (Try<T>) Success.EMPTY;
+	public static final Try<?> EMPTY = new Try<>(null, null);
+
+	private final T value;
+
+	private final Exception exception;
+
+	private Try(T value, Exception exception) {
+		this.value = value;
+		this.exception = exception;
 	}
 
-	static <T> Try<T> success(T value) {
+	@SuppressWarnings("unchecked")
+	public static <T> Try<T> empty() {
+		return (Try<T>) EMPTY;
+	}
+
+	public static <T> Try<T> success(T value) {
 		if (value == null) {
 			return empty();
 		}
-		return new Success<>(value);
+		return new Try<>(value, null);
 	}
 
-	static <T> Try<T> success(CheckedSupplier<? extends T> supplier) {
-		T value;
+	public static <T> Try<T> success(CheckedSupplier<? extends T> supplier) {
+		Objects.requireNonNull(supplier, "Value supplier can not be null");
 		try {
-			value = supplier.get();
+			return success(supplier.get());
 		}
-		catch (Throwable throwable) {
-			throw new TryException("An error occurred in success supplier", throwable);
+		catch (Exception exception) {
+			throw new TryException("An error occurred in success supplier", exception);
 		}
-		return success(value);
 	}
 
-	static Try<?> failure(Throwable throwable) {
-		if (throwable == null) {
-			throw new TryException("throwable cannot be null");
-		}
-		return new Failure(throwable);
+	public static Try<?> failure(Exception exception) {
+		Objects.requireNonNull(exception, "exception cannot be null");
+		return new Try<>(null, exception);
 	}
 
-	static Try<?> failure(CheckedSupplier<Throwable> supplier) {
-		Throwable throwable;
+	public static Try<?> failure(CheckedSupplier<Exception> supplier) {
+		Objects.requireNonNull(supplier, "Exception supplier can not be null");
 		try {
-			throwable = supplier.get();
+			return failure(supplier.get());
 		}
-		catch (Throwable e) {
+		catch (Exception e) {
 			throw new TryException("An error occurred in failure supplier", e);
 		}
-		return failure(throwable);
 	}
 
-	static Try<?> run(CheckedRunnable runnable) {
+	@SuppressWarnings("unchecked")
+	private static <M> Try<M> typedFailure(Exception exception) {
+		return (Try<M>) failure(exception);
+	}
+
+	public static Try<?> run(CheckedRunnable runnable) {
+		Objects.requireNonNull(runnable, "Runnable cannot be null");
 		try {
 			runnable.run();
 			return empty();
 		}
-		catch (Throwable e) {
-			return failure(e);
+		catch (Exception exception) {
+			return failure(exception);
 		}
 	}
 
-	static <T> Try<T> supply(CheckedSupplier<? extends T> supplier) {
-		T value;
+	public static <T> Try<T> supply(CheckedSupplier<? extends T> supplier) {
+		Objects.requireNonNull(supplier, "Value supplier cannot be null");
 		try {
-			value = supplier.get();
+			return success(supplier.get());
 		}
-		catch (Throwable e) {
+		catch (Exception e) {
 			return typedFailure(e);
 		}
-		return success(value);
 	}
 
-	static <X extends Throwable> void runChecked(CheckedRunnable runnable, Function<Throwable, ? extends X> exMapper) throws X {
-		try {
-			runnable.run();
-		}
-		catch (Throwable throwable) {
-			throw exMapper.apply(throwable);
-		}
-	}
-
-	static <T, X extends Throwable> T supplyChecked(CheckedSupplier<? extends T> supplier, Function<Throwable, ? extends X> exMapper) throws X {
-		try {
-			return supplier.get();
-		}
-		catch (Throwable throwable) {
-			throw exMapper.apply(throwable);
+	public <X extends Exception> void rethrow(Function<Exception, ? extends X> exMapper) throws X {
+		Objects.requireNonNull(exMapper, "Exception mapper cannot be null");
+		if (isFailure()) {
+			X mappedException;
+			try {
+				mappedException = exMapper.apply(exception);
+			}
+			catch (Exception exception) {
+				throw new TryException("An error occurred in exception mapper", exception);
+			}
+			throw mappedException;
 		}
 	}
 
-	default Try<T> peek(CheckedConsumer<? super T> consumer) {
+	public Try<T> peek(CheckedConsumer<? super T> consumer) {
+		Objects.requireNonNull(consumer, "Consumer cannot be null");
 		if (isPresent()) {
 			try {
-				consumer.accept(get());
-				return this;
+				consumer.accept(value);
 			}
-			catch (Throwable e) {
+			catch (Exception e) {
 				return typedFailure(e);
 			}
 		}
@@ -107,7 +114,7 @@ public interface Try<T> {
 				runnable.run();
 				return this;
 			}
-			catch (Throwable e) {
+			catch (Exception e) {
 				return typedFailure(e);
 			}
 		}
@@ -124,7 +131,7 @@ public interface Try<T> {
 					return empty();
 				}
 			}
-			catch (Throwable e) {
+			catch (Exception e) {
 				return typedFailure(e);
 			}
 		}
@@ -137,7 +144,7 @@ public interface Try<T> {
 			try {
 				value = mapper.apply(get());
 			}
-			catch (Throwable e) {
+			catch (Exception e) {
 				return typedFailure(e);
 			}
 			return success(value);
@@ -150,19 +157,19 @@ public interface Try<T> {
 			runnable.run();
 			return this;
 		}
-		catch (Throwable e) {
+		catch (Exception e) {
 			return typedFailure(e);
 		}
 	}
 
-	default <X extends Throwable> Try<T> throwWhenFailed(CheckedFunction<Throwable, ? extends X> exSupplier) throws X {
+	default <X extends Exception> Try<T> throwWhenFailed(CheckedFunction<Exception, ? extends X> exSupplier) throws X {
 		if (isFailure()) {
 			X x;
 			try {
-				x = exSupplier.apply(getCause());
+				x = exSupplier.apply(getException());
 			}
-			catch (Throwable throwable) {
-				throw new TryException("An error occurred in failure supplier", throwable);
+			catch (Exception exception) {
+				throw new TryException("An error occurred in failure supplier", exception);
 			}
 			throw x;
 		}
@@ -171,11 +178,11 @@ public interface Try<T> {
 		}
 	}
 
-	default <X extends Throwable> Try<T> throwWhenFailed(CheckedSupplier<? extends X> exSupplier) throws X {
-		return throwWhenFailed(throwable -> exSupplier.get());
+	default <X extends Exception> Try<T> throwWhenFailed(CheckedSupplier<? extends X> exSupplier) throws X {
+		return throwWhenFailed(exception -> exSupplier.get());
 	}
 
-	default <X extends Throwable> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
+	default <X extends Exception> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X {
 		if (isPresent()) {
 			return get();
 		}
@@ -183,30 +190,30 @@ public interface Try<T> {
 		try {
 			x = exSupplier.get();
 		}
-		catch (Throwable throwable) {
-			throw new TryException("An error occurred in failure supplier", throwable);
+		catch (Exception exception) {
+			throw new TryException("An error occurred in failure supplier", exception);
 		}
 		throw x;
 	}
 
-	default <X extends Throwable> T getOrElseThrow(CheckedFunction<Throwable, ? extends X> exMapper) throws X {
-		return getOrElseThrow(() -> exMapper.apply(getCause()));
+	default <X extends Exception> T getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper) throws X {
+		return getOrElseThrow(() -> exMapper.apply(getException()));
 	}
 
-	default Try<T> onFailure(CheckedConsumer<Throwable> consumer) {
+	default Try<T> onFailure(CheckedConsumer<Exception> consumer) {
 		if (isFailure()) {
 			try {
-				consumer.accept(getCause());
+				consumer.accept(getException());
 			}
-			catch (Throwable throwable) {
-				throw new TryException("An error occurred in failure consumer", throwable);
+			catch (Exception exception) {
+				throw new TryException("An error occurred in failure consumer", exception);
 			}
 		}
 		return this;
 	}
 
 	default Try<T> onFailure(CheckedRunnable runnable) {
-		return onFailure(throwable -> runnable.run());
+		return onFailure(exception -> runnable.run());
 	}
 
 	default Try<T> onSuccess(CheckedConsumer<? super T> consumer) {
@@ -214,8 +221,8 @@ public interface Try<T> {
 			try {
 				consumer.accept(get());
 			}
-			catch (Throwable throwable) {
-				throw new TryException("An error occurred in success consumer", throwable);
+			catch (Exception exception) {
+				throw new TryException("An error occurred in success consumer", exception);
 			}
 		}
 		return this;
@@ -225,35 +232,28 @@ public interface Try<T> {
 		return onSuccess(value -> runnable.run());
 	}
 
-	default boolean isPresent() {
-		return isSuccess() && !isEmpty();
+	public boolean isEmpty() {
+		return value == null && exception == null;
 	}
 
-	default boolean isUseless() {
-		return isFailure() || isEmpty();
+	public boolean isPresent() {
+		return value != null;
 	}
 
-	boolean isSuccess();
+	public boolean isUseless() {
+		return value == null || exception != null;
+	}
 
-	boolean isFailure();
+	public boolean isSuccess() {
+		return exception == null;
+	}
 
-	T get();
+	public boolean isFailure() {
+		return exception != null;
+	}
 
 	@SuppressWarnings("unchecked")
 	private <M> Try<M> current() {
 		return (Try<M>) this;
-	}
-
-	private boolean isEmpty() {
-		return this == Success.EMPTY;
-	}
-
-	private Throwable getCause() {
-		return ((Failure) (this)).getCause();
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <M> Try<M> typedFailure(Throwable throwable) {
-		return (Try<M>) failure(throwable);
 	}
 }

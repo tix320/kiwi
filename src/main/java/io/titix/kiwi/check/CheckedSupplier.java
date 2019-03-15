@@ -2,5 +2,5 @@ package io.titix.kiwi.check;
 
 public interface CheckedSupplier<T> {
 
-	T get() throws Throwable;
+	T get() throws Exception;
 }

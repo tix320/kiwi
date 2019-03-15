@@ -2,6 +2,7 @@ package io.titix.kiwi.util;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
@@ -11,12 +12,15 @@ import java.util.function.Consumer;
 
 public final class Threads {
 
+	private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2, Threads::daemon);
+
 	private Threads() {
 		throw new IllegalStateException("No no no");
 	}
 
 	public static void runAsync(Runnable runnable) {
-		new Thread(runnable).start();
+		Future<?> future = EXECUTOR.submit(runnable);
+		handleFutureEx(future);
 	}
 
 	public static void runAsync(Runnable runnable, ExecutorService executorService) {
@@ -25,7 +29,8 @@ public final class Threads {
 	}
 
 	public static void runDaemon(Runnable runnable) {
-		daemon(runnable).start();
+		Future<?> future = EXECUTOR.submit(runnable);
+		handleFutureEx(future);
 	}
 
 	public static Thread daemon(Runnable runnable) {
@@ -35,7 +40,7 @@ public final class Threads {
 	}
 
 	public static void handleFutureEx(Future<?> future) {
-		runDaemon(() -> {
+		EXECUTOR.execute(() -> {
 			try {
 				future.get();
 			}
@@ -49,7 +54,7 @@ public final class Threads {
 	}
 
 	public static void handleFutureEx(Future<?> future, Consumer<Throwable> errorHandler) {
-		runDaemon(() -> {
+		EXECUTOR.execute(() -> {
 			try {
 				future.get();
 			}

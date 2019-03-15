@@ -35,7 +35,7 @@ abstract class DecoratorObservable<T, R> extends BaseObservable<R> {
 					sub.unsubscribe();
 				}
 			}, object);
-			result.get().ifPresent(consumer::accept);
+			result.get().ifPresent(consumer);
 		}));
 		return subscription.get();
 	}

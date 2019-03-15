@@ -27,7 +27,7 @@ class TryTest {
 
 	@Test
 	void failureTest() {
-		//Object o = Try.failure(IllegalStateException::new).get;
-		//assertTrue(o instanceof );
+		Object o = Try.failure(IllegalStateException::new).get();
+		assertTrue(o instanceof);
 	}
 }

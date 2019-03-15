@@ -2,5 +2,5 @@ package io.titix.kiwi.check;
 
 public interface CheckedFunction<T, R> {
 
-	R apply(T t) throws Throwable;
+	R apply(T t) throws Exception;
 }

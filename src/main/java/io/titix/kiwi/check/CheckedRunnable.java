@@ -2,5 +2,5 @@ package io.titix.kiwi.check;
 
 public interface CheckedRunnable {
 
-	void run() throws Throwable;
+	void run() throws Exception;
 }

@@ -49,7 +49,6 @@ class ThreadsTest {
 	void runDaemon() throws InterruptedException {
 		AtomicReference<String> test = new AtomicReference<>();
 		Threads.runDaemon(() -> test.set("aaa"));
-		assertNull(test.get());
 
 		Thread.sleep(100);
 		assertEquals("aaa", test.get());
