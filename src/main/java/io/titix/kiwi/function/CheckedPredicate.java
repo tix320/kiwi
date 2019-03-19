@@ -1,4 +1,4 @@
-package io.titix.kiwi.check;
+package io.titix.kiwi.function;
 
 public interface CheckedPredicate<T> {
 

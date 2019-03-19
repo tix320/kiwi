@@ -26,16 +26,6 @@ class ThreadsTest {
 	}
 
 	@Test
-	void runAsync() throws InterruptedException {
-		AtomicReference<String> test = new AtomicReference<>();
-		Threads.runAsync(() -> test.set("aaa"));
-		assertNull(test.get());
-
-		Thread.sleep(100);
-		assertEquals("aaa", test.get());
-	}
-
-	@Test
 	void runAsyncWithExecutor() throws InterruptedException {
 		AtomicReference<String> test = new AtomicReference<>();
 		Threads.runAsync(() -> test.set("aaa"), Executors.newSingleThreadExecutor());

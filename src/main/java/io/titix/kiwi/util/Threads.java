@@ -6,30 +6,30 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
+import io.titix.kiwi.function.CheckedRunnable;
+
 /**
  * @author Tigran.Sargsyan on 14-Dec-18
  */
 
 public final class Threads {
 
-	private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2, Threads::daemon);
+	private static final ExecutorService DAEMON_EXECUTOR = Executors.newCachedThreadPool(Threads::daemon);
 
 	private Threads() {
 		throw new IllegalStateException("No no no");
 	}
 
-	public static void runAsync(Runnable runnable) {
-		Future<?> future = EXECUTOR.submit(runnable);
-		handleFutureEx(future);
-	}
-
-	public static void runAsync(Runnable runnable, ExecutorService executorService) {
-		Future<?> future = executorService.submit(runnable);
+	public static void runAsync(CheckedRunnable runnable, ExecutorService executorService) {
+		Future<?> future = executorService.submit(() -> {
+			runnable.run();
+			return null;
+		});
 		handleFutureEx(future);
 	}
 
 	public static void runDaemon(Runnable runnable) {
-		Future<?> future = EXECUTOR.submit(runnable);
+		Future<?> future = DAEMON_EXECUTOR.submit(runnable);
 		handleFutureEx(future);
 	}
 
@@ -40,7 +40,7 @@ public final class Threads {
 	}
 
 	public static void handleFutureEx(Future<?> future) {
-		EXECUTOR.execute(() -> {
+		DAEMON_EXECUTOR.execute(() -> {
 			try {
 				future.get();
 			}
@@ -54,7 +54,7 @@ public final class Threads {
 	}
 
 	public static void handleFutureEx(Future<?> future, Consumer<Throwable> errorHandler) {
-		EXECUTOR.execute(() -> {
+		DAEMON_EXECUTOR.execute(() -> {
 			try {
 				future.get();
 			}
