@@ -26,7 +26,7 @@ class IdGeneratorTest {
 		assertEquals(Long.MIN_VALUE + 1, generator.next());
 		assertEquals(Long.MIN_VALUE + 2, generator.next());
 
-		generator.free(Long.MIN_VALUE + 1);
+		generator.release(Long.MIN_VALUE + 1);
 
 		assertEquals(Long.MIN_VALUE + 1, generator.next());
 		assertEquals(Long.MIN_VALUE + 3, generator.next());
@@ -38,7 +38,7 @@ class IdGeneratorTest {
 
 		assertEquals(Long.MIN_VALUE, generator.next());
 
-		assertThrows(IllegalArgumentException.class, () -> generator.free(5));
+		assertThrows(IllegalArgumentException.class, () -> generator.release(5));
 	}
 
 	@Test

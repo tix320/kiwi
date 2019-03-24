@@ -16,13 +16,14 @@ public final class IdGenerator {
 	}
 
 	public long next() {
-		if (!availableNumbers.isEmpty()) {
-			return availableNumbers.poll();
+		Long item = availableNumbers.poll();
+		if (item == null) {
+			return current.getAndIncrement();
 		}
-		return current.getAndIncrement();
+		return item;
 	}
 
-	public void free(long id) {
+	public void release(long id) {
 		if (id >= current.get()) {
 			throw new IllegalArgumentException("id " + id + " is already free");
 		}
