@@ -19,7 +19,7 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 
 	private final Queue<T> objects;
 
-	protected CollectorObservable(Observable<T> observable) {
+	CollectorObservable(Observable<T> observable) {
 		if (observable instanceof BaseObservable) {
 			this.observable = (BaseObservable<T>) observable;
 		}
@@ -32,7 +32,7 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 
 	@Override
 	public final Subscription subscribe(Consumer<? super R> consumer) {
-		AtomicBoolean subscribed = new AtomicBoolean(true);
+		final AtomicBoolean subscribed = new AtomicBoolean(true);
 		observable.onComplete(() -> {
 			if (subscribed.get()) {
 				consumer.accept(collect(objects.stream()));

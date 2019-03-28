@@ -45,7 +45,7 @@ class ThreadsTest {
 	}
 
 	@Test
-	void daemon() throws InterruptedException {
+	void daemon() throws InterruptedException { //TODO , redesign test
 		AtomicReference<String> test = new AtomicReference<>();
 		Thread thread = Threads.daemon(() -> test.set("aaa"));
 

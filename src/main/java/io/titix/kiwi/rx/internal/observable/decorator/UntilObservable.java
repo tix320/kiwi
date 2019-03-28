@@ -20,7 +20,7 @@ public final class UntilObservable<T> extends DecoratorObservable<T, T> {
 
 	@Override
 	BiFunction<Subscription, T, Result<T>> transformer() {
-		AtomicBoolean need = new AtomicBoolean(true);
+		final AtomicBoolean need = new AtomicBoolean(true);
 		until.subscribe(ignored -> need.set(false));
 		return (subscription, object) -> {
 			if (need.get()) {
