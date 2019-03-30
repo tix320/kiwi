@@ -2,7 +2,7 @@ package io.titix.kiwi.test.util;
 
 import java.util.ArrayList;
 
-import io.titix.kiwi.util.PrePool;
+import io.titix.kiwi.util.ObjectPool;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,26 +11,26 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 /**
  * @author tix32 on 23-Feb-19
  */
- class PrePoolTest {
+class ObjectPoolTest {
 
 	@Test
 	void simpleTest() {
-		PrePool<ArrayList<Object>> prePool = new PrePool<>(ArrayList::new);
-		ArrayList<Object> list1 = prePool.get();
+        ObjectPool<ArrayList<Object>> objectPool = new ObjectPool<>(ArrayList::new);
+        ArrayList<Object> list1 = objectPool.get();
 		list1.add("first");
 
-		ArrayList<Object> list2 = prePool.get();
+        ArrayList<Object> list2 = objectPool.get();
 		list2.add("second");
 
 		assertNotEquals(list1, list2);
 
-		prePool.release(list1);
+        objectPool.release(list1);
 
-		ArrayList<Object> list3 = prePool.get();
+        ArrayList<Object> list3 = objectPool.get();
 
 		assertEquals(list1, list3);
 
-		ArrayList<Object> list4 = prePool.get();
+        ArrayList<Object> list4 = objectPool.get();
 
 		assertNotEquals(list4, list1);
 		assertNotEquals(list4, list2);
