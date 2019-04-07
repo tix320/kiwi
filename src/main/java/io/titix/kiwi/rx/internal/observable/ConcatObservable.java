@@ -3,7 +3,6 @@ package io.titix.kiwi.rx.internal.observable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
 
 /**
@@ -13,19 +12,8 @@ public final class ConcatObservable<T> extends BaseObservable<T> {
 
 	private final BaseObservable<T>[] observables;
 
-	@SuppressWarnings("unchecked")
-	public ConcatObservable(Observable<? extends T>[] observables) {
-		BaseObservable<T>[] baseObservables = new BaseObservable[observables.length];
-		int index = 0;
-		for (Observable<? extends T> observable : observables) {
-			if (observable instanceof BaseObservable) {
-				baseObservables[index++] = (BaseObservable<T>) observable;
-			}
-			else {
-				throw new UnsupportedOperationException("It is not for your implementation :)");
-			}
-		}
-		this.observables = baseObservables;
+	public ConcatObservable(BaseObservable<T>[] observables) {
+		this.observables = observables;
 	}
 
 	@Override

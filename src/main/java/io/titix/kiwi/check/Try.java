@@ -4,6 +4,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
 
+import io.titix.kiwi.check.internal.RecoverException;
 import io.titix.kiwi.check.internal.TryException;
 import io.titix.kiwi.function.*;
 
@@ -68,6 +69,16 @@ public final class Try<T> {
 		}
 	}
 
+	public static void runAndRethrow(CheckedRunnable runnable) {
+		Objects.requireNonNull(runnable, "Runnable cannot be null");
+		try {
+			runnable.run();
+		}
+		catch (Exception e) {
+			throw new RecoverException(e);
+		}
+	}
+
 	public static <T> Try<T> supply(CheckedSupplier<? extends T> supplier) {
 		Objects.requireNonNull(supplier, "Value supplier cannot be null");
 		try {
@@ -75,6 +86,16 @@ public final class Try<T> {
 		}
 		catch (Exception e) {
 			return typedFailure(e);
+		}
+	}
+
+	public static <T> T supplyAndGet(CheckedSupplier<? extends T> supplier) {
+		Objects.requireNonNull(supplier, "Value supplier cannot be null");
+		try {
+			return supplier.get();
+		}
+		catch (Exception e) {
+			throw new RecoverException(e);
 		}
 	}
 
@@ -149,8 +170,7 @@ public final class Try<T> {
 			}
 			return success(newValue);
 		}
-		@SuppressWarnings("unchecked")
-		Try<M> typed = (Try<M>) this;
+		@SuppressWarnings("unchecked") Try<M> typed = (Try<M>) this;
 		return typed;
 	}
 
@@ -248,7 +268,10 @@ public final class Try<T> {
 	}
 
 	public T get() {
-		if (value == null) {
+		if (isFailure()) {
+			throw new RecoverException(exception);
+		}
+		if (isEmpty()) {
 			throw new NoSuchElementException();
 		}
 		return value;

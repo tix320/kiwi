@@ -1,19 +1,20 @@
-package io.titix.kiwi.rx.internal.observable.decorator;
+package io.titix.kiwi.rx.internal.observable.transform;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.internal.observable.BaseObservable;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-public final class UntilObservable<T> extends DecoratorObservable<T, T> {
+public final class UntilObservable<T> extends TransformObservable<T, T> {
 
 	private final Observable<?> until;
 
-	public UntilObservable(Observable<T> observable, Observable<?> until) {
+	public UntilObservable(BaseObservable<T> observable, Observable<?> until) {
 		super(observable);
 		this.until = until;
 	}

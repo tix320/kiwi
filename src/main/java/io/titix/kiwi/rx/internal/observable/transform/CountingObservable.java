@@ -1,21 +1,24 @@
-package io.titix.kiwi.rx.internal.observable.decorator;
+package io.titix.kiwi.rx.internal.observable.transform;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
-import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.internal.observable.BaseObservable;
 
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class CountingObservable<T> extends DecoratorObservable<T, T> {
+public final class CountingObservable<T> extends TransformObservable<T, T> {
 
 	private final long count;
 
-	public CountingObservable(Observable<T> observable, long count) {
+	public CountingObservable(BaseObservable<T> observable, long count) {
 		super(observable);
-		this.count = count < 1 ? 1 : count;
+		if (count < 0) {
+			throw new IllegalArgumentException("Count must not be negative");
+		}
+		this.count = count;
 	}
 
 	@Override

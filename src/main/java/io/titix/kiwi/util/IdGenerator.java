@@ -4,13 +4,13 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class IdGenerator {
+public final class IDGenerator {
 
 	private final AtomicLong current;
 
 	private final Queue<Long> availableNumbers;
 
-	public IdGenerator() {
+	public IDGenerator() {
 		current = new AtomicLong(Long.MIN_VALUE);
 		availableNumbers = new ConcurrentLinkedQueue<>();
 	}

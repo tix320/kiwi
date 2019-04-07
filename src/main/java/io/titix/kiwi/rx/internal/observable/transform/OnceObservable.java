@@ -1,17 +1,17 @@
-package io.titix.kiwi.rx.internal.observable.decorator;
+package io.titix.kiwi.rx.internal.observable.transform;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
-import io.titix.kiwi.rx.Observable;
 import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.internal.observable.BaseObservable;
 
 /**
  * @author tix32 on 22-Feb-19
  */
-public final class OnceObservable<T> extends DecoratorObservable<T, T> {
+public final class OnceObservable<T> extends TransformObservable<T, T> {
 
-	public OnceObservable(Observable<T> observable) {
+	public OnceObservable(BaseObservable<T> observable) {
 		super(observable);
 	}
 

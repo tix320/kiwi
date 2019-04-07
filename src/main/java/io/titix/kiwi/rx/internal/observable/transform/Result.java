@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.decorator;
+package io.titix.kiwi.rx.internal.observable.transform;
 
 import java.util.Optional;
 

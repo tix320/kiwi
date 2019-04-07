@@ -1,13 +1,13 @@
 package io.titix.kiwi.test.util;
 
+import io.titix.kiwi.util.IDGenerator;
+import org.junit.jupiter.api.Test;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-
-import io.titix.kiwi.util.IdGenerator;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,11 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author tix32 on 23-Feb-19
  */
-class IdGeneratorTest {
+class IDGeneratorTest {
 
 	@Test
 	void simpleTest() {
-		IdGenerator generator = new IdGenerator();
+		IDGenerator generator = new IDGenerator();
 
 		assertEquals(Long.MIN_VALUE, generator.next());
 
@@ -34,7 +34,7 @@ class IdGeneratorTest {
 
 	@Test
 	void exceptionTest() {
-		IdGenerator generator = new IdGenerator();
+		IDGenerator generator = new IDGenerator();
 
 		assertEquals(Long.MIN_VALUE, generator.next());
 
@@ -43,18 +43,15 @@ class IdGeneratorTest {
 
 	@Test
 	void concurrentTest() {
-		IdGenerator generator = new IdGenerator();
+		IDGenerator generator = new IDGenerator();
 
 		int count = 500000;
 
 		Set<Long> generated = new ConcurrentSkipListSet<>();
 
-		Stream.generate(() -> null)
-				.limit(count)
-				.parallel()
-				.forEach(o -> generated.add(generator.next()));
+		Stream.generate(() -> null).limit(count).parallel().forEach(o -> generated.add(generator.next()));
 
-			assertEquals(count, generated.size());
+		assertEquals(count, generated.size());
 		Set<Long> expected = LongStream.range(Long.MIN_VALUE, Long.MIN_VALUE + count)
 				.boxed()
 				.collect(Collectors.toSet());
