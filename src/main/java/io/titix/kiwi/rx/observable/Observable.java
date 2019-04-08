@@ -1,21 +1,23 @@
-package io.titix.kiwi.rx;
+package io.titix.kiwi.rx.observable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Exchanger;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.titix.kiwi.check.Try;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
-import io.titix.kiwi.rx.internal.observable.ConcatObservable;
-import io.titix.kiwi.rx.internal.observable.collect.JoinObservable;
-import io.titix.kiwi.rx.internal.observable.collect.ToListObservable;
-import io.titix.kiwi.rx.internal.observable.collect.ToMapObservable;
-import io.titix.kiwi.rx.internal.observable.transform.*;
-import io.titix.kiwi.rx.internal.subject.BufferSubject;
+import io.titix.kiwi.rx.observable.collect.internal.JoinObservable;
+import io.titix.kiwi.rx.observable.collect.internal.ToListObservable;
+import io.titix.kiwi.rx.observable.collect.internal.ToMapObservable;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
+import io.titix.kiwi.rx.observable.internal.ConcatObservable;
+import io.titix.kiwi.rx.observable.transform.internal.*;
+import io.titix.kiwi.rx.subject.internal.BufferSubject;
+import io.titix.kiwi.rx.observable.transform.*;
 
 /**
  * @author tix32 on 21-Feb-19
@@ -31,11 +33,7 @@ public interface Observable<T> {
 		Observable<T> observable = castToBase(this).one();
 		Exchanger<T> exchanger = new Exchanger<>();
 		CompletableFuture.runAsync(
-				() -> observable.subscribe(value -> Try.runAndRethrow(() -> exchanger.exchange(value))))
-				.exceptionallyAsync(throwable -> {
-					throwable.getCause().printStackTrace();
-					return null;
-				});
+				() -> observable.subscribe(value -> Try.runAndRethrow(() -> exchanger.exchange(value))));
 		return Try.supplyAndGet(() -> exchanger.exchange(null));
 	}
 
@@ -62,6 +60,15 @@ public interface Observable<T> {
 	default <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
 											   Function<? super T, ? extends V> valueMapper) {
 		return new ToMapObservable<>(castToBase(this), keyMapper, valueMapper);
+	}
+
+	default <R> Observable<R> transform(BiFunction<Subscription, T, Result<R>> transformer) {
+		return new TransformObservable<>(castToBase(this)) {
+			@Override
+			protected BiFunction<Subscription, T, Result<R>> transformer() {
+				return transformer;
+			}
+		};
 	}
 
 	default Observable<List<T>> toList() {

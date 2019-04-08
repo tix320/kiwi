@@ -1,14 +1,14 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.subject.internal;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subject;
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.SourceObservable;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.SourceObservable;
+import io.titix.kiwi.rx.subject.Subject;
 
 /**
  * @author tix32 on 23-Feb-19

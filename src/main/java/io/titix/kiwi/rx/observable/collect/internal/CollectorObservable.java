@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.observable.collect;
+package io.titix.kiwi.rx.observable.collect.internal;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19

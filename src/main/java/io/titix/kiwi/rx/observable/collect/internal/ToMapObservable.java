@@ -1,11 +1,11 @@
-package io.titix.kiwi.rx.internal.observable.collect;
+package io.titix.kiwi.rx.observable.collect.internal;
 
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.titix.kiwi.rx.Observable;
+import io.titix.kiwi.rx.observable.Observable;
 
 /**
  * @author tix32 on 27-Feb-19

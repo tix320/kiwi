@@ -1,10 +1,11 @@
-package io.titix.kiwi.rx.internal.observable.transform;
+package io.titix.kiwi.rx.observable.transform.internal;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
+import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
+import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author tix32 on 22-Feb-19
@@ -22,7 +23,7 @@ public final class CountingObservable<T> extends TransformObservable<T, T> {
 	}
 
 	@Override
-	BiFunction<Subscription, T, Result<T>> transformer() {
+	protected BiFunction<Subscription, T, Result<T>> transformer() {
 		AtomicLong limit = new AtomicLong(count);
 		return (subscription, object) -> {
 			if (limit.getAndDecrement() > 0) {
@@ -30,7 +31,7 @@ public final class CountingObservable<T> extends TransformObservable<T, T> {
 			}
 			else {
 				subscription.unsubscribe();
-				return Result.empty();
+				return Result.none();
 			}
 		};
 	}

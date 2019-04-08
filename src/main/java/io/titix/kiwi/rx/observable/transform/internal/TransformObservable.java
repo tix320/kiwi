@@ -1,20 +1,21 @@
-package io.titix.kiwi.rx.internal.observable.transform;
+package io.titix.kiwi.rx.observable.transform.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
+import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
+import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author tix32 on 24-Feb-19
  */
-abstract class TransformObservable<T, R> extends BaseObservable<R> {
+public abstract class TransformObservable<T, R> extends BaseObservable<R> {
 
 	private final BaseObservable<T> observable;
 
-	TransformObservable(BaseObservable<T> observable) {
+	public TransformObservable(BaseObservable<T> observable) {
 		this.observable = observable;
 	}
 
@@ -40,5 +41,5 @@ abstract class TransformObservable<T, R> extends BaseObservable<R> {
 		observable.onComplete(runnable);
 	}
 
-	abstract BiFunction<Subscription, T, Result<R>> transformer();
+	protected abstract BiFunction<Subscription, T, Result<R>> transformer();
 }

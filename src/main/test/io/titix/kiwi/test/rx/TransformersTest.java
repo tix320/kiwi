@@ -3,7 +3,8 @@ package io.titix.kiwi.test.rx;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.titix.kiwi.rx.Observable;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.transform.Result;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,8 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-class DecoratorsTest {
-
+class TransformersTest {
 
 	@Test
 	void decoratorOnCompleteTest() {
@@ -37,6 +37,19 @@ class DecoratorsTest {
 		AtomicReference<List<Integer>> actual = new AtomicReference<>();
 		Observable.of(1, 2, 3, 4, 5).filter(integer -> integer > 2).toList().subscribe(actual::set);
 		assertEquals(List.of(3, 4, 5), actual.get());
+	}
 
+	@Test
+	void customTransformerTest() {
+		AtomicReference<List<String>> actual = new AtomicReference<>();
+		Observable.of(1, 2, 3, 4, 5, 6, 7).transform((subscription, integer) -> {
+			if (integer > 5) {
+				return Result.none();
+			}
+			else {
+				return Result.of(String.valueOf(integer));
+			}
+		}).toList().subscribe(actual::set);
+		assertEquals(List.of("1", "2", "3", "4", "5"), actual.get());
 	}
 }

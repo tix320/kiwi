@@ -1,11 +1,11 @@
-package io.titix.kiwi.rx.internal.observable.transform;
+package io.titix.kiwi.rx.observable.transform;
 
 import java.util.Optional;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-final class Result<T> {
+public final class Result<T> {
 
 	private static final Result<?> EMPTY = new Result<>(null);
 
@@ -19,12 +19,12 @@ final class Result<T> {
 		return Optional.ofNullable(object);
 	}
 
-	static <T> Result<T> of(T object) {
+	public static <T> Result<T> of(T object) {
 		return new Result<>(object);
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T> Result<T> empty() {
+	public static <T> Result<T> none() {
 		return (Result<T>) EMPTY;
 	}
 }

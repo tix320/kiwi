@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx;
+package io.titix.kiwi.rx.observable;
 
 /**
  * @author tix32 on 21-Feb-19

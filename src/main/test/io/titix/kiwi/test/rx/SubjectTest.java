@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subject;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.subject.Subject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

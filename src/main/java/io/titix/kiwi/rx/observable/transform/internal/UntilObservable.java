@@ -1,11 +1,12 @@
-package io.titix.kiwi.rx.internal.observable.transform;
+package io.titix.kiwi.rx.observable.transform.internal;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subscription;
-import io.titix.kiwi.rx.internal.observable.BaseObservable;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
+import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -20,7 +21,7 @@ public final class UntilObservable<T> extends TransformObservable<T, T> {
 	}
 
 	@Override
-	BiFunction<Subscription, T, Result<T>> transformer() {
+	protected BiFunction<Subscription, T, Result<T>> transformer() {
 		final AtomicBoolean need = new AtomicBoolean(true);
 		until.subscribe(ignored -> need.set(false));
 		return (subscription, object) -> {
@@ -29,7 +30,7 @@ public final class UntilObservable<T> extends TransformObservable<T, T> {
 			}
 			else {
 				subscription.unsubscribe();
-				return Result.empty();
+				return Result.none();
 			}
 		};
 	}

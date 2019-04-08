@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.internal.subject;
+package io.titix.kiwi.rx.subject.internal;
 
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;

@@ -1,9 +1,9 @@
-package io.titix.kiwi.rx.internal.observable;
+package io.titix.kiwi.rx.observable.internal;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.observable.Subscription;
 
 /**
  * @author tix32 on 24-Feb-19

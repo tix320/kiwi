@@ -1,7 +1,8 @@
-package io.titix.kiwi.rx;
+package io.titix.kiwi.rx.subject;
 
-import io.titix.kiwi.rx.internal.subject.BufferSubject;
-import io.titix.kiwi.rx.internal.subject.SingleSubject;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.subject.internal.BufferSubject;
+import io.titix.kiwi.rx.subject.internal.SingleSubject;
 
 /**
  * @author tix32 on 21-Feb-19

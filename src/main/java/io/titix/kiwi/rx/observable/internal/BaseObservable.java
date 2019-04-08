@@ -1,6 +1,6 @@
-package io.titix.kiwi.rx.internal.observable;
+package io.titix.kiwi.rx.observable.internal;
 
-import io.titix.kiwi.rx.Observable;
+import io.titix.kiwi.rx.observable.Observable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19

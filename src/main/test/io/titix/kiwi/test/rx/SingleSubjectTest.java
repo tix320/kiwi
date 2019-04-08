@@ -5,9 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.titix.kiwi.rx.Observable;
-import io.titix.kiwi.rx.Subject;
-import io.titix.kiwi.rx.Subscription;
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.subject.Subject;
+import io.titix.kiwi.rx.observable.Subscription;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
