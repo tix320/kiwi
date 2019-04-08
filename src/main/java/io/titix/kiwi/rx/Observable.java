@@ -31,7 +31,11 @@ public interface Observable<T> {
 		Observable<T> observable = castToBase(this).one();
 		Exchanger<T> exchanger = new Exchanger<>();
 		CompletableFuture.runAsync(
-				() -> observable.subscribe(value -> Try.runAndRethrow(() -> exchanger.exchange(value))));
+				() -> observable.subscribe(value -> Try.runAndRethrow(() -> exchanger.exchange(value))))
+				.exceptionallyAsync(throwable -> {
+					throwable.getCause().printStackTrace();
+					return null;
+				});
 		return Try.supplyAndGet(() -> exchanger.exchange(null));
 	}
 
