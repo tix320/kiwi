@@ -1,23 +1,32 @@
 package io.titix.kiwi.util;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
-public final class UniqueUUIDGenerator {
+public final class IDGenerator {
 
-    private final Set<String> generatedIds;
+	private final AtomicLong current;
 
-    public UniqueUUIDGenerator() {
-        generatedIds = new HashSet<>();
-    }
+	private final Queue<Long> availableNumbers;
 
-    public String next() {
-        String uuid;
-        do {
-            uuid = UUID.randomUUID().toString();
-        } while (generatedIds.contains(uuid));
-        generatedIds.add(uuid);
-        return uuid;
-    }
+	public IDGenerator() {
+		current = new AtomicLong(Long.MIN_VALUE);
+		availableNumbers = new ConcurrentLinkedQueue<>();
+	}
+
+	public long next() {
+		Long item = availableNumbers.poll();
+		if (item == null) {
+			return current.getAndIncrement();
+		}
+		return item;
+	}
+
+	public void release(long id) {
+		if (id >= current.get()) {
+			throw new IllegalArgumentException("id " + id + " is already free");
+		}
+		availableNumbers.add(id);
+	}
 }
