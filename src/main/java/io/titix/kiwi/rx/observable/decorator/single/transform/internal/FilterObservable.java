@@ -1,11 +1,11 @@
-package io.titix.kiwi.rx.observable.transform.internal;
+package io.titix.kiwi.rx.observable.decorator.single.transform.internal;
 
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
-import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author tix32 on 02-Mar-19

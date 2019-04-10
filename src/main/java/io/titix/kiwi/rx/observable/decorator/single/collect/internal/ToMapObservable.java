@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.observable.collect.internal;
+package io.titix.kiwi.rx.observable.decorator.single.collect.internal;
 
 import java.util.Map;
 import java.util.function.Function;

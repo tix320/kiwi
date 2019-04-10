@@ -10,14 +10,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.titix.kiwi.check.Try;
-import io.titix.kiwi.rx.observable.collect.internal.JoinObservable;
-import io.titix.kiwi.rx.observable.collect.internal.ToListObservable;
-import io.titix.kiwi.rx.observable.collect.internal.ToMapObservable;
+import io.titix.kiwi.rx.observable.decorator.multiple.internal.ConcatObservable;
+import io.titix.kiwi.rx.observable.decorator.single.collect.internal.JoinObservable;
+import io.titix.kiwi.rx.observable.decorator.single.collect.internal.ToListObservable;
+import io.titix.kiwi.rx.observable.decorator.single.collect.internal.ToMapObservable;
+import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
+import io.titix.kiwi.rx.observable.decorator.single.transform.internal.*;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
-import io.titix.kiwi.rx.observable.internal.ConcatObservable;
-import io.titix.kiwi.rx.observable.transform.internal.*;
 import io.titix.kiwi.rx.subject.internal.BufferSubject;
-import io.titix.kiwi.rx.observable.transform.*;
 
 /**
  * @author tix32 on 21-Feb-19

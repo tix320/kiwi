@@ -1,28 +1,27 @@
-package io.titix.kiwi.rx.observable.transform.internal;
+package io.titix.kiwi.rx.observable.decorator.single.transform.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.decorator.single.internal.SingleDecoratorObservable;
+import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
-import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author tix32 on 24-Feb-19
  */
-public abstract class TransformObservable<T, R> extends BaseObservable<R> {
+public abstract class TransformObservable<S, R> extends SingleDecoratorObservable<S, R> {
 
-	private final BaseObservable<T> observable;
-
-	public TransformObservable(BaseObservable<T> observable) {
-		this.observable = observable;
+	protected TransformObservable(BaseObservable<S> observable) {
+		super(observable);
 	}
 
 	@Override
 	public final Subscription subscribe(Consumer<? super R> consumer) {
 		AtomicReference<Subscription> realSubscription = new AtomicReference<>();
-		BiFunction<Subscription, T, Result<R>> transformer = transformer();
+		BiFunction<Subscription, S, Result<R>> transformer = transformer();
 		realSubscription.set(observable.subscribe(object -> {
 			Subscription subscription = () -> {
 				Subscription sub = realSubscription.get();
@@ -36,10 +35,5 @@ public abstract class TransformObservable<T, R> extends BaseObservable<R> {
 		return realSubscription.get();
 	}
 
-	@Override
-	public final void onComplete(Runnable runnable) {
-		observable.onComplete(runnable);
-	}
-
-	protected abstract BiFunction<Subscription, T, Result<R>> transformer();
+	protected abstract BiFunction<Subscription, S, Result<R>> transformer();
 }

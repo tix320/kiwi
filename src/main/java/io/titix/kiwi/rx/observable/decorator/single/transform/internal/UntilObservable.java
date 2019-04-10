@@ -1,12 +1,12 @@
-package io.titix.kiwi.rx.observable.transform.internal;
+package io.titix.kiwi.rx.observable.decorator.single.transform.internal;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 import io.titix.kiwi.rx.observable.Observable;
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
-import io.titix.kiwi.rx.observable.transform.Result;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.rx.observable.Observable;
-import io.titix.kiwi.rx.observable.transform.Result;
+import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

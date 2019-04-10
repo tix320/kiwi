@@ -1,19 +1,17 @@
-package io.titix.kiwi.rx.observable.internal;
+package io.titix.kiwi.rx.observable.decorator.multiple.internal;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author tix32 on 24-Feb-19
  */
-public final class ConcatObservable<T> extends BaseObservable<T> {
-
-	private final BaseObservable<T>[] observables;
+public final class ConcatObservable<T> extends MultipleDecoratorObservable<T> {
 
 	public ConcatObservable(BaseObservable<T>[] observables) {
-		this.observables = observables;
+		super(observables);
 	}
 
 	@Override
@@ -29,15 +27,4 @@ public final class ConcatObservable<T> extends BaseObservable<T> {
 		};
 	}
 
-	@Override
-	public void onComplete(Runnable runnable) {
-		AtomicInteger count = new AtomicInteger(observables.length);
-		for (BaseObservable<T> observable : observables) {
-			observable.onComplete(() -> {
-				if (count.decrementAndGet() == 0) {
-					runnable.run();
-				}
-			});
-		}
-	}
 }

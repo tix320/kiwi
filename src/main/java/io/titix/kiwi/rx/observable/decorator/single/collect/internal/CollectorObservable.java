@@ -1,4 +1,4 @@
-package io.titix.kiwi.rx.observable.collect.internal;
+package io.titix.kiwi.rx.observable.decorator.single.collect.internal;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -7,19 +7,19 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.observable.decorator.single.internal.SingleDecoratorObservable;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
+public abstract class CollectorObservable<S, R> extends SingleDecoratorObservable<S, R> {
 
-	private final BaseObservable<T> observable;
+	private final Queue<S> objects;
 
-	private final Queue<T> objects;
+	CollectorObservable(BaseObservable<S> observable) {
+		super(observable);
 
-	CollectorObservable(BaseObservable<T> observable) {
-		this.observable = observable;
 		this.objects = new ConcurrentLinkedQueue<>();
 		observable.subscribe(objects::add);
 	}
@@ -35,10 +35,5 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 		return () -> subscribed.set(false);
 	}
 
-	@Override
-	public final void onComplete(Runnable runnable) {
-		observable.onComplete(runnable);
-	}
-
-	protected abstract R collect(Stream<T> objects);
+	protected abstract R collect(Stream<S> objects);
 }
