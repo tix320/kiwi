@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import io.titix.kiwi.rx.observable.Observable;
 import io.titix.kiwi.rx.observable.Subscription;
 import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
@@ -19,13 +18,8 @@ public abstract class CollectorObservable<T, R> extends BaseObservable<R> {
 
 	private final Queue<T> objects;
 
-	CollectorObservable(Observable<T> observable) {
-		if (observable instanceof BaseObservable) {
-			this.observable = (BaseObservable<T>) observable;
-		}
-		else {
-			throw new UnsupportedOperationException("It is not for your implementation :)");
-		}
+	CollectorObservable(BaseObservable<T> observable) {
+		this.observable = observable;
 		this.objects = new ConcurrentLinkedQueue<>();
 		observable.subscribe(objects::add);
 	}

@@ -4,7 +4,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
@@ -19,11 +19,13 @@ public final class JoinObservable<T> extends CollectorObservable<T, String> {
 
 	private final String delimiter;
 
-	public JoinObservable(Observable<T> observable, Function<? super T, ? extends String> toString, String delimiter) {
+	public JoinObservable(BaseObservable<T> observable, Function<? super T, ? extends String> toString,
+						  String delimiter) {
 		this(observable, toString, delimiter, "", "");
 	}
 
-	public JoinObservable(Observable<T> observable, Function<? super T, ? extends String> toString, String delimiter, String prefix, String suffix) {
+	public JoinObservable(BaseObservable<T> observable, Function<? super T, ? extends String> toString,
+						  String delimiter, String prefix, String suffix) {
 		super(observable);
 		this.toString = toString;
 		this.delimiter = delimiter;
