@@ -7,12 +7,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.rx.observable.Observable;
-import io.titix.kiwi.rx.subject.Subject;
 import io.titix.kiwi.rx.observable.Subscription;
+import io.titix.kiwi.rx.subject.Subject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author tix32 on 24-Feb-19
@@ -126,18 +125,6 @@ class ObservableTest {
 
 		assertEquals("10,20,25,50", actual.get());
 	}
-
-	@Test
-	void concatIllegalObservableTest() {
-		Observable<Integer> observable1 = Observable.of(10);
-
-		Observable<Integer> observable2 = Observable.of(20);
-
-		Observable<Integer> observable3 = consumer -> null;
-
-		assertThrows(UnsupportedOperationException.class, () -> Observable.concat(observable1, observable2, observable3));
-	}
-
 
 	@Test
 	void mapTest() {

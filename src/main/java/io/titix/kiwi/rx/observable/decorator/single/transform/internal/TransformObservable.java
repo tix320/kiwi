@@ -1,38 +1,39 @@
 package io.titix.kiwi.rx.observable.decorator.single.transform.internal;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Observer;
+import io.titix.kiwi.rx.observable.ObserverWithSubscription;
 import io.titix.kiwi.rx.observable.Subscription;
 import io.titix.kiwi.rx.observable.decorator.single.internal.SingleDecoratorObservable;
 import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
-import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author tix32 on 24-Feb-19
  */
 public abstract class TransformObservable<S, R> extends SingleDecoratorObservable<S, R> {
 
-	protected TransformObservable(BaseObservable<S> observable) {
+	protected TransformObservable(Observable<S> observable) {
 		super(observable);
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<? super R> consumer) {
-		AtomicReference<Subscription> realSubscription = new AtomicReference<>();
+	public final Subscription subscribe(Observer<? super R> observer) {
 		BiFunction<Subscription, S, Result<R>> transformer = transformer();
-		realSubscription.set(observable.subscribe(object -> {
-			Subscription subscription = () -> {
-				Subscription sub = realSubscription.get();
-				if (sub != null) {
-					sub.unsubscribe();
-				}
-			};
+		return observable.subscribeAndHandle((object, subscription) -> {
 			Result<R> result = transformer.apply(subscription, object);
-			result.get().ifPresent(consumer);
-		}));
-		return realSubscription.get();
+			result.get().ifPresent(observer::consume);
+		});
+	}
+
+	@Override
+	public final Subscription subscribeAndHandle(ObserverWithSubscription<? super R> observer) {
+		BiFunction<Subscription, S, Result<R>> transformer = transformer();
+		return observable.subscribeAndHandle((object, subscription) -> {
+			Result<R> result = transformer.apply(subscription, object);
+			result.get().ifPresent(resultObject -> observer.consume(resultObject, subscription));
+		});
 	}
 
 	protected abstract BiFunction<Subscription, S, Result<R>> transformer();

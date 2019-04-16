@@ -1,7 +1,7 @@
 package io.titix.kiwi.rx.observable.internal;
 
-import java.util.function.Consumer;
-
+import io.titix.kiwi.rx.observable.Observer;
+import io.titix.kiwi.rx.observable.ObserverWithSubscription;
 import io.titix.kiwi.rx.observable.Subscription;
 import io.titix.kiwi.rx.subject.internal.BaseSubject;
 
@@ -17,8 +17,13 @@ public final class SourceObservable<T> extends BaseObservable<T> {
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<? super T> consumer) {
-		return source.addObserver(consumer);
+	public final Subscription subscribe(Observer<? super T> observer) {
+		return source.addObserver(observer);
+	}
+
+	@Override
+	public Subscription subscribeAndHandle(ObserverWithSubscription<? super T> observer) {
+		return source.addObserver(observer);
 	}
 
 	@Override

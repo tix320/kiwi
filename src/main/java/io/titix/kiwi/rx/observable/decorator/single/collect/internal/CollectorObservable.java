@@ -3,12 +3,13 @@ package io.titix.kiwi.rx.observable.decorator.single.collect.internal;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Observer;
+import io.titix.kiwi.rx.observable.ObserverWithSubscription;
 import io.titix.kiwi.rx.observable.Subscription;
 import io.titix.kiwi.rx.observable.decorator.single.internal.SingleDecoratorObservable;
-import io.titix.kiwi.rx.observable.internal.BaseObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
@@ -17,7 +18,7 @@ public abstract class CollectorObservable<S, R> extends SingleDecoratorObservabl
 
 	private final Queue<S> objects;
 
-	CollectorObservable(BaseObservable<S> observable) {
+	CollectorObservable(Observable<S> observable) {
 		super(observable);
 
 		this.objects = new ConcurrentLinkedQueue<>();
@@ -25,11 +26,22 @@ public abstract class CollectorObservable<S, R> extends SingleDecoratorObservabl
 	}
 
 	@Override
-	public final Subscription subscribe(Consumer<? super R> consumer) {
+	public final Subscription subscribe(Observer<? super R> observer) {
 		final AtomicBoolean subscribed = new AtomicBoolean(true);
 		observable.onComplete(() -> {
 			if (subscribed.get()) {
-				consumer.accept(collect(objects.stream()));
+				observer.consume(collect(objects.stream()));
+			}
+		});
+		return () -> subscribed.set(false);
+	}
+
+	@Override
+	public final Subscription subscribeAndHandle(ObserverWithSubscription<? super R> observer) {
+		final AtomicBoolean subscribed = new AtomicBoolean(true);
+		observable.onComplete(() -> {
+			if (subscribed.get()) {
+				observer.consume(collect(objects.stream()), () -> subscribed.set(false));
 			}
 		});
 		return () -> subscribed.set(false);

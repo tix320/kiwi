@@ -5,10 +5,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.titix.kiwi.rx.observable.Observable;
 import io.titix.kiwi.rx.observable.decorator.single.transform.Result;
+import io.titix.kiwi.rx.subject.Subject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
@@ -24,12 +24,6 @@ class TransformersTest {
 				.subscribe(actual::set);
 
 		assertEquals("(15)", actual.get());
-	}
-
-	@Test
-	void decoratorIllegalObservableTest() {
-		Observable<Integer> observable3 = consumer -> null;
-		assertThrows(UnsupportedOperationException.class, observable3::one);
 	}
 
 	@Test
@@ -51,5 +45,20 @@ class TransformersTest {
 			}
 		}).toList().subscribe(actual::set);
 		assertEquals(List.of("1", "2", "3", "4", "5"), actual.get());
+	}
+
+	@Test
+	void customTransformerWithBufferedSubject() {
+		AtomicReference<List<Integer>> actual = new AtomicReference<>();
+		Subject<Integer> subject = Subject.buffered(3);
+		Observable<Integer> observable = subject.asObservable();
+		subject.next(4);
+		subject.next(2);
+		subject.complete();
+		observable.transform((subscription, integer) -> {
+			subscription.unsubscribe();
+			return Result.of(integer + 2);
+		}).toList().subscribe(actual::set);
+		assertEquals(List.of(6), actual.get());
 	}
 }

@@ -10,7 +10,6 @@ import io.titix.kiwi.rx.subject.Subject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Tigran.Sargsyan on 28-Feb-19
@@ -123,11 +122,5 @@ class CollectorsTest {
 		Observable.of("hello").join(s -> s, ",", "[", "]").toMap(String::length, s -> s).subscribe(actual::set);
 
 		assertEquals(Map.of(7, "[hello]"), actual.get());
-	}
-
-	@Test
-	void illegalObservableToCollectorTest() {
-		Observable<String> observable = consumer -> null;
-		assertThrows(UnsupportedOperationException.class, () -> observable.join(s -> s, ","));
 	}
 }

@@ -3,9 +3,10 @@ package io.titix.kiwi.rx.subject.internal;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import io.titix.kiwi.rx.observable.Observable;
+import io.titix.kiwi.rx.observable.Observer;
+import io.titix.kiwi.rx.observable.ObserverWithSubscription;
 import io.titix.kiwi.rx.observable.Subscription;
 import io.titix.kiwi.rx.observable.internal.SourceObservable;
 import io.titix.kiwi.rx.subject.Subject;
@@ -19,9 +20,9 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
 	private final Collection<Runnable> completedObservers;
 
-	private final Collection<Consumer<? super T>> observers;
+	final Collection<Observer<? super T>> observers;
 
-	protected BaseSubject() {
+	BaseSubject() {
 		this.completedObservers = new ConcurrentLinkedQueue<>();
 		this.observers = new ConcurrentLinkedQueue<>();
 	}
@@ -29,7 +30,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
 	public final void next(T object) {
 		checkCompleted();
 		preNext(object);
-		observers.forEach(consumer -> consumer.accept(object));
+		observers.forEach(consumer -> consumer.consume(object));
 	}
 
 	@Override
@@ -37,7 +38,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		for (T object : objects) {
 			preNext(object);
-			observers.forEach(observer -> observer.accept(object));
+			observers.forEach(observer -> observer.consume(object));
 		}
 	}
 
@@ -46,7 +47,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		objects.forEach(object -> {
 			preNext(object);
-			observers.forEach(observer -> observer.accept(object));
+			observers.forEach(observer -> observer.consume(object));
 		});
 	}
 
@@ -72,12 +73,9 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		}
 	}
 
-	public final Subscription addObserver(Consumer<? super T> consumer) {
-		observers.add(filterObserver(consumer));
-		return () -> observers.remove(consumer);
-	}
+	public abstract Subscription addObserver(Observer<? super T> observer);
 
-	protected abstract Consumer<? super T> filterObserver(Consumer<? super T> consumer);
+	public abstract Subscription addObserver(ObserverWithSubscription<? super T> observer);
 
 	protected abstract void preNext(T object);
 
