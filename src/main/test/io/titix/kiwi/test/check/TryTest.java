@@ -1,9 +1,9 @@
-package io.titix.kiwi.test.check;
+package com.gitlab.tixtix320.kiwi.test.check;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.titix.kiwi.check.Try;
-import io.titix.kiwi.check.internal.TryException;
+import com.gitlab.tixtix320.kiwi.check.Try;
+import com.gitlab.tixtix320.kiwi.check.internal.TryException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

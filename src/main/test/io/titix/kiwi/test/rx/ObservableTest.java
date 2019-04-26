@@ -1,4 +1,4 @@
-package io.titix.kiwi.test.rx;
+package com.gitlab.tixtix320.kiwi.test.rx;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.titix.kiwi.rx.observable.Observable;
-import io.titix.kiwi.rx.observable.Subscription;
-import io.titix.kiwi.rx.subject.Subject;
+import com.gitlab.tixtix320.kiwi.observable.Observable;
+import com.gitlab.tixtix320.kiwi.observable.Subscription;
+import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
