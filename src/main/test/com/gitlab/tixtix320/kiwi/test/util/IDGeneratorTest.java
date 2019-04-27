@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * @author tix32 on 23-Feb-19
+ * @author Tigran Sargsyan on 23-Feb-19
  */
 class IDGeneratorTest {
 

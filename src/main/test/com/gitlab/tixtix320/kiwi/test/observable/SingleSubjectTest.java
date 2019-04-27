@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.test.rx;
+package com.gitlab.tixtix320.kiwi.test.observable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author tix32 on 23-Feb-19
+ * @author Tigran Sargsyan on 23-Feb-19
  */
 class SingleSubjectTest {
 
@@ -44,7 +44,8 @@ class SingleSubjectTest {
 	@Test
 	void anyTypeObservables() {
 
-		List<Integer> expected = Arrays.asList(7, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 14, 14, 14, 15, 15);
+		List<Integer> expected = Arrays.asList(7, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 14, 14, 14, 15,
+				15);
 		List<Integer> actual = new ArrayList<>();
 
 		Subject<Integer> subject = Subject.single();

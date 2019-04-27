@@ -2,6 +2,7 @@ package com.gitlab.tixtix320.kiwi.observable.internal;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Exchanger;
 import java.util.function.BiFunction;
@@ -14,7 +15,6 @@ import com.gitlab.tixtix320.kiwi.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.JoinObservable;
 import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.ToListObservable;
 import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.ToMapObservable;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.Result;
 import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.internal.*;
 
 /**
@@ -55,10 +55,10 @@ public abstract class BaseObservable<T> implements Observable<T> {
 		return new ToMapObservable<>(this, keyMapper, valueMapper);
 	}
 
-	public final <R> Observable<R> transform(BiFunction<Subscription, T, Result<R>> transformer) {
+	public final <R> Observable<R> transform(BiFunction<Subscription, T, Optional<R>> transformer) {
 		return new TransformObservable<>(this) {
 			@Override
-			protected BiFunction<Subscription, T, Result<R>> transformer() {
+			protected BiFunction<Subscription, T, Optional<R>> transformer() {
 				return transformer;
 			}
 		};

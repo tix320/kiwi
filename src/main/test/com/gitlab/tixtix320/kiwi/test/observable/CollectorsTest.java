@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.test.rx;
+package com.gitlab.tixtix320.kiwi.test.observable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,9 +19,7 @@ class CollectorsTest {
 	@Test
 	void toMapTest() {
 		AtomicReference<Map<Integer, String>> actual = new AtomicReference<>();
-		Observable.of("a", "aa", "aaa", "aaaa")
-				.toMap(String::length, s -> s)
-				.subscribe(actual::set);
+		Observable.of("a", "aa", "aaa", "aaaa").toMap(String::length, s -> s).subscribe(actual::set);
 
 		assertEquals(Map.of(1, "a", 2, "aa", 3, "aaa", 4, "aaaa"), actual.get());
 	}
@@ -56,9 +54,7 @@ class CollectorsTest {
 	@Test
 	void toListTest() {
 		AtomicReference<List<Integer>> actual = new AtomicReference<>();
-		Observable.of(1, 2, 3, 4)
-				.toList()
-				.subscribe(actual::set);
+		Observable.of(1, 2, 3, 4).toList().subscribe(actual::set);
 
 		assertEquals(List.of(1, 2, 3, 4), actual.get());
 	}

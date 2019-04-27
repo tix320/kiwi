@@ -12,7 +12,7 @@ import com.gitlab.tixtix320.kiwi.observable.internal.SourceObservable;
 import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
 
 /**
- * @author tix32 on 23-Feb-19
+ * @author Tigran Sargsyan on 23-Feb-19
  */
 public abstract class BaseSubject<T> implements Subject<T> {
 

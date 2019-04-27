@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 import com.gitlab.tixtix320.kiwi.observable.internal.BaseObservable;
 
 /**
- * @author tix32 on 27-Feb-19
+ * @author Tigran Sargsyan on 27-Feb-19
  */
 public final class ToMapObservable<T, K, V> extends CollectorObservable<T, Map<K, V>> {
 

@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.test.rx;
+package com.gitlab.tixtix320.kiwi.test.observable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author tix32 on 24-Feb-19
+ * @author Tigran Sargsyan on 24-Feb-19
  */
 class ObservableTest {
 
@@ -92,9 +92,7 @@ class ObservableTest {
 
 		Observable<Integer> observable3 = subject.asObservable();
 
-		Observable.concat(observable1, observable2, observable3)
-				.take(7)
-				.subscribe(actual::add);
+		Observable.concat(observable1, observable2, observable3).take(7).subscribe(actual::add);
 
 		subject.next(new Integer[]{70, 80});
 

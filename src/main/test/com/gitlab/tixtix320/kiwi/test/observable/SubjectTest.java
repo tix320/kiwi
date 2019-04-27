@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.test.rx;
+package com.gitlab.tixtix320.kiwi.test.observable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +52,6 @@ class SubjectTest {
 		subject.next(2);
 		subject.next(3);
 		subject.complete();
-		assertThrows(IllegalStateException.class,() -> subject.next(4));
+		assertThrows(IllegalStateException.class, () -> subject.next(4));
 	}
 }

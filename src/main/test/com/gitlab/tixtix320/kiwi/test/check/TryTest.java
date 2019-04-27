@@ -3,7 +3,6 @@ package com.gitlab.tixtix320.kiwi.test.check;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.gitlab.tixtix320.kiwi.check.Try;
-import com.gitlab.tixtix320.kiwi.check.internal.TryException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,29 +13,18 @@ import static org.junit.jupiter.api.Assertions.*;
 class TryTest {
 
 	@Test
-	void emptyTest() {
-		assertTrue(Try.empty().isSuccess());
-		assertFalse(Try.empty().isFailure());
-		assertTrue(Try.empty().isUseless());
-		assertFalse(Try.empty().isPresent());
-	}
-
-	@Test
 	void successTest() {
-		Integer value1 = Try.success(1).get();
-		assertEquals(1, value1);
-		Try<Integer> objectTry = Try.success((Integer) null);
-		assertEquals(Try.empty(), objectTry);
+		Integer value = Try.success(1).get().get();
+		assertEquals(1, value);
+		Try<?> failure = Try.failure(new IllegalStateException());
 	}
 
 	@Test
 	void successSupplierTest() {
-		Integer value1 = Try.success(() -> 1).get();
-		assertEquals(1, value1);
-		Try objectTry = Try.success(() -> null);
-		assertEquals(Try.empty(), objectTry);
-		assertThrows(TryException.class, () -> Try.success(() -> {
-			throw new IllegalCallerException();
+		Integer value = Try.success(() -> 1).get().get();
+		assertEquals(1, value);
+		assertThrows(IllegalStateException.class, () -> Try.success(() -> {
+			throw new RuntimeException();
 		}));
 	}
 
@@ -48,8 +36,8 @@ class TryTest {
 	@Test
 	void failureSupplierTest() {
 		assertTrue(Try.failure(IllegalStateException::new).isFailure());
-		assertThrows(TryException.class, () -> Try.failure(() -> {
-			throw new IllegalStateException();
+		assertThrows(IllegalStateException.class, () -> Try.failure(() -> {
+			throw new RuntimeException();
 		}));
 	}
 
@@ -66,7 +54,7 @@ class TryTest {
 
 	@Test
 	void supplyTest() {
-		assertEquals(5, Try.supply(() -> 5).get());
+		assertEquals(5, Try.supply(() -> 5).get().get());
 
 		assertTrue(Try.supply(() -> {
 			throw new IllegalStateException();

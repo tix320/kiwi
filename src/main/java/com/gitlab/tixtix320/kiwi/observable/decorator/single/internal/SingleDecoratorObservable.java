@@ -5,7 +5,7 @@ import com.gitlab.tixtix320.kiwi.observable.decorator.DecoratorObservable;
 
 /**
  * @param <S> source type
- * @param <R> result type
+ * @param <R> Optional type
  */
 public abstract class SingleDecoratorObservable<S, R> extends DecoratorObservable<R> {
 

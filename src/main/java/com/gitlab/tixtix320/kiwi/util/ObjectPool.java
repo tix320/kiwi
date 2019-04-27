@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 
 /**
- * @author tix32 on 05-Jan-19
+ * @author Tigran Sargsyan on 05-Jan-19
  */
 public final class ObjectPool<O> {
 

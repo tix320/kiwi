@@ -5,7 +5,7 @@ import com.gitlab.tixtix320.kiwi.observable.ObserverWithSubscription;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
 
 /**
- * @author tix32 on 21-Feb-19
+ * @author Tigran Sargsyan on 21-Feb-19
  */
 public final class SingleSubject<T> extends BaseSubject<T> {
 

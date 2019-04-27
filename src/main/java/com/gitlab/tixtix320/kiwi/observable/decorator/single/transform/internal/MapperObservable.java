@@ -1,14 +1,14 @@
 package com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.internal;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.Result;
 import com.gitlab.tixtix320.kiwi.observable.internal.BaseObservable;
 
 /**
- * @author tix32 on 24-Feb-19
+ * @author Tigran Sargsyan on 24-Feb-19
  */
 public final class MapperObservable<T, R> extends TransformObservable<T, R> {
 
@@ -20,7 +20,7 @@ public final class MapperObservable<T, R> extends TransformObservable<T, R> {
 	}
 
 	@Override
-	protected BiFunction<Subscription, T, Result<R>> transformer() {
-		return (subscription, object) -> Result.of(mapper.apply(object));
+	protected BiFunction<Subscription, T, Optional<R>> transformer() {
+		return (subscription, object) -> Optional.of(mapper.apply(object));
 	}
 }

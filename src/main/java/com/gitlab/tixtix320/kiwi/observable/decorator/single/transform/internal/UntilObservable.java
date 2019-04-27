@@ -1,11 +1,11 @@
 package com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.internal;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.Result;
 import com.gitlab.tixtix320.kiwi.observable.internal.BaseObservable;
 
 /**
@@ -21,16 +21,16 @@ public final class UntilObservable<T> extends TransformObservable<T, T> {
 	}
 
 	@Override
-	protected BiFunction<Subscription, T, Result<T>> transformer() {
+	protected BiFunction<Subscription, T, Optional<T>> transformer() {
 		final AtomicBoolean need = new AtomicBoolean(true);
 		until.subscribe(ignored -> need.set(false));
 		return (subscription, object) -> {
 			if (need.get()) {
-				return Result.of(object);
+				return Optional.of(object);
 			}
 			else {
 				subscription.unsubscribe();
-				return Result.none();
+				return Optional.empty();
 			}
 		};
 	}

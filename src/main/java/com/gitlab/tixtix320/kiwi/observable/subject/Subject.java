@@ -5,7 +5,7 @@ import com.gitlab.tixtix320.kiwi.observable.subject.internal.BufferSubject;
 import com.gitlab.tixtix320.kiwi.observable.subject.internal.SingleSubject;
 
 /**
- * @author tix32 on 21-Feb-19
+ * @author Tigran Sargsyan on 21-Feb-19
  */
 public interface Subject<T> {
 

@@ -2,16 +2,16 @@ package com.gitlab.tixtix320.kiwi.observable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.gitlab.tixtix320.kiwi.observable.decorator.multiple.internal.ConcatObservable;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.Result;
 import com.gitlab.tixtix320.kiwi.observable.subject.internal.BufferSubject;
 
 /**
- * @author tix32 on 21-Feb-19
+ * @author Tigran Sargsyan on 21-Feb-19
  */
 public interface Observable<T> {
 
@@ -39,7 +39,7 @@ public interface Observable<T> {
 	<K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
 									   Function<? super T, ? extends V> valueMapper);
 
-	<R> Observable<R> transform(BiFunction<Subscription, T, Result<R>> transformer);
+	<R> Observable<R> transform(BiFunction<Subscription, T, Optional<R>> transformer);
 
 	Observable<List<T>> toList();
 

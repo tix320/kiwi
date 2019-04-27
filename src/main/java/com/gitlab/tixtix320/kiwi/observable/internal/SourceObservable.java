@@ -6,7 +6,7 @@ import com.gitlab.tixtix320.kiwi.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.observable.subject.internal.BaseSubject;
 
 /**
- * @author tix32 on 28-Feb-19
+ * @author Tigran Sargsyan on 28-Feb-19
  */
 public final class SourceObservable<T> extends BaseObservable<T> {
 
