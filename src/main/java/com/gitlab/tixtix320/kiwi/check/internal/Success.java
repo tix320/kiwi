@@ -2,6 +2,7 @@ package com.gitlab.tixtix320.kiwi.check.internal;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.gitlab.tixtix320.kiwi.check.Try;
@@ -33,6 +34,21 @@ public class Success<T> implements Try<T> {
 	@Override
 	public <X extends Exception> void rethrow(Function<Exception, ? extends X> exMapper) {
 		Objects.requireNonNull(exMapper, "Mapper cannot be null");
+	}
+
+	@Override
+	public <X extends Exception, M extends Exception> Try<Void> rethrow(Class<X> exceptionType,
+																		Function<? super X, ? extends M> exMapper) {
+		@SuppressWarnings("unchecked")
+		Try<Void> typedThis = (Try<Void>) this;
+		return typedThis;
+	}
+
+	@Override
+	public <X extends Exception> Try<Void> rethrow(Class<X> exceptionType) {
+		@SuppressWarnings("unchecked")
+		Try<Void> typedThis = (Try<Void>) this;
+		return typedThis;
 	}
 
 	@Override
@@ -99,6 +115,19 @@ public class Success<T> implements Try<T> {
 	@Override
 	public Try<T> whatever(CheckedRunnable runnable) {
 		return onSuccess(runnable);
+	}
+
+	@Override
+	public <X extends Exception, M> Try<M> recover(Class<X> exceptionType,
+												   Function<? super X, ? extends M> recoverFunction) {
+		@SuppressWarnings("unchecked")
+		Try<M> typedThis = (Try<M>) this;
+		return typedThis;
+	}
+
+	@Override
+	public <X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction) {
+		return this;
 	}
 
 	@Override

@@ -56,6 +56,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		completed.set(true);
 		completedObservers.forEach(Runnable::run);
+		observers.clear();
 		completedObservers.clear();
 	}
 

@@ -2,6 +2,7 @@ package com.gitlab.tixtix320.kiwi.check.internal;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.gitlab.tixtix320.kiwi.check.Try;
@@ -34,6 +35,41 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
+	public <X extends Exception, M extends Exception> Try<Void> rethrow(Class<X> exceptionType,
+																		Function<? super X, ? extends M> exMapper) {
+		if (exceptionType.isAssignableFrom(exception.getClass())) {
+			try {
+				@SuppressWarnings("unchecked")
+				X exception = (X) this.exception;
+				throw exMapper.apply(exception);
+			}
+			catch (Exception e) {
+				throw new IllegalStateException("An error occurred in rethrow function. See cause.", e);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		Try<Void> typedThis = (Try<Void>) this;
+		return typedThis;
+	}
+
+	@Override
+	public <X extends Exception> Try<Void> rethrow(Class<X> exceptionType) {
+		if (exceptionType.isAssignableFrom(exception.getClass())) {
+			try {
+				throw RecoverException.of(exception);
+			}
+			catch (Exception e) {
+				throw new IllegalStateException("An error occurred in rethrow function. See cause.", e);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		Try<Void> typedThis = (Try<Void>) this;
+		return typedThis;
+	}
+
+	@Override
 	public Try<T> peek(CheckedConsumer<? super T> consumer) {
 		return onSuccess(consumer);
 	}
@@ -62,6 +98,41 @@ public final class Failure<T> implements Try<T> {
 	@Override
 	public Try<T> whatever(CheckedRunnable runnable) {
 		return onFailure(runnable);
+	}
+
+	@Override
+	public <X extends Exception, M> Try<M> recover(Class<X> exceptionType,
+												   Function<? super X, ? extends M> recoverFunction) {
+		if (exceptionType.isAssignableFrom(exception.getClass())) {
+			try {
+				@SuppressWarnings("unchecked")
+				X exception = (X) this.exception;
+				return Success.of(recoverFunction.apply(exception));
+			}
+			catch (Exception e) {
+				throw new IllegalStateException("An error occurred in recover function. See cause.", e);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		Try<M> typedThis = (Try<M>) this;
+		return typedThis;
+	}
+
+	@Override
+	public <X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction) {
+		if (exceptionType.isAssignableFrom(exception.getClass())) {
+			try {
+				@SuppressWarnings("unchecked")
+				X exception = (X) this.exception;
+				recoverFunction.accept(exception);
+				return Success.empty();
+			}
+			catch (Exception e) {
+				throw new IllegalStateException("An error occurred in recover function. See cause.", e);
+			}
+		}
+		return this;
 	}
 
 	@Override

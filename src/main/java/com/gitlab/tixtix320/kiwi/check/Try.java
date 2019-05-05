@@ -2,6 +2,7 @@ package com.gitlab.tixtix320.kiwi.check;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.gitlab.tixtix320.kiwi.check.internal.Failure;
@@ -31,13 +32,13 @@ public interface Try<T> {
 		}
 	}
 
-	static Try<Object> failure(Exception exception) {
+	static Try<Void> failure(Exception exception) {
 		Objects.requireNonNull(exception, "exception cannot be null");
 
 		return Failure.of(exception);
 	}
 
-	static Try<Object> failure(CheckedSupplier<Exception> supplier) {
+	static Try<Void> failure(CheckedSupplier<Exception> supplier) {
 		Objects.requireNonNull(supplier, "Supplier can not be null");
 
 		try {
@@ -48,7 +49,7 @@ public interface Try<T> {
 		}
 	}
 
-	static Try<Object> run(CheckedRunnable runnable) {
+	static Try<Void> run(CheckedRunnable runnable) {
 		Objects.requireNonNull(runnable, "Runnable cannot be null");
 
 		try {
@@ -106,6 +107,11 @@ public interface Try<T> {
 
 	<X extends Exception> void rethrow(Function<Exception, ? extends X> exMapper) throws X;
 
+	<X extends Exception, M extends Exception> Try<Void> rethrow(Class<X> exceptionType,
+																 Function<? super X, ? extends M> exMapper);
+
+	<X extends Exception> Try<Void> rethrow(Class<X> exceptionType);
+
 	Try<T> peek(CheckedConsumer<? super T> consumer);
 
 	Try<T> peek(CheckedRunnable runnable);
@@ -115,6 +121,10 @@ public interface Try<T> {
 	<M> Try<M> map(CheckedFunction<? super T, ? extends M> mapper);
 
 	Try<T> whatever(CheckedRunnable runnable);
+
+	<X extends Exception, M> Try<M> recover(Class<X> exceptionType, Function<? super X, ? extends M> recoverFunction);
+
+	<X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction);
 
 	<X extends Exception> Optional<T> getOrElseThrow(CheckedSupplier<? extends X> exSupplier) throws X;
 
