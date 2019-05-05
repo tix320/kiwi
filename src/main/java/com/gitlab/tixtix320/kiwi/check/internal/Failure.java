@@ -37,7 +37,7 @@ public final class Failure<T> implements Try<T> {
 	@Override
 	public <X extends Exception, M extends Exception> Try<Void> rethrow(Class<X> exceptionType,
 																		Function<? super X, ? extends M> exMapper) {
-		if (exceptionType.isAssignableFrom(exception.getClass())) {
+		if (exceptionType.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
 				X exception = (X) this.exception;
@@ -55,7 +55,7 @@ public final class Failure<T> implements Try<T> {
 
 	@Override
 	public <X extends Exception> Try<Void> rethrow(Class<X> exceptionType) {
-		if (exceptionType.isAssignableFrom(exception.getClass())) {
+		if (exceptionType.isInstance(exception)) {
 			try {
 				throw RecoverException.of(exception);
 			}
@@ -103,7 +103,7 @@ public final class Failure<T> implements Try<T> {
 	@Override
 	public <X extends Exception, M> Try<M> recover(Class<X> exceptionType,
 												   Function<? super X, ? extends M> recoverFunction) {
-		if (exceptionType.isAssignableFrom(exception.getClass())) {
+		if (exceptionType.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
 				X exception = (X) this.exception;
@@ -121,7 +121,7 @@ public final class Failure<T> implements Try<T> {
 
 	@Override
 	public <X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction) {
-		if (exceptionType.isAssignableFrom(exception.getClass())) {
+		if (exceptionType.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
 				X exception = (X) this.exception;
