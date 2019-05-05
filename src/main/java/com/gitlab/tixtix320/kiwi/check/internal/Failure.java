@@ -136,7 +136,7 @@ public final class Failure<T> implements Try<T> {
 
 	@Override
 	public Optional<T> get() {
-		throw new RecoverException(exception);
+		throw RecoverException.of(exception);
 	}
 
 	@Override

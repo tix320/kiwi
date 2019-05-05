@@ -1,8 +1,8 @@
 package com.gitlab.tixtix320.kiwi.check.internal;
 
-public class RecoverException extends RuntimeException {
+public class RecoverException {
 
-	public RecoverException(Throwable cause) {
-		super("See cause", cause);
+	public static RuntimeException of(Exception exception) {
+		return new RuntimeException("See cause", exception);
 	}
 }

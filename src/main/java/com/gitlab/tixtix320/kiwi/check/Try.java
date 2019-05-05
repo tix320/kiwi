@@ -78,7 +78,7 @@ public interface Try<T> {
 			return supplier.get();
 		}
 		catch (Exception e) {
-			throw new RecoverException(e);
+			throw RecoverException.of(e);
 		}
 	}
 
@@ -89,7 +89,7 @@ public interface Try<T> {
 			runnable.run();
 		}
 		catch (Exception e) {
-			throw new RecoverException(e);
+			throw RecoverException.of(e);
 		}
 	}
 
@@ -100,7 +100,7 @@ public interface Try<T> {
 			return supplier.get();
 		}
 		catch (Exception e) {
-			throw new RecoverException(e);
+			throw RecoverException.of(e);
 		}
 	}
 
