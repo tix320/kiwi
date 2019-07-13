@@ -11,7 +11,11 @@ public final class IDGenerator {
 	private final Queue<Long> availableNumbers;
 
 	public IDGenerator() {
-		current = new AtomicLong(Long.MIN_VALUE);
+		this(Long.MIN_VALUE);
+	}
+
+	public IDGenerator(long start) {
+		current = new AtomicLong(start);
 		availableNumbers = new ConcurrentLinkedQueue<>();
 	}
 
