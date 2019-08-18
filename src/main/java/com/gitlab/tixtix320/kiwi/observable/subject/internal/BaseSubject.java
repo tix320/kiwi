@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
 import com.gitlab.tixtix320.kiwi.observable.Observer;
-import com.gitlab.tixtix320.kiwi.observable.ObserverWithSubscription;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.observable.internal.SourceObservable;
 import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
@@ -16,7 +15,7 @@ import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
  */
 public abstract class BaseSubject<T> implements Subject<T> {
 
-	private final AtomicBoolean completed = new AtomicBoolean(false);
+	final AtomicBoolean completed = new AtomicBoolean(false);
 
 	private final Collection<Runnable> completedObservers;
 
@@ -30,7 +29,12 @@ public abstract class BaseSubject<T> implements Subject<T> {
 	public final void next(T object) {
 		checkCompleted();
 		preNext(object);
-		observers.forEach(consumer -> consumer.consume(object));
+		observers.forEach(observer -> {
+			boolean needMore = observer.consume(object);
+			if (!needMore) {
+				observers.remove(observer);
+			}
+		});
 	}
 
 	@Override
@@ -38,7 +42,12 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		for (T object : objects) {
 			preNext(object);
-			observers.forEach(observer -> observer.consume(object));
+			observers.forEach(observer -> {
+				boolean needMore = observer.consume(object);
+				if (!needMore) {
+					observers.remove(observer);
+				}
+			});
 		}
 	}
 
@@ -47,7 +56,12 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		checkCompleted();
 		objects.forEach(object -> {
 			preNext(object);
-			observers.forEach(observer -> observer.consume(object));
+			observers.forEach(observer -> {
+				boolean needMore = observer.consume(object);
+				if (!needMore) {
+					observers.remove(observer);
+				}
+			});
 		});
 	}
 
@@ -65,18 +79,17 @@ public abstract class BaseSubject<T> implements Subject<T> {
 		return new SourceObservable<>(this);
 	}
 
-	public final void onComplete(Runnable runnable) {
+	public final Subscription onComplete(Runnable runnable) {
 		if (completed.get()) {
 			runnable.run();
 		}
 		else {
 			this.completedObservers.add(runnable);
 		}
+		return () -> completedObservers.remove(runnable);
 	}
 
 	public abstract Subscription addObserver(Observer<? super T> observer);
-
-	public abstract Subscription addObserver(ObserverWithSubscription<? super T> observer);
 
 	protected abstract void preNext(T object);
 

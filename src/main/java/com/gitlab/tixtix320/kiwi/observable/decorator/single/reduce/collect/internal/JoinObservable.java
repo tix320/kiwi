@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal;
+package com.gitlab.tixtix320.kiwi.observable.decorator.single.reduce.collect.internal;
 
 import java.util.function.Function;
 import java.util.stream.Collectors;

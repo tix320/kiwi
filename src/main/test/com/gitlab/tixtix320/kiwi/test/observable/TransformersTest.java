@@ -1,10 +1,10 @@
 package com.gitlab.tixtix320.kiwi.test.observable;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.Result;
 import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
 import org.junit.jupiter.api.Test;
 
@@ -36,12 +36,12 @@ class TransformersTest {
 	@Test
 	void customTransformerTest() {
 		AtomicReference<List<String>> actual = new AtomicReference<>();
-		Observable.of(1, 2, 3, 4, 5, 6, 7).transform((subscription, integer) -> {
+		Observable.of(1, 2, 3, 4, 5, 6, 7).transform(integer -> {
 			if (integer > 5) {
-				return Optional.empty();
+				return Result.empty();
 			}
 			else {
-				return Optional.of(String.valueOf(integer));
+				return Result.of(String.valueOf(integer));
 			}
 		}).toList().subscribe(actual::set);
 		assertEquals(List.of("1", "2", "3", "4", "5"), actual.get());
@@ -55,10 +55,7 @@ class TransformersTest {
 		subject.next(4);
 		subject.next(2);
 		subject.complete();
-		observable.transform((subscription, integer) -> {
-			subscription.unsubscribe();
-			return Optional.of(integer + 2);
-		}).toList().subscribe(actual::set);
+		observable.transform(integer -> Result.lastOne(integer + 2)).toList().subscribe(actual::set);
 		assertEquals(List.of(6), actual.get());
 	}
 }

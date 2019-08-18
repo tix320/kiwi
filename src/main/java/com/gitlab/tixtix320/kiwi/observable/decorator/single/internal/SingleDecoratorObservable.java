@@ -1,11 +1,12 @@
 package com.gitlab.tixtix320.kiwi.observable.decorator.single.internal;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
+import com.gitlab.tixtix320.kiwi.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.observable.decorator.DecoratorObservable;
 
 /**
  * @param <S> source type
- * @param <R> Optional type
+ * @param <R> destination type
  */
 public abstract class SingleDecoratorObservable<S, R> extends DecoratorObservable<R> {
 
@@ -16,7 +17,7 @@ public abstract class SingleDecoratorObservable<S, R> extends DecoratorObservabl
 	}
 
 	@Override
-	public final void onComplete(Runnable runnable) {
-		observable.onComplete(runnable);
+	public final Subscription onComplete(Runnable runnable) {
+		return observable.onComplete(runnable);
 	}
 }

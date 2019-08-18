@@ -127,7 +127,7 @@ class ObservableTest {
 	@Test
 	void mapTest() {
 
-		List<String> expected = Arrays.asList("10lol", "20lol", "20lol", "25lol");
+		List<String> expected = Arrays.asList("10lol", "20lol", "20wtf", "25lol");
 		List<String> actual = new ArrayList<>();
 
 		Subject<Integer> subject = Subject.single();
@@ -137,7 +137,7 @@ class ObservableTest {
 		Subscription subscription = observable.map(integer -> integer + "lol").subscribe(actual::add);
 
 		subject.next(10);
-		observable.map(integer -> integer + "lol").one().subscribe(actual::add);
+		observable.map(integer -> integer + "wtf").one().subscribe(actual::add);
 
 		subject.next(20);
 		subject.next(25);
@@ -169,7 +169,7 @@ class ObservableTest {
 		subject.next(20);
 		subject.next(25);
 
-		untilSubject.next(new Object());
+		untilSubject.complete();
 
 		subject.next(50);
 		subject.next(60);

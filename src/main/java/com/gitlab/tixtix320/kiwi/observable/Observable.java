@@ -2,12 +2,12 @@ package com.gitlab.tixtix320.kiwi.observable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.gitlab.tixtix320.kiwi.observable.decorator.multiple.internal.ConcatObservable;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.Result;
 import com.gitlab.tixtix320.kiwi.observable.subject.internal.BufferSubject;
 
 /**
@@ -15,11 +15,11 @@ import com.gitlab.tixtix320.kiwi.observable.subject.internal.BufferSubject;
  */
 public interface Observable<T> {
 
-	Subscription subscribe(Observer<? super T> observer);
+	Subscription subscribeAndHandle(Observer<? super T> observer);
 
-	Subscription subscribeAndHandle(ObserverWithSubscription<? super T> observer);
+	Subscription subscribe(Consumer<? super T> observer);
 
-	void onComplete(Runnable runnable);
+	Subscription onComplete(Runnable runnable);
 
 	/**
 	 * Waits until will be available one value and return.
@@ -39,7 +39,7 @@ public interface Observable<T> {
 	<K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
 									   Function<? super T, ? extends V> valueMapper);
 
-	<R> Observable<R> transform(BiFunction<Subscription, T, Optional<R>> transformer);
+	<R> Observable<R> transform(Function<T, Result<R>> transformer);
 
 	Observable<List<T>> toList();
 

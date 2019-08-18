@@ -1,7 +1,6 @@
 package com.gitlab.tixtix320.kiwi.observable.internal;
 
 import com.gitlab.tixtix320.kiwi.observable.Observer;
-import com.gitlab.tixtix320.kiwi.observable.ObserverWithSubscription;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.observable.subject.internal.BaseSubject;
 
@@ -17,17 +16,12 @@ public final class SourceObservable<T> extends BaseObservable<T> {
 	}
 
 	@Override
-	public final Subscription subscribe(Observer<? super T> observer) {
+	public final Subscription subscribeAndHandle(Observer<? super T> observer) {
 		return source.addObserver(observer);
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ObserverWithSubscription<? super T> observer) {
-		return source.addObserver(observer);
-	}
-
-	@Override
-	public final void onComplete(Runnable runnable) {
-		source.onComplete(runnable);
+	public final Subscription onComplete(Runnable runnable) {
+		return source.onComplete(runnable);
 	}
 }

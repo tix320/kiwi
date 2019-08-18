@@ -2,7 +2,6 @@ package com.gitlab.tixtix320.kiwi.observable.decorator.multiple.internal;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
 import com.gitlab.tixtix320.kiwi.observable.Observer;
-import com.gitlab.tixtix320.kiwi.observable.ObserverWithSubscription;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
 
 /**
@@ -15,20 +14,7 @@ public final class ConcatObservable<T> extends MultipleDecoratorObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribe(Observer<? super T> observer) {
-		Subscription[] subscriptions = new Subscription[observables.length];
-		for (int i = 0; i < observables.length; i++) {
-			subscriptions[i] = observables[i].subscribe(observer);
-		}
-		return () -> {
-			for (Subscription subscription : subscriptions) {
-				subscription.unsubscribe();
-			}
-		};
-	}
-
-	@Override
-	public Subscription subscribeAndHandle(ObserverWithSubscription<? super T> observer) {
+	public Subscription subscribeAndHandle(Observer<? super T> observer) {
 		Subscription[] subscriptions = new Subscription[observables.length];
 		for (int i = 0; i < observables.length; i++) {
 			subscriptions[i] = observables[i].subscribeAndHandle(observer);
@@ -39,5 +25,4 @@ public final class ConcatObservable<T> extends MultipleDecoratorObservable<T> {
 			}
 		};
 	}
-
 }

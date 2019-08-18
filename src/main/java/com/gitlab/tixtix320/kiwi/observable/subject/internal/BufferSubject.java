@@ -4,7 +4,6 @@ import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import com.gitlab.tixtix320.kiwi.observable.Observer;
-import com.gitlab.tixtix320.kiwi.observable.ObserverWithSubscription;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
 
 /**
@@ -18,32 +17,20 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
 	public BufferSubject(int bufferSize) {
 		buffer = new ConcurrentLinkedDeque<>();
-		this.bufferSize = bufferSize < 0 ? 0 : bufferSize;
+		this.bufferSize = Math.max(bufferSize, 0);
 	}
 
 	@Override
 	public Subscription addObserver(Observer<? super T> observer) {
-		observers.add(observer);
-		buffer.forEach(observer::consume);
-		return () -> observers.remove(observer);
-	}
-
-	@Override
-	public Subscription addObserver(ObserverWithSubscription<? super T> observer) {
-		Observer<T> realObserver = new Observer<>() {
-			@Override
-			public void consume(T object) {
-				observer.consume(object, () -> observers.remove(this));
-			}
-		};
-		observers.add(realObserver);
-		for (T object : buffer) {
-			realObserver.consume(object);
-			if (!observers.contains(realObserver)) {
-				break;
-			}
+		if (completed.get()) {
+			nextFromBuffer(observer);
+			return () -> {};
 		}
-		return () -> observers.remove(realObserver);
+		else {
+			observers.add(observer);
+			nextFromBuffer(observer);
+			return () -> observers.remove(observer);
+		}
 	}
 
 	@Override
@@ -52,5 +39,15 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 			buffer.removeFirst();
 		}
 		buffer.addLast(object);
+	}
+
+	private void nextFromBuffer(Observer<? super T> observer) {
+		for (T object : buffer) {
+			boolean needMore = observer.consume(object);
+			if (!needMore) {
+				observers.remove(observer);
+				break;
+			}
+		}
 	}
 }

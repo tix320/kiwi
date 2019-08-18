@@ -2,25 +2,33 @@ package com.gitlab.tixtix320.kiwi.observable.internal;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Exchanger;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.gitlab.tixtix320.kiwi.check.Try;
 import com.gitlab.tixtix320.kiwi.observable.Observable;
 import com.gitlab.tixtix320.kiwi.observable.Subscription;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.JoinObservable;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.ToListObservable;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.collect.internal.ToMapObservable;
-import com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.internal.*;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.Result;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.internal.*;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.reduce.collect.internal.JoinObservable;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.reduce.collect.internal.ToListObservable;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.reduce.collect.internal.ToMapObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
 public abstract class BaseObservable<T> implements Observable<T> {
+
+	@Override
+	public final Subscription subscribe(Consumer<? super T> observer) {
+		return subscribeAndHandle(object -> {
+			observer.accept(object);
+			return true;
+		});
+	}
 
 	public final T get() {
 		Observable<T> observable = this.one();
@@ -55,10 +63,10 @@ public abstract class BaseObservable<T> implements Observable<T> {
 		return new ToMapObservable<>(this, keyMapper, valueMapper);
 	}
 
-	public final <R> Observable<R> transform(BiFunction<Subscription, T, Optional<R>> transformer) {
-		return new TransformObservable<>(this) {
+	public final <R> Observable<R> transform(Function<T, Result<R>> transformer) {
+		return new OperatorObservable<>(this) {
 			@Override
-			protected BiFunction<Subscription, T, Optional<R>> transformer() {
+			protected Function<T, Result<R>> operator() {
 				return transformer;
 			}
 		};

@@ -1,16 +1,15 @@
-package com.gitlab.tixtix320.kiwi.observable.decorator.single.transform.internal;
+package com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.internal;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import com.gitlab.tixtix320.kiwi.observable.Observable;
-import com.gitlab.tixtix320.kiwi.observable.Subscription;
+import com.gitlab.tixtix320.kiwi.observable.decorator.single.operator.Result;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class CountingObservable<T> extends TransformObservable<T, T> {
+public final class CountingObservable<T> extends OperatorObservable<T, T> {
 
 	private final long count;
 
@@ -23,15 +22,14 @@ public final class CountingObservable<T> extends TransformObservable<T, T> {
 	}
 
 	@Override
-	protected BiFunction<Subscription, T, Optional<T>> transformer() {
+	protected Function<T, Result<T>> operator() {
 		AtomicLong limit = new AtomicLong(count);
-		return (subscription, object) -> {
+		return object -> {
 			if (limit.getAndDecrement() > 0) {
-				return Optional.of(object);
+				return Result.of(object);
 			}
 			else {
-				subscription.unsubscribe();
-				return Optional.empty();
+				return Result.unsubscribe();
 			}
 		};
 	}
