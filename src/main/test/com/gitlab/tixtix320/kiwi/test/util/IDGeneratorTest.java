@@ -1,13 +1,13 @@
 package com.gitlab.tixtix320.kiwi.test.util;
 
+import com.gitlab.tixtix320.kiwi.api.util.IDGenerator;
+import org.junit.jupiter.api.Test;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-
-import com.gitlab.tixtix320.kiwi.util.IDGenerator;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

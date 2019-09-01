@@ -1,13 +1,14 @@
 package com.gitlab.tixtix320.kiwi.test.observable;
 
+import com.gitlab.tixtix320.kiwi.api.observable.Observable;
+import com.gitlab.tixtix320.kiwi.api.observable.subject.Subject;
+import com.gitlab.tixtix320.kiwi.internal.observable.CompletedException;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-
-import com.gitlab.tixtix320.kiwi.observable.Observable;
-import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,6 +53,6 @@ class SubjectTest {
 		subject.next(2);
 		subject.next(3);
 		subject.complete();
-		assertThrows(IllegalStateException.class, () -> subject.next(4));
+        assertThrows(CompletedException.class, () -> subject.next(4));
 	}
 }

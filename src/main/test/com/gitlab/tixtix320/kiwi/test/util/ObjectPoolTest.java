@@ -1,9 +1,9 @@
 package com.gitlab.tixtix320.kiwi.test.util;
 
-import java.util.ArrayList;
-
-import com.gitlab.tixtix320.kiwi.util.ObjectPool;
+import com.gitlab.tixtix320.kiwi.api.util.ObjectPool;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

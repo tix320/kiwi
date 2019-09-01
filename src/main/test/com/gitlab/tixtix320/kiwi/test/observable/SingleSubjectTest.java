@@ -1,14 +1,14 @@
 package com.gitlab.tixtix320.kiwi.test.observable;
 
+import com.gitlab.tixtix320.kiwi.api.observable.Observable;
+import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
+import com.gitlab.tixtix320.kiwi.api.observable.subject.Subject;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-
-import com.gitlab.tixtix320.kiwi.observable.Observable;
-import com.gitlab.tixtix320.kiwi.observable.Subscription;
-import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

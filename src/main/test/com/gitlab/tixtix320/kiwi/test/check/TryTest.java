@@ -1,9 +1,9 @@
 package com.gitlab.tixtix320.kiwi.test.check;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.gitlab.tixtix320.kiwi.check.Try;
+import com.gitlab.tixtix320.kiwi.api.check.Try;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
