@@ -1,17 +1,21 @@
 package com.gitlab.tixtix320.kiwi.test.observable;
 
+import com.gitlab.tixtix320.kiwi.api.observable.Observable;
+import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
+import com.gitlab.tixtix320.kiwi.api.observable.subject.Subject;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.gitlab.tixtix320.kiwi.observable.Observable;
-import com.gitlab.tixtix320.kiwi.observable.Subscription;
-import com.gitlab.tixtix320.kiwi.observable.subject.Subject;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
@@ -42,7 +46,6 @@ class ObservableTest {
 		List<Integer> actual = new ArrayList<>();
 
 		Observable<Integer> of = Observable.of(32);
-
 
 		of.subscribe(actual::add);
 
@@ -175,6 +178,36 @@ class ObservableTest {
 		subject.next(60);
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	void blockTest() {
+		assertTimeout(Duration.ofSeconds(5), () -> {
+			List<Integer> expected = Arrays.asList(20, 40);
+			List<Integer> actual = new ArrayList<>();
+
+			Subject<Integer> subject = Subject.single();
+
+			Observable<Integer> observable = subject.asObservable();
+
+			CompletableFuture.runAsync(() -> {
+				try {
+					TimeUnit.SECONDS.sleep(2);
+					subject.next(10);
+					TimeUnit.SECONDS.sleep(1);
+					subject.next(20);
+					subject.next(25);
+					//subject.complete();
+				} catch (InterruptedException e) {
+					throw new IllegalStateException();
+				}
+			}).exceptionallyAsync(throwable -> {
+				throwable.printStackTrace();
+				return null;
+			});
+			observable.take(2).block().map(integer -> integer * 2).subscribe(actual::add);
+			assertEquals(expected, actual);
+		});
 	}
 }
 
