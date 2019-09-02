@@ -1,11 +1,13 @@
 package com.gitlab.tixtix320.kiwi.internal.observable.subject;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
+import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
@@ -71,13 +73,12 @@ public final class BufferSubject<T> extends BaseSubject<T> {
     }
 
     @Override
-    protected Subscription subscribe(ConditionalConsumer<? super T> consumer) {
+    protected Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer) {
         Observer<T> observer = createObserver(consumer);
         observers.add(observer);
         nextFromBuffer(observer);
         return () -> observers.remove(observer);
     }
-
 
     private void fillBuffer(T object) {
         if (buffer.size() == bufferCapacity) {
@@ -88,11 +89,12 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
 
     private void fillBuffer(T[] objects) {
-        int removeCount = Math.min(objects.length, bufferCapacity);
+        int removeCount = Math.min(objects.length, bufferCapacity) - (bufferCapacity - buffer.size());
         for (int i = 0; i < removeCount; i++) {
             buffer.removeFirst();
         }
-        for (int i = Math.min(0, objects.length - bufferCapacity); i < objects.length; i++) {
+        int insertCount = Math.min(objects.length, bufferCapacity);
+        for (int i = objects.length - insertCount; i < objects.length; i++) {
             buffer.addLast(objects[i]);
         }
     }

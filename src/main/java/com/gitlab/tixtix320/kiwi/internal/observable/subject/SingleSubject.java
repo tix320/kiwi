@@ -1,21 +1,16 @@
 package com.gitlab.tixtix320.kiwi.internal.observable.subject;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
+import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 
 import java.util.Iterator;
+import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
  */
 public final class SingleSubject<T> extends BaseSubject<T> {
-
-    @Override
-    protected Subscription subscribe(ConditionalConsumer<? super T> consumer) {
-        Observer<T> observer = createObserver(consumer);
-        observers.add(observer);
-        return () -> observers.remove(observer);
-    }
 
     public void next(T object) {
         checkCompleted();
@@ -59,5 +54,12 @@ public final class SingleSubject<T> extends BaseSubject<T> {
                 }
             }
         }
+    }
+
+    @Override
+    protected Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer) {
+        Observer<T> observer = createObserver(consumer);
+        observers.add(observer);
+        return () -> observers.remove(observer);
     }
 }

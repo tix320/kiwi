@@ -2,6 +2,7 @@ package com.gitlab.tixtix320.kiwi.internal.observable.subject;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
 import com.gitlab.tixtix320.kiwi.api.observable.Observable;
+import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.api.observable.subject.Subject;
 import com.gitlab.tixtix320.kiwi.api.util.IDGenerator;
@@ -12,6 +13,7 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
@@ -54,12 +56,13 @@ public abstract class BaseSubject<T> implements Subject<T> {
         return new SubjectObservable();
     }
 
-    protected final Observer<T> createObserver(ConditionalConsumer<? super T> consumer) {
+    protected final Observer<T> createObserver(ConditionalConsumer<? super Result<? extends T>> consumer) {
         AtomicReference<Observer<T>> observerReference = new AtomicReference<>();
         Subscription subscription = () -> observers.remove(observerReference.get());
 
         observerReference.set(new Observer<>(object -> {
-            boolean needMore = consumer.consume(object);
+
+            boolean needMore = consumer.consume(Result.of(object));
 
             if (!needMore) {
                 subscription.unsubscribe();
@@ -76,7 +79,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
         }
     }
 
-    protected abstract Subscription subscribe(ConditionalConsumer<? super T> consumer);
+    protected abstract Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer);
 
     private final class SubjectObservable extends BaseObservable<T> {
 
@@ -85,7 +88,7 @@ public abstract class BaseSubject<T> implements Subject<T> {
         }
 
         @Override
-        public Subscription subscribeAndHandle(ConditionalConsumer<? super T> consumer) {
+        public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer) {
             Subscription subscription = BaseSubject.this.subscribe(consumer);
             addSubscription(subscription);
             return subscription;

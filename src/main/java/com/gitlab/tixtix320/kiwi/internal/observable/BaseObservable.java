@@ -35,8 +35,8 @@ public abstract class BaseObservable<T> implements Observable<T> {
 
     @Override
     public final Subscription subscribe(Consumer<? super T> consumer) {
-        return subscribeAndHandle(object -> {
-            consumer.accept(object);
+        return subscribeAndHandle(result -> {
+            consumer.accept(result.getValue());
             return true;
         });
     }

@@ -1,10 +1,12 @@
 package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.operator;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
+import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.internal.observable.BaseObservable;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -21,42 +23,27 @@ public final class CountingObservable<T> extends BaseObservable<T> {
         }
         this.observable = observable;
         this.count = count;
+        observable.onComplete(this::complete);
     }
 
     @Override
-    public Subscription subscribeAndHandle(ConditionalConsumer<? super T> consumer) {
+    public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer) {
         if (count == 0) {
             return () -> {
             };
         }
         AtomicLong limit = new AtomicLong(count);
-        Subscription subscription = observable.subscribeAndHandle(object -> {
+        Subscription subscription = observable.subscribeAndHandle(result -> {
             if (limit.getAndDecrement() > 0) {
-                return consumer.consume(object);
+
+                consumer.consume(result);
+                return true;
             } else {
+                consumer.consume(Result.empty());
                 return false;
             }
         });
         addSubscription(subscription);
         return subscription;
     }
-
-    //    @Override
-//    public Subscription subscribeAndHandle(Consumer<? super T> consumer, Function<? super T, Result<T>> processor) {
-//        super.subscribeAndHandle(consumer, processor);
-//        if (count == 0) {
-//            return () -> {
-//            };
-//        }
-//        AtomicLong limit = new AtomicLong(count);
-//        Subscription subscription = observable.subscribeAndHandle(consumer, object -> {
-//            if (limit.getAndDecrement() > 0) {
-//                return processor.apply(object);
-//            } else {
-//                return Result.unsubscribe();
-//            }
-//        });
-//        addSubscription(subscription);
-//        return subscription;
-//    }
 }

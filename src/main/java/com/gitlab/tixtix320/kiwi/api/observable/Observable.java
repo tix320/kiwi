@@ -16,7 +16,7 @@ public interface Observable<T> {
 
     Subscription subscribe(Consumer<? super T> consumer);
 
-    Subscription subscribeAndHandle(ConditionalConsumer<? super T> consumer);
+    Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer);
 
     void complete();
 
