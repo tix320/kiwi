@@ -10,13 +10,6 @@ import java.util.Iterator;
  */
 public final class SingleSubject<T> extends BaseSubject<T> {
 
-    @Override
-    protected Subscription subscribe(ConditionalConsumer<? super T> consumer) {
-        Observer<T> observer = createObserver(consumer);
-        observers.add(observer);
-        return () -> observers.remove(observer);
-    }
-
     public void next(T object) {
         checkCompleted();
         Iterator<Observer<? super T>> iterator = observers.iterator();
@@ -59,5 +52,17 @@ public final class SingleSubject<T> extends BaseSubject<T> {
                 }
             }
         }
+    }
+
+    @Override
+    protected Subscription subscribe(ConditionalConsumer<? super T> consumer) {
+        Observer<T> observer = createObserver(consumer);
+        observers.add(observer);
+        return () -> observers.remove(observer);
+    }
+
+    @Override
+    protected int getAvailableObjectsCount() {
+        return 0;
     }
 }

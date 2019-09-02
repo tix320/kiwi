@@ -13,6 +13,7 @@ public final class OnceObservable<T> extends BaseObservable<T> {
 
     public OnceObservable(BaseObservable<T> observable) {
         this.observable = observable;
+        observable.onComplete(number -> this.complete());
     }
 
     @Override
@@ -23,5 +24,10 @@ public final class OnceObservable<T> extends BaseObservable<T> {
         });
         addSubscription(subscription);
         return subscription;
+    }
+
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
     }
 }

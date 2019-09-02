@@ -18,6 +18,7 @@ public final class FilterObservable<T> extends BaseObservable<T> {
     public FilterObservable(BaseObservable<T> observable, Predicate<? super T> filter) {
         this.observable = observable;
         this.filter = filter;
+        observable.onComplete(number -> this.complete());
     }
 
     @Override
@@ -28,5 +29,10 @@ public final class FilterObservable<T> extends BaseObservable<T> {
             }
             return true;
         }));
+    }
+
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
     }
 }

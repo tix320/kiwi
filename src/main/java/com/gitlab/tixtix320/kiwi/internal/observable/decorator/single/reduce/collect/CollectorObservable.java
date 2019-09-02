@@ -7,7 +7,7 @@ import com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.reduce.Red
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -22,21 +22,36 @@ public abstract class CollectorObservable<S, R> extends ReduceObservable<R> {
     CollectorObservable(BaseObservable<S> observable) {
         this.observable = observable;
         this.objects = new ConcurrentLinkedQueue<>();
+        observable.onComplete(c -> this.complete());
     }
 
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super R> consumer) {
-        AtomicBoolean completed = new AtomicBoolean(false);
-        observable.onComplete(() -> completed.set(true));
+        AtomicInteger remainingObjects = new AtomicInteger(Integer.MAX_VALUE);
+        observable.onComplete(count -> {
+            if (count == 0) {
+                consumer.consume(collect(objects.stream()));
+            } else {
+                remainingObjects.set(count-objects.size());
+            }
+        });
         return observable.subscribeAndHandle(object -> {
-            objects.add(object);
-            if (completed.get()) {
+            int value = remainingObjects.decrementAndGet();
+            if (value > 0) { // observable not completed
+                objects.add(object);
+                return true;
+            } else {
+                objects.add(object);
                 consumer.consume(collect(objects.stream()));
                 return false;
             }
-            return true;
         });
     }
 
     protected abstract R collect(Stream<S> objects);
+
+    @Override
+    public final int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
+    }
 }

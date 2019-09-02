@@ -21,6 +21,7 @@ public final class CountingObservable<T> extends BaseObservable<T> {
         }
         this.observable = observable;
         this.count = count;
+        observable.onComplete(number -> this.complete());
     }
 
     @Override
@@ -41,22 +42,8 @@ public final class CountingObservable<T> extends BaseObservable<T> {
         return subscription;
     }
 
-    //    @Override
-//    public Subscription subscribeAndHandle(Consumer<? super T> consumer, Function<? super T, Result<T>> processor) {
-//        super.subscribeAndHandle(consumer, processor);
-//        if (count == 0) {
-//            return () -> {
-//            };
-//        }
-//        AtomicLong limit = new AtomicLong(count);
-//        Subscription subscription = observable.subscribeAndHandle(consumer, object -> {
-//            if (limit.getAndDecrement() > 0) {
-//                return processor.apply(object);
-//            } else {
-//                return Result.unsubscribe();
-//            }
-//        });
-//        addSubscription(subscription);
-//        return subscription;
-//    }
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
+    }
 }

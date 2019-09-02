@@ -18,6 +18,7 @@ public final class MapperObservable<S, R> extends BaseObservable<R> {
     public MapperObservable(BaseObservable<S> observable, Function<? super S, ? extends R> mapper) {
         this.observable = observable;
         this.mapper = mapper;
+        observable.onComplete(number -> this.complete());
     }
 
     @Override
@@ -28,5 +29,10 @@ public final class MapperObservable<S, R> extends BaseObservable<R> {
         });
         addSubscription(subscription);
         return subscription;
+    }
+
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
     }
 }

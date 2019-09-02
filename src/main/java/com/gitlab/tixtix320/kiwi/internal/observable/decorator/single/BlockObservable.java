@@ -15,13 +15,14 @@ public class BlockObservable<T> extends BaseObservable<T> {
     public BlockObservable(BaseObservable<T> observable) {
         this.observable = observable;
         waitObject = new Object();
+        observable.onComplete(number -> this.complete());
     }
 
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super T> consumer) {
         CompletableFuture.runAsync(() -> observable.subscribe(consumer::consume));
 
-        observable.onComplete(() -> {
+        observable.onComplete(number -> {
             synchronized (waitObject) {
                 waitObject.notifyAll();
             }
@@ -36,5 +37,10 @@ public class BlockObservable<T> extends BaseObservable<T> {
         }
         return () -> {
         };
+    }
+
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
     }
 }

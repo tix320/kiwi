@@ -78,6 +78,11 @@ public final class BufferSubject<T> extends BaseSubject<T> {
         return () -> observers.remove(observer);
     }
 
+    @Override
+    protected int getAvailableObjectsCount() {
+        return buffer.size();
+    }
+
 
     private void fillBuffer(T object) {
         if (buffer.size() == bufferCapacity) {
@@ -88,11 +93,12 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
 
     private void fillBuffer(T[] objects) {
-        int removeCount = Math.min(objects.length, bufferCapacity);
+        int removeCount = Math.min(objects.length, bufferCapacity) - (bufferCapacity - buffer.size());
         for (int i = 0; i < removeCount; i++) {
             buffer.removeFirst();
         }
-        for (int i = Math.min(0, objects.length - bufferCapacity); i < objects.length; i++) {
+        int insertCount = Math.min(objects.length, bufferCapacity);
+        for (int i = objects.length - insertCount; i < objects.length; i++) {
             buffer.addLast(objects[i]);
         }
     }

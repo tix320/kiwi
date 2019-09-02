@@ -14,17 +14,21 @@ public final class UntilObservable<T> extends BaseObservable<T> {
 
     private final BaseObservable<T> observable;
 
-    private final Observable<?> until;
+    private final AtomicBoolean unsubscribe;
 
     public UntilObservable(BaseObservable<T> observable, Observable<?> until) {
         this.observable = observable;
-        this.until = until;
+        this.unsubscribe = new AtomicBoolean();
+        observable.onComplete(number -> this.complete());
+        until.onComplete(number -> unsubscribe.set(true));
     }
 
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super T> consumer) {
-        AtomicBoolean unsubscribe = new AtomicBoolean();
-        until.onComplete(() -> unsubscribe.set(true));
+        if (unsubscribe.get()) {
+            return () -> {
+            };
+        }
         Subscription subscription = observable.subscribeAndHandle(object -> {
             if (unsubscribe.get()) {
                 return false;
@@ -34,5 +38,10 @@ public final class UntilObservable<T> extends BaseObservable<T> {
         });
         addSubscription(subscription);
         return subscription;
+    }
+
+    @Override
+    public int getAvailableObjectsCount() {
+        return observable.getAvailableObjectsCount();
     }
 }
