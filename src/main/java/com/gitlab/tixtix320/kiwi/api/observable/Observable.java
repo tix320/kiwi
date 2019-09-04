@@ -20,7 +20,15 @@ public interface Observable<T> {
 
     void complete();
 
-    void onComplete(Runnable runnable);
+    void onComplete(Consumer<Integer> consumer);
+
+    /**
+     * Return number of available objects, which will be nexted after subscribe.
+     * This method will be called only after observable is completed, otherwise result is undefined.
+     *
+     * @return count of objects
+     */
+    int getAvailableObjectsCount();
 
     /**
      * BLocks current thread until all values will be processed.
