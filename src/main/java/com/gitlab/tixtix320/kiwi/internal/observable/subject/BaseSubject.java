@@ -81,9 +81,6 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
     protected abstract Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer);
 
-
-    protected abstract int getAvailableObjectsCount();
-
     private final class SubjectObservable extends BaseObservable<T> {
 
         public SubjectObservable() {
@@ -95,11 +92,6 @@ public abstract class BaseSubject<T> implements Subject<T> {
             Subscription subscription = BaseSubject.this.subscribe(consumer);
             addSubscription(subscription);
             return subscription;
-        }
-
-        @Override
-        public int getAvailableObjectsCount() {
-            return BaseSubject.this.getAvailableObjectsCount();
         }
     }
 

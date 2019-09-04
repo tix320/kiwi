@@ -24,7 +24,7 @@ public abstract class BaseObservable<T> implements Observable<T> {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
 
-    private final Collection<Consumer<Integer>> completedObservers;
+    private final Collection<Runnable> completedObservers;
 
     private final Collection<Subscription> subscriptions;
 
@@ -45,7 +45,7 @@ public abstract class BaseObservable<T> implements Observable<T> {
     public final void complete() {
         boolean changed = completed.compareAndSet(false, true);
         if (changed) {
-            completedObservers.forEach(consumer -> consumer.accept(getAvailableObjectsCount()));
+            completedObservers.forEach(Runnable::run);
             completedObservers.clear();
             subscriptions.forEach(Subscription::unsubscribe);
             subscriptions.clear();
@@ -55,11 +55,11 @@ public abstract class BaseObservable<T> implements Observable<T> {
     }
 
     @Override
-    public final void onComplete(Consumer<Integer> consumer) {
+    public final void onComplete(Runnable runnable) {
         if (completed.get()) {
-            consumer.accept(getAvailableObjectsCount());
+            runnable.run();
         } else {
-            this.completedObservers.add(consumer);
+            this.completedObservers.add(runnable);
         }
     }
 
