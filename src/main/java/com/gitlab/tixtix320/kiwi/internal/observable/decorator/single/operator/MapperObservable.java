@@ -29,7 +29,7 @@ public final class MapperObservable<S, R> extends DecoratorObservable<R> {
     public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends R>> consumer) {
         return observable.subscribeAndHandle(result -> {
             R mappedValue = mapper.apply(result.getValue());
-            return consumer.consume(result.changeValue(mappedValue));
+            return consumer.consume(Result.of(mappedValue));
         });
     }
 

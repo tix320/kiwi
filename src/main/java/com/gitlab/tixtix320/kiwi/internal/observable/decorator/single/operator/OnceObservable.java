@@ -24,7 +24,7 @@ public final class OnceObservable<T> extends DecoratorObservable<T> {
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer) {
         return observable.subscribeAndHandle(result -> {
-            consumer.consume(Result.lastOne(result.getValue()));
+            consumer.consume(Result.of(result.getValue(), false));
             return false;
         });
     }

@@ -19,18 +19,6 @@ public final class Result<T> {
         return new Result<>(value, hasNext);
     }
 
-    public static <T> Result<T> lastOne(T value) {
-        return new Result<>(value, false);
-    }
-
-    public <R> Result<R> changeValue(R value) {
-        return new Result<>(value, hasNext);
-    }
-
-    public Result<T> copy(boolean hasNext) {
-        return new Result<>(value, hasNext);
-    }
-
     public T getValue() {
         return value;
     }

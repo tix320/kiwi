@@ -36,8 +36,12 @@ public final class CountingObservable<T> extends DecoratorObservable<T> {
         }
         AtomicLong limit = new AtomicLong(count);
         return observable.subscribeAndHandle(result -> {
-            if (limit.getAndDecrement() > 0) {
+            long remaining = limit.decrementAndGet();
+            if (remaining > 0) {
                 return consumer.consume(result);
+            } else if (remaining == 0) {
+                consumer.consume(Result.of(result.getValue(), false));
+                return false;
             } else {
                 return false;
             }

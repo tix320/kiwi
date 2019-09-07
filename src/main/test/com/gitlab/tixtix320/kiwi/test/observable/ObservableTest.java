@@ -190,9 +190,66 @@ class ObservableTest {
 
         CompletableFuture.runAsync(() -> {
             try {
-                TimeUnit.SECONDS.sleep(2);
-                subject.next(10);
                 TimeUnit.SECONDS.sleep(1);
+                subject.next(10);
+                subject.next(20);
+                subject.next(25);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException();
+            }
+        }).exceptionallyAsync(throwable -> {
+            throwable.printStackTrace();
+            return null;
+        });
+
+        assertTimeout(Duration.ofSeconds(5), () -> {
+            observable.take(2).block().map(integer -> integer * 2).subscribe(actual::add);
+        });
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void blockBeforeTakeTest() {
+        List<Integer> expected = Arrays.asList(20, 40);
+        List<Integer> actual = new ArrayList<>();
+
+        Subject<Integer> subject = Subject.single();
+        Observable<Integer> observable = subject.asObservable();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(1);
+                subject.next(10);
+                subject.next(20);
+                subject.next(25);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException();
+            }
+        }).exceptionallyAsync(throwable -> {
+            throwable.printStackTrace();
+            return null;
+        });
+
+        assertTimeout(Duration.ofSeconds(5), () -> {
+            observable.block().take(2).map(integer -> integer * 2).subscribe(actual::add);
+        });
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void blockWithCompletedTest() {
+        List<Integer> expected = Arrays.asList(20, 40, 50);
+        List<Integer> actual = new ArrayList<>();
+
+        Subject<Integer> subject = Subject.single();
+        Observable<Integer> observable = subject.asObservable();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(1);
+                subject.next(10);
                 subject.next(20);
                 subject.next(25);
                 subject.complete();
@@ -205,7 +262,7 @@ class ObservableTest {
         });
 
         assertTimeout(Duration.ofSeconds(5), () -> {
-            observable.take(2).block().map(integer -> integer * 2).subscribe(actual::add);
+            observable.block().map(integer -> integer * 2).subscribe(actual::add);
         });
 
         assertEquals(expected, actual);

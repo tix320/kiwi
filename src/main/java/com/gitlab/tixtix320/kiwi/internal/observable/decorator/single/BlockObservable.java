@@ -15,16 +15,24 @@ public class BlockObservable<T> extends DecoratorObservable<T> {
 
     private final BaseObservable<T> observable;
 
-    private final Object waitObject;
-
     public BlockObservable(BaseObservable<T> observable) {
         this.observable = observable;
-        waitObject = new Object();
     }
 
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer) {
-        CompletableFuture.runAsync(() -> observable.subscribeAndHandle(consumer));
+        Object waitObject = new Object();
+        CompletableFuture.runAsync(() -> {
+            observable.subscribeAndHandle(result -> {
+                boolean needMore = consumer.consume(result);
+                if (!result.hasNext() || !needMore) {
+                    synchronized (waitObject) {
+                        waitObject.notifyAll();
+                    }
+                }
+                return needMore;
+            });
+        });
 
         observable.onComplete(() -> {
             synchronized (waitObject) {
