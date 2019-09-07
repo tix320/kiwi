@@ -12,15 +12,13 @@ import com.gitlab.tixtix320.kiwi.internal.observable.CompletedException;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
 public abstract class BaseSubject<T> implements Subject<T> {
 
-    private final AtomicBoolean completed = new AtomicBoolean(false);
+    protected final AtomicBoolean completed = new AtomicBoolean(false);
 
     private final Collection<Runnable> completedObservers;
 
@@ -43,34 +41,9 @@ public abstract class BaseSubject<T> implements Subject<T> {
         }
     }
 
-    public final void onComplete(Runnable runnable) {
-        if (completed.get()) {
-            runnable.run();
-        } else {
-            this.completedObservers.add(runnable);
-        }
-    }
-
     @Override
     public final Observable<T> asObservable() {
         return new SubjectObservable();
-    }
-
-    protected final Observer<T> createObserver(ConditionalConsumer<? super Result<? extends T>> consumer) {
-        AtomicReference<Observer<T>> observerReference = new AtomicReference<>();
-        Subscription subscription = () -> observers.remove(observerReference.get());
-
-        observerReference.set(new Observer<>(object -> {
-
-            boolean needMore = consumer.consume(Result.of(object));
-
-            if (!needMore) {
-                subscription.unsubscribe();
-            }
-            return needMore;
-        }));
-
-        return observerReference.get();
     }
 
     protected void checkCompleted() {
@@ -84,14 +57,20 @@ public abstract class BaseSubject<T> implements Subject<T> {
     private final class SubjectObservable extends BaseObservable<T> {
 
         public SubjectObservable() {
-            BaseSubject.this.onComplete(this::complete);
         }
 
         @Override
         public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer) {
-            Subscription subscription = BaseSubject.this.subscribe(consumer);
-            addSubscription(subscription);
-            return subscription;
+            return BaseSubject.this.subscribe(consumer);
+        }
+
+        @Override
+        public void onComplete(Runnable runnable) {
+            if (completed.get()) {
+                runnable.run();
+            } else {
+                completedObservers.add(runnable);
+            }
         }
     }
 
@@ -101,15 +80,15 @@ public abstract class BaseSubject<T> implements Subject<T> {
 
         private final long id;
 
-        private final ConditionalConsumer<T> consumer;
+        private final ConditionalConsumer<? super Result<? extends T>> consumer;
 
-        private Observer(ConditionalConsumer<T> consumer) {
+        protected Observer(ConditionalConsumer<? super Result<? extends T>> consumer) {
             this.id = GEN.next();
             this.consumer = consumer;
         }
 
-        public boolean consume(T object) {
-            return consumer.consume(object);
+        public boolean consume(T object, boolean hasNext) {
+            return consumer.consume(Result.of(object, hasNext));
         }
 
         @Override
@@ -125,5 +104,4 @@ public abstract class BaseSubject<T> implements Subject<T> {
             return Long.hashCode(id);
         }
     }
-
 }

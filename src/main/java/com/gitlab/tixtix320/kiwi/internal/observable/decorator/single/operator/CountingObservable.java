@@ -1,17 +1,20 @@
 package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.operator;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
+import com.gitlab.tixtix320.kiwi.api.observable.Observable;
 import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.internal.observable.BaseObservable;
+import com.gitlab.tixtix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class CountingObservable<T> extends BaseObservable<T> {
+public final class CountingObservable<T> extends DecoratorObservable<T> {
 
     private final BaseObservable<T> observable;
 
@@ -23,7 +26,6 @@ public final class CountingObservable<T> extends BaseObservable<T> {
         }
         this.observable = observable;
         this.count = count;
-        observable.onComplete(this::complete);
     }
 
     @Override
@@ -33,17 +35,17 @@ public final class CountingObservable<T> extends BaseObservable<T> {
             };
         }
         AtomicLong limit = new AtomicLong(count);
-        Subscription subscription = observable.subscribeAndHandle(result -> {
+        return observable.subscribeAndHandle(result -> {
             if (limit.getAndDecrement() > 0) {
-
-                consumer.consume(result);
-                return true;
+                return consumer.consume(result);
             } else {
-                consumer.consume(Result.empty());
                 return false;
             }
         });
-        addSubscription(subscription);
-        return subscription;
+    }
+
+    @Override
+    protected Collection<Observable<?>> observables() {
+        return Collections.singleton(observable);
     }
 }

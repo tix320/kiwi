@@ -5,5 +5,5 @@ package com.gitlab.tixtix320.kiwi.api.observable;
  */
 public interface Subscription {
 
-	void unsubscribe();
+    void unsubscribe();
 }

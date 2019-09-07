@@ -9,21 +9,21 @@ import com.gitlab.tixtix320.kiwi.internal.observable.subject.SingleSubject;
  */
 public interface Subject<T> {
 
-	void next(T object);
+    void next(T object);
 
-	void next(T[] objects);
+    void next(T[] objects);
 
-	void next(Iterable<T> objects);
+    void next(Iterable<T> objects);
 
-	void complete();
+    void complete();
 
-	Observable<T> asObservable();
+    Observable<T> asObservable();
 
-	static <T> Subject<T> single() {
-		return new SingleSubject<>();
-	}
+    static <T> Subject<T> single() {
+        return new SingleSubject<>();
+    }
 
-	static <T> Subject<T> buffered(int bufferSize) {
-		return new BufferSubject<>(bufferSize);
-	}
+    static <T> Subject<T> buffered(int bufferSize) {
+        return new BufferSubject<>(bufferSize);
+    }
 }

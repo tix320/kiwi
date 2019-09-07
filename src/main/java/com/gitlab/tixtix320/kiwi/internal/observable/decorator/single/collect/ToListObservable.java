@@ -1,4 +1,4 @@
-package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.reduce.collect;
+package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.collect;
 
 import com.gitlab.tixtix320.kiwi.internal.observable.BaseObservable;
 

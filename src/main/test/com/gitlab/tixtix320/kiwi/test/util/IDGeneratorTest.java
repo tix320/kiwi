@@ -17,44 +17,44 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class IDGeneratorTest {
 
-	@Test
-	void simpleTest() {
-		IDGenerator generator = new IDGenerator();
+    @Test
+    void simpleTest() {
+        IDGenerator generator = new IDGenerator();
 
-		assertEquals(Long.MIN_VALUE, generator.next());
+        assertEquals(Long.MIN_VALUE, generator.next());
 
-		assertEquals(Long.MIN_VALUE + 1, generator.next());
-		assertEquals(Long.MIN_VALUE + 2, generator.next());
+        assertEquals(Long.MIN_VALUE + 1, generator.next());
+        assertEquals(Long.MIN_VALUE + 2, generator.next());
 
-		generator.release(Long.MIN_VALUE + 1);
+        generator.release(Long.MIN_VALUE + 1);
 
-		assertEquals(Long.MIN_VALUE + 1, generator.next());
-		assertEquals(Long.MIN_VALUE + 3, generator.next());
-	}
+        assertEquals(Long.MIN_VALUE + 1, generator.next());
+        assertEquals(Long.MIN_VALUE + 3, generator.next());
+    }
 
-	@Test
-	void exceptionTest() {
-		IDGenerator generator = new IDGenerator();
+    @Test
+    void exceptionTest() {
+        IDGenerator generator = new IDGenerator();
 
-		assertEquals(Long.MIN_VALUE, generator.next());
+        assertEquals(Long.MIN_VALUE, generator.next());
 
-		assertThrows(IllegalArgumentException.class, () -> generator.release(5));
-	}
+        assertThrows(IllegalArgumentException.class, () -> generator.release(5));
+    }
 
-	@Test
-	void concurrentTest() {
-		IDGenerator generator = new IDGenerator();
+    @Test
+    void concurrentTest() {
+        IDGenerator generator = new IDGenerator();
 
-		int count = 500000;
+        int count = 500000;
 
-		Set<Long> generated = new ConcurrentSkipListSet<>();
+        Set<Long> generated = new ConcurrentSkipListSet<>();
 
-		Stream.generate(() -> null).limit(count).parallel().forEach(o -> generated.add(generator.next()));
+        Stream.generate(() -> null).limit(count).parallel().forEach(o -> generated.add(generator.next()));
 
-		assertEquals(count, generated.size());
-		Set<Long> expected = LongStream.range(Long.MIN_VALUE, Long.MIN_VALUE + count)
-				.boxed()
-				.collect(Collectors.toSet());
-		assertEquals(expected, generated);
-	}
+        assertEquals(count, generated.size());
+        Set<Long> expected = LongStream.range(Long.MIN_VALUE, Long.MIN_VALUE + count)
+                .boxed()
+                .collect(Collectors.toSet());
+        assertEquals(expected, generated);
+    }
 }

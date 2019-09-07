@@ -12,54 +12,54 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class TryTest {
 
-	@Test
-	void successTest() {
-		Integer value = Try.success(1).get().get();
-		assertEquals(1, value);
-		Try<?> failure = Try.failure(new IllegalStateException());
-	}
+    @Test
+    void successTest() {
+        Integer value = Try.success(1).get().get();
+        assertEquals(1, value);
+        Try<?> failure = Try.failure(new IllegalStateException());
+    }
 
-	@Test
-	void successSupplierTest() {
-		Integer value = Try.success(() -> 1).get().get();
-		assertEquals(1, value);
-		assertThrows(IllegalStateException.class, () -> Try.success(() -> {
-			throw new RuntimeException();
-		}));
-	}
+    @Test
+    void successSupplierTest() {
+        Integer value = Try.success(() -> 1).get().get();
+        assertEquals(1, value);
+        assertThrows(IllegalStateException.class, () -> Try.success(() -> {
+            throw new RuntimeException();
+        }));
+    }
 
-	@Test
-	void failureTest() {
-		assertTrue(Try.failure(new IllegalStateException()).isFailure());
-	}
+    @Test
+    void failureTest() {
+        assertTrue(Try.failure(new IllegalStateException()).isFailure());
+    }
 
-	@Test
-	void failureSupplierTest() {
-		assertTrue(Try.failure(IllegalStateException::new).isFailure());
-		assertThrows(IllegalStateException.class, () -> Try.failure(() -> {
-			throw new RuntimeException();
-		}));
-	}
+    @Test
+    void failureSupplierTest() {
+        assertTrue(Try.failure(IllegalStateException::new).isFailure());
+        assertThrows(IllegalStateException.class, () -> Try.failure(() -> {
+            throw new RuntimeException();
+        }));
+    }
 
-	@Test
-	void runTest() {
-		AtomicBoolean value = new AtomicBoolean();
-		assertTrue(Try.run(() -> value.set(true)).isSuccess());
-		assertTrue(value.get());
+    @Test
+    void runTest() {
+        AtomicBoolean value = new AtomicBoolean();
+        assertTrue(Try.run(() -> value.set(true)).isSuccess());
+        assertTrue(value.get());
 
-		assertTrue(Try.run(() -> {
-			throw new IllegalStateException();
-		}).isFailure());
-	}
+        assertTrue(Try.run(() -> {
+            throw new IllegalStateException();
+        }).isFailure());
+    }
 
-	@Test
-	void supplyTest() {
-		assertEquals(5, Try.supply(() -> 5).get().get());
+    @Test
+    void supplyTest() {
+        assertEquals(5, Try.supply(() -> 5).get().get());
 
-		assertTrue(Try.supply(() -> {
-			throw new IllegalStateException();
-		}).isFailure());
-	}
+        assertTrue(Try.supply(() -> {
+            throw new IllegalStateException();
+        }).isFailure());
+    }
 
 
 }

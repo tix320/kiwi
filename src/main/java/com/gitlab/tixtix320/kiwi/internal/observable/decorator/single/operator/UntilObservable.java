@@ -5,14 +5,16 @@ import com.gitlab.tixtix320.kiwi.api.observable.Observable;
 import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.internal.observable.BaseObservable;
+import com.gitlab.tixtix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-public final class UntilObservable<T> extends BaseObservable<T> {
+public final class UntilObservable<T> extends DecoratorObservable<T> {
 
     private final BaseObservable<T> observable;
 
@@ -21,7 +23,6 @@ public final class UntilObservable<T> extends BaseObservable<T> {
     public UntilObservable(BaseObservable<T> observable, Observable<?> until) {
         this.observable = observable;
         this.unsubscribe = new AtomicBoolean();
-        observable.onComplete(this::complete);
         until.onComplete(() -> unsubscribe.set(true));
     }
 
@@ -31,14 +32,17 @@ public final class UntilObservable<T> extends BaseObservable<T> {
             return () -> {
             };
         }
-        Subscription subscription = observable.subscribeAndHandle(result -> {
+        return observable.subscribeAndHandle(result -> {
             if (unsubscribe.get()) {
                 return false;
             } else {
                 return consumer.consume(result);
             }
         });
-        addSubscription(subscription);
-        return subscription;
+    }
+
+    @Override
+    protected Collection<Observable<?>> observables() {
+        return Collections.singleton(observable);
     }
 }

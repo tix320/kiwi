@@ -5,7 +5,6 @@ import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 
 import java.util.Iterator;
-import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
@@ -17,7 +16,7 @@ public final class SingleSubject<T> extends BaseSubject<T> {
         Iterator<Observer<? super T>> iterator = observers.iterator();
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
-            boolean needMore = observer.consume(object);
+            boolean needMore = observer.consume(object, !completed.get());
             if (!needMore) {
                 iterator.remove();
             }
@@ -31,7 +30,7 @@ public final class SingleSubject<T> extends BaseSubject<T> {
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
             for (T object : objects) {
-                boolean needMore = observer.consume(object);
+                boolean needMore = observer.consume(object, !completed.get());
                 if (!needMore) {
                     iterator.remove();
                     break;
@@ -47,7 +46,7 @@ public final class SingleSubject<T> extends BaseSubject<T> {
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
             for (T object : objects) {
-                boolean needMore = observer.consume(object);
+                boolean needMore = observer.consume(object, !completed.get());
                 if (!needMore) {
                     iterator.remove();
                     break;
@@ -58,7 +57,7 @@ public final class SingleSubject<T> extends BaseSubject<T> {
 
     @Override
     protected Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer) {
-        Observer<T> observer = createObserver(consumer);
+        Observer<T> observer = new Observer<>(consumer);
         observers.add(observer);
         return () -> observers.remove(observer);
     }

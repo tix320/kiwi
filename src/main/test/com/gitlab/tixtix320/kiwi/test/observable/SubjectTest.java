@@ -18,41 +18,41 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class SubjectTest {
 
-	@Test
-	void iterableTest() {
-		List<String> expected = Arrays.asList("2", "1", "0");
-		List<String> actual = new ArrayList<>();
+    @Test
+    void iterableTest() {
+        List<String> expected = Arrays.asList("2", "1", "0");
+        List<String> actual = new ArrayList<>();
 
 
-		Subject<String> subject = Subject.single();
-		Observable<String> observable = subject.asObservable();
-		observable.subscribe(actual::add);
+        Subject<String> subject = Subject.single();
+        Observable<String> observable = subject.asObservable();
+        observable.subscribe(actual::add);
 
-		subject.next(() -> new Iterator<>() {
-			int index = 3;
+        subject.next(() -> new Iterator<>() {
+            int index = 3;
 
-			@Override
-			public boolean hasNext() {
-				return index-- > 0;
-			}
+            @Override
+            public boolean hasNext() {
+                return index-- > 0;
+            }
 
-			@Override
-			public String next() {
-				return index + "";
-			}
-		});
+            @Override
+            public String next() {
+                return index + "";
+            }
+        });
 
-		assertEquals(expected, actual);
-	}
+        assertEquals(expected, actual);
+    }
 
-	@Test
-	void completeTest() {
-		Subject<Integer> subject = Subject.single();
+    @Test
+    void completeTest() {
+        Subject<Integer> subject = Subject.single();
 
-		subject.next(1);
-		subject.next(2);
-		subject.next(3);
-		subject.complete();
+        subject.next(1);
+        subject.next(2);
+        subject.next(3);
+        subject.complete();
         assertThrows(CompletedException.class, () -> subject.next(4));
-	}
+    }
 }

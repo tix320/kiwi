@@ -7,7 +7,6 @@ import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.function.Consumer;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
@@ -29,7 +28,7 @@ public final class BufferSubject<T> extends BaseSubject<T> {
         Iterator<Observer<? super T>> iterator = observers.iterator();
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
-            boolean needMore = observer.consume(object);
+            boolean needMore = observer.consume(object, !completed.get());
             if (!needMore) {
                 iterator.remove();
             }
@@ -43,12 +42,19 @@ public final class BufferSubject<T> extends BaseSubject<T> {
         Iterator<Observer<? super T>> iterator = observers.iterator();
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
-            for (T object : objects) {
-                boolean needMore = observer.consume(object);
+            for (int i = 0; i < objects.length - 1; i++) {
+                T object = objects[i];
+                boolean needMore = observer.consume(object, !completed.get());
                 if (!needMore) {
                     iterator.remove();
                     break;
                 }
+            }
+            T object = objects[objects.length - 1];
+            boolean needMore = observer.consume(object, !completed.get());
+            if (!needMore) {
+                iterator.remove();
+                break;
             }
         }
     }
@@ -62,8 +68,10 @@ public final class BufferSubject<T> extends BaseSubject<T> {
         Iterator<Observer<? super T>> iterator = observers.iterator();
         while (iterator.hasNext()) {
             Observer<? super T> observer = iterator.next();
-            for (T object : objects) {
-                boolean needMore = observer.consume(object);
+            Iterator<T> objectsItr = objects.iterator();
+            while (objectsItr.hasNext()) {
+                T object = objectsItr.next();
+                boolean needMore = observer.consume(object, !completed.get() && objectsItr.hasNext());
                 if (!needMore) {
                     iterator.remove();
                     break;
@@ -74,7 +82,7 @@ public final class BufferSubject<T> extends BaseSubject<T> {
 
     @Override
     protected Subscription subscribe(ConditionalConsumer<? super Result<? extends T>> consumer) {
-        Observer<T> observer = createObserver(consumer);
+        Observer<T> observer = new Observer<>(consumer);
         observers.add(observer);
         nextFromBuffer(observer);
         return () -> observers.remove(observer);
@@ -100,8 +108,10 @@ public final class BufferSubject<T> extends BaseSubject<T> {
     }
 
     private void nextFromBuffer(Observer<? super T> observer) {
-        for (T object : buffer) {
-            boolean needMore = observer.consume(object);
+        Iterator<T> iterator = buffer.iterator();
+        while (iterator.hasNext()) {
+            T object = iterator.next();
+            boolean needMore = observer.consume(object, iterator.hasNext());
             if (!needMore) {
                 observers.remove(observer);
                 break;

@@ -14,16 +14,27 @@ import java.util.function.Predicate;
  */
 public interface Observable<T> {
 
+    /**
+     * Subscribe to observable.
+     * If observable already completed, then available values will be processed immediately.
+     */
     Subscription subscribe(Consumer<? super T> consumer);
 
+    /**
+     * Subscribe to observable and handle every item, consumer must return boolean value,
+     * which indicates that need more elements or not.
+     * If observable already completed, then available values will be processed immediately.
+     */
     Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer);
 
-    void complete();
-
+    /**
+     * Add handler on completion of observable.
+     * If observable already completed, then handler be processed immediately.
+     */
     void onComplete(Runnable runnable);
 
     /**
-     * BLocks current thread until all values will be processed.
+     * BLocks current thread until observable will be completed, on which called this method.
      */
     Observable<T> block();
 

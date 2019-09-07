@@ -1,20 +1,22 @@
-package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.reduce.collect;
+package com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.collect;
 
 import com.gitlab.tixtix320.kiwi.api.observable.ConditionalConsumer;
+import com.gitlab.tixtix320.kiwi.api.observable.Observable;
 import com.gitlab.tixtix320.kiwi.api.observable.Result;
 import com.gitlab.tixtix320.kiwi.api.observable.Subscription;
 import com.gitlab.tixtix320.kiwi.internal.observable.BaseObservable;
-import com.gitlab.tixtix320.kiwi.internal.observable.decorator.single.reduce.ReduceObservable;
+import com.gitlab.tixtix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-public abstract class CollectorObservable<S, R> extends ReduceObservable<R> {
+public abstract class CollectorObservable<S, R> extends DecoratorObservable<R> {
 
     private final BaseObservable<S> observable;
 
@@ -23,20 +25,25 @@ public abstract class CollectorObservable<S, R> extends ReduceObservable<R> {
     CollectorObservable(BaseObservable<S> observable) {
         this.observable = observable;
         this.objects = new ConcurrentLinkedQueue<>();
-        observable.onComplete(this::complete);
     }
 
     @Override
     public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends R>> consumer) {
-        return observable.subscribeAndHandle(result -> {
+        Subscription subscription = observable.subscribeAndHandle(result -> {
             objects.add(result.getValue());
-            if (!result.hasNext()) {
-                consumer.consume(result.copy(collect(objects.stream()), false));
-                return false;
-            }
             return true;
         });
+        observable.onComplete(() -> {
+            consumer.consume(Result.of(collect(objects.stream()), false));
+            objects.clear();
+        });
+        return subscription;
     }
 
     protected abstract R collect(Stream<S> objects);
+
+    @Override
+    protected Collection<Observable<?>> observables() {
+        return Collections.singleton(observable);
+    }
 }
