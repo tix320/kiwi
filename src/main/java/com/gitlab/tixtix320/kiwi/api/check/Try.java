@@ -68,17 +68,7 @@ public interface Try<T> {
         }
     }
 
-    static <T> T supplyAndGet(CheckedSupplier<? extends T> supplier) {
-        Objects.requireNonNull(supplier, "Supplier cannot be null");
-
-        try {
-            return supplier.get();
-        } catch (Exception e) {
-            throw RecoverException.of(e);
-        }
-    }
-
-    static void runAndRethrow(CheckedRunnable runnable) {
+    static void runOrRethrow(CheckedRunnable runnable) {
         Objects.requireNonNull(runnable, "Runnable cannot be null");
 
         try {
@@ -88,7 +78,7 @@ public interface Try<T> {
         }
     }
 
-    static <T> T supplyAndRethrow(CheckedSupplier<T> supplier) {
+    static <T> T supplyOrRethrow(CheckedSupplier<? extends T> supplier) {
         Objects.requireNonNull(supplier, "Supplier cannot be null");
 
         try {

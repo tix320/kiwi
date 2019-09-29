@@ -197,7 +197,7 @@ class ObservableTest {
             } catch (InterruptedException e) {
                 throw new IllegalStateException();
             }
-        }).exceptionallyAsync(throwable -> {
+        }).exceptionally(throwable -> {
             throwable.printStackTrace();
             return null;
         });
@@ -226,7 +226,7 @@ class ObservableTest {
             } catch (InterruptedException e) {
                 throw new IllegalStateException();
             }
-        }).exceptionallyAsync(throwable -> {
+        }).exceptionally(throwable -> {
             throwable.printStackTrace();
             return null;
         });
@@ -256,7 +256,7 @@ class ObservableTest {
             } catch (InterruptedException e) {
                 throw new IllegalStateException();
             }
-        }).exceptionallyAsync(throwable -> {
+        }).exceptionally(throwable -> {
             throwable.printStackTrace();
             return null;
         });
