@@ -128,6 +128,23 @@ class ObservableTest {
     }
 
     @Test
+    void combineTest() {
+        List<Integer> expected = Arrays.asList(10, 20, -1, 30, 50, -1);
+        List<Integer> actual = new ArrayList<>();
+
+        Observable<Integer> observable1 = Observable.of(10, 30, 40);
+
+        Observable<Integer> observable2 = Observable.of(20, 50);
+
+        Observable.combine(observable1, observable2).subscribe(integers -> {
+            actual.addAll(integers);
+            actual.add(-1);
+        });
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     void mapTest() {
 
         List<String> expected = Arrays.asList("10lol", "20lol", "20wtf", "25lol");

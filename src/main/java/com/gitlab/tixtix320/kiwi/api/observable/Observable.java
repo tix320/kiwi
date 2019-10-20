@@ -1,8 +1,11 @@
 package com.gitlab.tixtix320.kiwi.api.observable;
 
+import com.gitlab.tixtix320.kiwi.internal.observable.decorator.multiple.CombineObservable;
 import com.gitlab.tixtix320.kiwi.internal.observable.decorator.multiple.ConcatObservable;
 import com.gitlab.tixtix320.kiwi.internal.observable.subject.BufferSubject;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -81,6 +84,29 @@ public interface Observable<T> {
 
     @SafeVarargs
     static <T> Observable<T> concat(Observable<T>... observables) {
-        return new ConcatObservable<>(observables);
+        List<Observable<T>> list = new ArrayList<>(Arrays.asList(observables));
+        return new ConcatObservable<>(list);
+    }
+
+    static <T> Observable<T> concat(Iterable<Observable<T>> observables) {
+        List<Observable<T>> list = new ArrayList<>();
+        for (Observable<T> observable : observables) {
+            list.add(observable);
+        }
+        return new ConcatObservable<>(list);
+    }
+
+    @SafeVarargs
+    static <T> Observable<List<T>> combine(Observable<T>... observables) {
+        List<Observable<T>> list = new ArrayList<>(Arrays.asList(observables));
+        return new CombineObservable<>(list);
+    }
+
+    static <T> Observable<List<T>> combine(Iterable<Observable<T>> observables) {
+        List<Observable<T>> list = new ArrayList<>();
+        for (Observable<T> observable : observables) {
+            list.add(observable);
+        }
+        return new CombineObservable<>(list);
     }
 }

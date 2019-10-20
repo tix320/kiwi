@@ -36,8 +36,6 @@ public abstract class BaseSubject<T> implements Subject<T> {
             completedObservers.forEach(Runnable::run);
             observers.clear();
             completedObservers.clear();
-        } else {
-            throw new CompletedException("Subject is already completed");
         }
     }
 
