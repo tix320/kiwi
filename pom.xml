@@ -8,14 +8,14 @@
         <version>9</version>
     </parent>
 
-    <groupId>com.gitlab.tixtix320</groupId>
+    <groupId>com.github.tixtix320</groupId>
     <artifactId>kiwi</artifactId>
-    <version>0.5.5-SNAPSHOT</version>
+    <version>0.5.5</version>
     <packaging>jar</packaging>
 
     <name>Kiwi</name>
     <description>Utility library</description>
-    <url>https://gitlab.com/tixtix320/kiwi</url>
+    <url>https://github.com/tix320/kiwi</url>
 
     <licenses>
         <license>
@@ -26,9 +26,9 @@
     </licenses>
 
     <scm>
-        <url>https://gitlab.com/tixtix320/kiwi</url>
-        <connection>scm:git:https://gitlab.com/tixtix320/kiwi</connection>
-        <developerConnection>scm:git:https://gitlab.com/tixtix320/kiwi</developerConnection>
+        <url>https://gihub.com/tix320/kiwi</url>
+        <connection>scm:git:https://github.com/tix320/kiwi</connection>
+        <developerConnection>scm:git:https://github.com/tix320/kiwi</developerConnection>
     </scm>
 
     <developers>
