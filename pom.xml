@@ -8,9 +8,9 @@
         <version>9</version>
     </parent>
 
-    <groupId>com.github.tixtix320</groupId>
+    <groupId>com.github.tix320</groupId>
     <artifactId>kiwi</artifactId>
-    <version>0.5.6-SNAPSHOT</version>
+    <version>0.6.0</version>
     <packaging>jar</packaging>
 
     <name>Kiwi</name>
