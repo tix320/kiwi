@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.github.tix320.kiwi.api.function.*;
+import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.internal.check.Failure;
 import com.github.tix320.kiwi.internal.check.RecoverException;
 import com.github.tix320.kiwi.internal.check.Success;
@@ -32,13 +33,13 @@ public interface Try<T> {
 		}
 	}
 
-	static Try<Void> failure(Exception exception) {
+	static Try<None> failure(Exception exception) {
 		Objects.requireNonNull(exception, "exception cannot be null");
 
 		return Failure.of(exception);
 	}
 
-	static Try<Void> failure(CheckedSupplier<Exception> supplier) {
+	static Try<None> failure(CheckedSupplier<Exception> supplier) {
 		Objects.requireNonNull(supplier, "Supplier can not be null");
 
 		try {
@@ -49,7 +50,7 @@ public interface Try<T> {
 		}
 	}
 
-	static Try<Void> run(CheckedRunnable runnable) {
+	static Try<None> run(CheckedRunnable runnable) {
 		Objects.requireNonNull(runnable, "Runnable cannot be null");
 
 		try {
@@ -97,10 +98,10 @@ public interface Try<T> {
 	<X extends Exception> void rethrow(Function<Exception, ? extends X> exMapper)
 			throws X;
 
-	<X extends Exception, M extends Exception> Try<Void> rethrow(Class<X> exceptionType,
+	<X extends Exception, M extends Exception> Try<None> rethrow(Class<X> exceptionType,
 																 Function<? super X, ? extends M> exMapper);
 
-	<X extends Exception> Try<Void> rethrow(Class<X> exceptionType);
+	<X extends Exception> Try<None> rethrow(Class<X> exceptionType);
 
 	Try<T> peek(CheckedConsumer<? super T> consumer);
 
