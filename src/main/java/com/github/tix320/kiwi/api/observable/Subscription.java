@@ -5,5 +5,8 @@ package com.github.tix320.kiwi.api.observable;
  */
 public interface Subscription {
 
-    void unsubscribe();
+	/**
+	 * Unsubscribe from observable.
+	 */
+	void unsubscribe();
 }
