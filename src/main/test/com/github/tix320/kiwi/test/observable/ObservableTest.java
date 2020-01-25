@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.observable.Observable;
 import com.github.tix320.kiwi.api.observable.Subscription;
-import com.github.tix320.kiwi.api.observable.subject.Subject;
+import com.github.tix320.kiwi.api.observable.subject.Publisher;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,17 +66,17 @@ class ObservableTest {
 
 		Observable<Integer> observable2 = Observable.of(20);
 
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		Observable<Integer> observable3 = subject.asObservable();
+		Observable<Integer> observable3 = publisher.asObservable();
 
 		Subscription subscription = Observable.concat(observable1, observable2, observable3).subscribe(actual::add);
 
-		subject.next(25);
+		publisher.publish(25);
 
 		subscription.unsubscribe();
 
-		subject.next(50);
+		publisher.publish(50);
 
 		assertEquals(expected, actual);
 	}
@@ -91,13 +91,13 @@ class ObservableTest {
 
 		Observable<Integer> observable2 = Observable.of(40, 50, 60);
 
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		Observable<Integer> observable3 = subject.asObservable();
+		Observable<Integer> observable3 = publisher.asObservable();
 
 		Observable.concat(observable1, observable2, observable3).take(7).subscribe(actual::add);
 
-		subject.next(new Integer[]{
+		publisher.publish(new Integer[]{
 				70,
 				80
 		});
@@ -113,19 +113,19 @@ class ObservableTest {
 
 		Observable<Integer> observable2 = Observable.of(20);
 
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		Observable<Integer> observable3 = subject.asObservable();
+		Observable<Integer> observable3 = publisher.asObservable();
 
 		Observable.concat(observable1, observable2, observable3)
 				.join(integer -> integer + "", ",")
 				.subscribe(actual::set);
 
-		subject.next(25);
+		publisher.publish(25);
 
-		subject.next(50);
+		publisher.publish(50);
 
-		subject.complete();
+		publisher.complete();
 
 		assertEquals("10,20,25,50", actual.get());
 	}
@@ -153,21 +153,21 @@ class ObservableTest {
 		List<String> expected = Arrays.asList("10lol", "20lol", "20wtf", "25lol");
 		List<String> actual = new ArrayList<>();
 
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		Observable<Integer> observable = subject.asObservable();
+		Observable<Integer> observable = publisher.asObservable();
 
 		Subscription subscription = observable.map(integer -> integer + "lol").subscribe(actual::add);
 
-		subject.next(10);
+		publisher.publish(10);
 		observable.map(integer -> integer + "wtf").one().subscribe(actual::add);
 
-		subject.next(20);
-		subject.next(25);
+		publisher.publish(20);
+		publisher.publish(25);
 
 		subscription.unsubscribe();
 
-		subject.next(50);
+		publisher.publish(50);
 
 		assertEquals(expected, actual);
 	}
@@ -178,24 +178,24 @@ class ObservableTest {
 		List<Integer> expected = Arrays.asList(10, 20, 25);
 		List<Integer> actual = new ArrayList<>();
 
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		Observable<Integer> observable = subject.asObservable();
+		Observable<Integer> observable = publisher.asObservable();
 
-		Subject<Object> untilSubject = Subject.simple();
+		Publisher<Object> untilPublisher = Publisher.simple();
 
-		Observable<?> untilObservable = untilSubject.asObservable();
+		Observable<?> untilObservable = untilPublisher.asObservable();
 
 		observable.takeUntil(untilObservable).subscribe(actual::add);
 
-		subject.next(10);
-		subject.next(20);
-		subject.next(25);
+		publisher.publish(10);
+		publisher.publish(20);
+		publisher.publish(25);
 
-		untilSubject.complete();
+		untilPublisher.complete();
 
-		subject.next(50);
-		subject.next(60);
+		publisher.publish(50);
+		publisher.publish(60);
 
 		assertEquals(expected, actual);
 	}
@@ -205,15 +205,15 @@ class ObservableTest {
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
-		Subject<Integer> subject = Subject.simple();
-		Observable<Integer> observable = subject.asObservable();
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
 
 		CompletableFuture.runAsync(() -> {
 			try {
 				TimeUnit.SECONDS.sleep(1);
-				subject.next(10);
-				subject.next(20);
-				subject.next(25);
+				publisher.publish(10);
+				publisher.publish(20);
+				publisher.publish(25);
 			}
 			catch (InterruptedException e) {
 				throw new IllegalStateException();
@@ -224,7 +224,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.take(2).block().map(integer -> integer * 2).subscribe(actual::add);
+			observable.take(2).waitComplete().map(integer -> integer * 2).subscribe(actual::add);
 		});
 
 		assertEquals(expected, actual);
@@ -235,15 +235,15 @@ class ObservableTest {
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
-		Subject<Integer> subject = Subject.simple();
-		Observable<Integer> observable = subject.asObservable();
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
 
 		CompletableFuture.runAsync(() -> {
 			try {
 				TimeUnit.SECONDS.sleep(1);
-				subject.next(10);
-				subject.next(20);
-				subject.next(25);
+				publisher.publish(10);
+				publisher.publish(20);
+				publisher.publish(25);
 			}
 			catch (InterruptedException e) {
 				throw new IllegalStateException();
@@ -254,7 +254,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.block().take(2).map(integer -> integer * 2).subscribe(actual::add);
+			observable.waitComplete().take(2).map(integer -> integer * 2).subscribe(actual::add);
 		});
 
 		assertEquals(expected, actual);
@@ -265,16 +265,16 @@ class ObservableTest {
 		List<Integer> expected = Arrays.asList(20, 40, 50);
 		List<Integer> actual = new ArrayList<>();
 
-		Subject<Integer> subject = Subject.simple();
-		Observable<Integer> observable = subject.asObservable();
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
 
 		CompletableFuture.runAsync(() -> {
 			try {
 				TimeUnit.SECONDS.sleep(1);
-				subject.next(10);
-				subject.next(20);
-				subject.next(25);
-				subject.complete();
+				publisher.publish(10);
+				publisher.publish(20);
+				publisher.publish(25);
+				publisher.complete();
 			}
 			catch (InterruptedException e) {
 				throw new IllegalStateException();
@@ -285,7 +285,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.block().map(integer -> integer * 2).subscribe(actual::add);
+			observable.waitComplete().map(integer -> integer * 2).subscribe(actual::add);
 		});
 
 		assertEquals(expected, actual);

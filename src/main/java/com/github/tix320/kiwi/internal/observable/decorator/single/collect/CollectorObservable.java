@@ -1,49 +1,46 @@
 package com.github.tix320.kiwi.internal.observable.decorator.single.collect;
 
-import com.github.tix320.kiwi.api.observable.ConditionalConsumer;
-import com.github.tix320.kiwi.api.observable.Observable;
-import com.github.tix320.kiwi.api.observable.Result;
-import com.github.tix320.kiwi.api.observable.Subscription;
-import com.github.tix320.kiwi.internal.observable.BaseObservable;
-import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
-
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
+
+import com.github.tix320.kiwi.api.observable.*;
+import com.github.tix320.kiwi.internal.observable.BaseObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
 public abstract class CollectorObservable<S, R> extends DecoratorObservable<R> {
 
-    private final BaseObservable<S> observable;
+	private final BaseObservable<S> observable;
 
-    private final Queue<S> objects;
+	private final Queue<S> objects;
 
-    CollectorObservable(BaseObservable<S> observable) {
-        this.observable = observable;
-        this.objects = new ConcurrentLinkedQueue<>();
-    }
+	CollectorObservable(BaseObservable<S> observable) {
+		this.observable = observable;
+		this.objects = new LinkedList<>();
+	}
 
-    @Override
-    public Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends R>> consumer) {
-        Subscription subscription = observable.subscribeAndHandle(result -> {
-            objects.add(result.getValue());
-            return true;
-        });
-        observable.onComplete(() -> {
-            consumer.consume(Result.of(collect(objects.stream()), false));
-            objects.clear();
-        });
-        return subscription;
-    }
+	@Override
+	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends R>> consumer) {
+		Subscription subscription = observable.subscribeAndHandle(item -> {
+			objects.add(item.get());
+			return true;
+		});
+		observable.onComplete(() -> {
+			consumer.consume(new LastItem<>(collect(objects.stream())));
+			objects.clear();
+		});
+		return subscription;
+	}
 
-    protected abstract R collect(Stream<S> objects);
+	protected abstract R collect(Stream<S> objects);
 
-    @Override
-    protected Collection<Observable<?>> observables() {
-        return Collections.singleton(observable);
-    }
+	@Override
+	protected Collection<Observable<?>> decoratedObservables() {
+		return Collections.singleton(observable);
+	}
 }

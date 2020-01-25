@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.observable.Observable;
-import com.github.tix320.kiwi.api.observable.subject.Subject;
+import com.github.tix320.kiwi.api.observable.subject.Publisher;
 import com.github.tix320.kiwi.internal.observable.CompletedException;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-class SubjectTest {
+class PublisherTest {
 
 	@Test
 	void iterableTest() {
@@ -24,11 +24,11 @@ class SubjectTest {
 		List<String> actual = new ArrayList<>();
 
 
-		Subject<String> subject = Subject.simple();
-		Observable<String> observable = subject.asObservable();
+		Publisher<String> publisher = Publisher.simple();
+		Observable<String> observable = publisher.asObservable();
 		observable.subscribe(actual::add);
 
-		subject.next(() -> new Iterator<>() {
+		publisher.publish(() -> new Iterator<>() {
 			int index = 3;
 
 			@Override
@@ -47,12 +47,12 @@ class SubjectTest {
 
 	@Test
 	void completeTest() {
-		Subject<Integer> subject = Subject.simple();
+		Publisher<Integer> publisher = Publisher.simple();
 
-		subject.next(1);
-		subject.next(2);
-		subject.next(3);
-		subject.complete();
-		assertThrows(CompletedException.class, () -> subject.next(4));
+		publisher.publish(1);
+		publisher.publish(2);
+		publisher.publish(3);
+		publisher.complete();
+		assertThrows(CompletedException.class, () -> publisher.publish(4));
 	}
 }

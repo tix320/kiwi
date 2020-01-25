@@ -10,8 +10,8 @@ import java.util.function.Predicate;
 
 import com.github.tix320.kiwi.internal.observable.decorator.multiple.CombineObservable;
 import com.github.tix320.kiwi.internal.observable.decorator.multiple.ConcatObservable;
-import com.github.tix320.kiwi.internal.observable.subject.BufferSubject;
-import com.github.tix320.kiwi.internal.observable.subject.SimpleSubject;
+import com.github.tix320.kiwi.internal.observable.subject.BufferPublisher;
+import com.github.tix320.kiwi.internal.observable.subject.SimplePublisher;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
@@ -29,7 +29,7 @@ public interface Observable<T> {
 	 * which indicates that need more elements or not.
 	 * If observable already completed, then available values will be processed immediately.
 	 */
-	Subscription subscribeAndHandle(ConditionalConsumer<? super Result<? extends T>> consumer);
+	Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer);
 
 	/**
 	 * Add handler on completion of observable.
@@ -38,9 +38,9 @@ public interface Observable<T> {
 	void onComplete(Runnable runnable);
 
 	/**
-	 * BLocks current thread until observable will be completed, on which called this method.
+	 * Returns observable, which will subscribe to this and blocks current thread until it will be completed or will not want more items.
 	 */
-	Observable<T> block();
+	Observable<T> waitComplete();
 
 	/**
 	 * Return observable, which will subscribe to this and receive n objects, after that unsubscribe.
@@ -139,7 +139,7 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> Observable<T> empty() {
-		SimpleSubject<T> subject = new SimpleSubject<>();
+		SimplePublisher<T> subject = new SimplePublisher<>();
 		subject.complete();
 		return subject.asObservable();
 	}
@@ -153,8 +153,8 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> Observable<T> of(T value) {
-		BufferSubject<T> subject = new BufferSubject<>(1);
-		subject.next(value);
+		BufferPublisher<T> subject = new BufferPublisher<>(1);
+		subject.publish(value);
 		subject.complete();
 		return subject.asObservable();
 	}
@@ -170,8 +170,8 @@ public interface Observable<T> {
 	 */
 	@SafeVarargs
 	static <T> Observable<T> of(T... values) {
-		BufferSubject<T> subject = new BufferSubject<>(values.length);
-		subject.next(values);
+		BufferPublisher<T> subject = new BufferPublisher<>(values.length);
+		subject.publish(values);
 		subject.complete();
 		return subject.asObservable();
 	}

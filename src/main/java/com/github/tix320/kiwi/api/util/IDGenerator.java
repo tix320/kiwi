@@ -29,20 +29,21 @@ public final class IDGenerator {
 			generateIds(needToGenerate);
 		}
 
-		return availableNumbers.removeLast();
+		return availableNumbers.removeFirst();
 	}
 
 	public synchronized void release(long id) {
 		if (id >= cursor) {
 			throw new IllegalArgumentException("id " + id + " is already free");
 		}
-		availableNumbers.addLast(id);
+		availableNumbers.addFirst(id);
 	}
 
 	private void generateIds(long count) {
-		long end = cursor + count + 1;
-		for (long i = cursor + 1; i < end; i++) {
+		long end = cursor + count;
+		for (long i = cursor; i < end; i++) {
 			availableNumbers.addLast(i);
 		}
+		this.cursor = end;
 	}
 }
