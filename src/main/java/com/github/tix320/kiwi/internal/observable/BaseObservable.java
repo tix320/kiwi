@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.github.tix320.kiwi.api.observable.MonoObservable;
 import com.github.tix320.kiwi.api.observable.Observable;
 import com.github.tix320.kiwi.api.observable.Subscription;
 import com.github.tix320.kiwi.internal.observable.decorator.single.WaitCompleteObservable;
@@ -46,7 +47,7 @@ public abstract class BaseObservable<T> implements Observable<T> {
 	}
 
 	@Override
-	public final Observable<T> one() {
+	public final MonoObservable<T> one() {
 		return new OnceObservable<>(this);
 	}
 

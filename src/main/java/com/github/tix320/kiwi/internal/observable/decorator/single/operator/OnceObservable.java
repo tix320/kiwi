@@ -10,7 +10,7 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class OnceObservable<T> extends DecoratorObservable<T> {
+public final class OnceObservable<T> extends DecoratorObservable<T> implements MonoObservable<T> {
 
 	private final BaseObservable<T> observable;
 

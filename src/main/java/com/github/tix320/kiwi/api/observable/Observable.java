@@ -62,9 +62,9 @@ public interface Observable<T> {
 	/**
 	 * Equivalent to {@link Observable#take(long)} with value 1
 	 *
-	 * @return new observable
+	 * @return new observable {@link MonoObservable}
 	 */
-	Observable<T> one();
+	MonoObservable<T> one();
 
 	/**
 	 * Return observable, which will subscribe to this and transform every object according to given transformer.
