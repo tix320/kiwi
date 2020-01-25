@@ -16,11 +16,11 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public final class UntilObservable<T> extends DecoratorObservable<T> {
 
-	private final BaseObservable<T> observable;
+	private final Observable<T> observable;
 
 	private final AtomicBoolean completed;
 
-	public UntilObservable(BaseObservable<T> observable, Observable<?> until) {
+	public UntilObservable(Observable<T> observable, Observable<?> until) {
 		this.observable = observable;
 		this.completed = new AtomicBoolean();
 		until.onComplete(() -> completed.set(true));

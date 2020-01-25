@@ -10,6 +10,11 @@ import java.util.function.Predicate;
 
 import com.github.tix320.kiwi.internal.observable.decorator.multiple.CombineObservable;
 import com.github.tix320.kiwi.internal.observable.decorator.multiple.ConcatObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.single.WaitCompleteObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.single.collect.JoinObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.single.collect.ToListObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.single.collect.ToMapObservable;
+import com.github.tix320.kiwi.internal.observable.decorator.single.operator.*;
 import com.github.tix320.kiwi.internal.observable.subject.BufferPublisher;
 import com.github.tix320.kiwi.internal.observable.subject.SimplePublisher;
 
@@ -37,10 +42,16 @@ public interface Observable<T> {
 	 */
 	void onComplete(Runnable runnable);
 
+
+
+	// transforming functions --------------------------------------
+
 	/**
 	 * Returns observable, which will subscribe to this and blocks current thread until it will be completed or will not want more items.
 	 */
-	Observable<T> waitComplete();
+	default Observable<T> waitComplete(){
+		return new WaitCompleteObservable<>(this);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and receive n objects, after that unsubscribe.
@@ -49,7 +60,9 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<T> take(long count);
+	default Observable<T> take(long count){
+		return new CountingObservable<>(this, count);
+	}
 
 	/**
 	 * Return observable, which will subscribe to given observable
@@ -57,14 +70,18 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<T> takeUntil(Observable<?> observable);
+	default Observable<T> takeUntil(Observable<?> observable){
+		return new UntilObservable<>(this, observable);
+	}
 
 	/**
 	 * Equivalent to {@link Observable#take(long)} with value 1
 	 *
 	 * @return new observable {@link MonoObservable}
 	 */
-	MonoObservable<T> one();
+	default MonoObservable<T> one(){
+		return new OnceObservable<>(this);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and transform every object according to given transformer.
@@ -74,7 +91,9 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	<R> Observable<R> map(Function<? super T, ? extends R> mapper);
+	default <R> Observable<R> map(Function<? super T, ? extends R> mapper){
+		return new MapperObservable<>(this, mapper);
+	}
 
 
 	/**
@@ -84,7 +103,9 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<T> filter(Predicate<? super T> filter);
+	default Observable<T> filter(Predicate<? super T> filter){
+		return new FilterObservable<>(this, filter);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -97,8 +118,10 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	<K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
-									   Function<? super T, ? extends V> valueMapper);
+	default <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
+									   Function<? super T, ? extends V> valueMapper){
+		return new ToMapObservable<>(this, keyMapper, valueMapper);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -106,7 +129,9 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<List<T>> toList();
+	default Observable<List<T>> toList(){
+		return new ToListObservable<>(this);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -117,7 +142,9 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<String> join(Function<? super T, ? extends String> toString, String delimiter);
+	default Observable<String> join(Function<? super T, ? extends String> toString, String delimiter){
+		return new JoinObservable<>(this, toString, delimiter);
+	}
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -130,8 +157,10 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	Observable<String> join(Function<? super T, ? extends String> toString, String delimiter, String prefix,
-							String suffix);
+	default Observable<String> join(Function<? super T, ? extends String> toString, String delimiter, String prefix,
+							String suffix){
+		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
+	}
 
 	/**
 	 * Return empty observable, which will be immediately completed.

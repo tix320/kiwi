@@ -16,11 +16,11 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public final class FilterObservable<T> extends DecoratorObservable<T> {
 
-	private final BaseObservable<T> observable;
+	private final Observable<T> observable;
 
 	private final Predicate<? super T> filter;
 
-	public FilterObservable(BaseObservable<T> observable, Predicate<? super T> filter) {
+	public FilterObservable(Observable<T> observable, Predicate<? super T> filter) {
 		this.observable = observable;
 		this.filter = filter;
 	}

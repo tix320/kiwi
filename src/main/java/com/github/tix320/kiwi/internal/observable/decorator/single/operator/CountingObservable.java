@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.tix320.kiwi.api.observable.*;
-import com.github.tix320.kiwi.internal.observable.BaseObservable;
 import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
 /**
@@ -13,11 +12,11 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public final class CountingObservable<T> extends DecoratorObservable<T> {
 
-	private final BaseObservable<T> observable;
+	private final Observable<T> observable;
 
 	private final long count;
 
-	public CountingObservable(BaseObservable<T> observable, long count) {
+	public CountingObservable(Observable<T> observable, long count) {
 		if (count < 0) {
 			throw new IllegalArgumentException("Count must not be negative");
 		}

@@ -5,6 +5,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.github.tix320.kiwi.api.observable.Observable;
 import com.github.tix320.kiwi.internal.observable.BaseObservable;
 
 /**
@@ -16,7 +17,7 @@ public final class ToMapObservable<T, K, V> extends CollectorObservable<T, Map<K
 
 	private final Function<? super T, ? extends V> valueMapper;
 
-	public ToMapObservable(BaseObservable<T> observable, Function<? super T, ? extends K> keyMapper,
+	public ToMapObservable(Observable<T> observable, Function<? super T, ? extends K> keyMapper,
 						   Function<? super T, ? extends V> valueMapper) {
 		super(observable);
 		this.keyMapper = keyMapper;

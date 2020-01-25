@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.github.tix320.kiwi.api.observable.Observable;
 import com.github.tix320.kiwi.internal.observable.BaseObservable;
 
 /**
@@ -11,7 +12,7 @@ import com.github.tix320.kiwi.internal.observable.BaseObservable;
  */
 public final class ToListObservable<T> extends CollectorObservable<T, List<T>> {
 
-	public ToListObservable(BaseObservable<T> observable) {
+	public ToListObservable(Observable<T> observable) {
 		super(observable);
 	}
 

@@ -12,9 +12,9 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public final class OnceObservable<T> extends DecoratorObservable<T> implements MonoObservable<T> {
 
-	private final BaseObservable<T> observable;
+	private final Observable<T> observable;
 
-	public OnceObservable(BaseObservable<T> observable) {
+	public OnceObservable(Observable<T> observable) {
 		this.observable = observable;
 	}
 

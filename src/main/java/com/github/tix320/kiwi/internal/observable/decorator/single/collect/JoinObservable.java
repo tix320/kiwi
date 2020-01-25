@@ -4,6 +4,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.github.tix320.kiwi.api.observable.Observable;
 import com.github.tix320.kiwi.internal.observable.BaseObservable;
 
 /**
@@ -19,12 +20,12 @@ public final class JoinObservable<T> extends CollectorObservable<T, String> {
 
 	private final String delimiter;
 
-	public JoinObservable(BaseObservable<T> observable, Function<? super T, ? extends String> toString,
+	public JoinObservable(Observable<T> observable, Function<? super T, ? extends String> toString,
 						  String delimiter) {
 		this(observable, toString, delimiter, "", "");
 	}
 
-	public JoinObservable(BaseObservable<T> observable, Function<? super T, ? extends String> toString,
+	public JoinObservable(Observable<T> observable, Function<? super T, ? extends String> toString,
 						  String delimiter, String prefix, String suffix) {
 		super(observable);
 		this.toString = toString;

@@ -13,11 +13,11 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public final class MapperObservable<S, R> extends DecoratorObservable<R> {
 
-	private final BaseObservable<S> observable;
+	private final Observable<S> observable;
 
 	private final Function<? super S, ? extends R> mapper;
 
-	public MapperObservable(BaseObservable<S> observable, Function<? super S, ? extends R> mapper) {
+	public MapperObservable(Observable<S> observable, Function<? super S, ? extends R> mapper) {
 		this.observable = observable;
 		this.mapper = mapper;
 	}

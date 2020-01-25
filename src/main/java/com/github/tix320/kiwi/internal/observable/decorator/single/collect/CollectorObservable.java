@@ -7,7 +7,6 @@ import java.util.Queue;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.observable.*;
-import com.github.tix320.kiwi.internal.observable.BaseObservable;
 import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
 
 /**
@@ -15,11 +14,11 @@ import com.github.tix320.kiwi.internal.observable.decorator.DecoratorObservable;
  */
 public abstract class CollectorObservable<S, R> extends DecoratorObservable<R> {
 
-	private final BaseObservable<S> observable;
+	private final Observable<S> observable;
 
 	private final Queue<S> objects;
 
-	CollectorObservable(BaseObservable<S> observable) {
+	CollectorObservable(Observable<S> observable) {
 		this.observable = observable;
 		this.objects = new LinkedList<>();
 	}
