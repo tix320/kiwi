@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.api.util.WrapperException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -287,6 +288,72 @@ class ObservableTest {
 		assertTimeout(Duration.ofSeconds(5), () -> {
 			observable.waitComplete().map(integer -> integer * 2).subscribe(actual::add);
 		});
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void errorTest() {
+		List<Integer> expected = Arrays.asList(1, 2, 15, 3);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
+
+		observable.subscribe(actual::add, throwable -> {
+			assertEquals("foo", throwable.getMessage());
+			return actual.add(15);
+		});
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		publisher.publishError(new RuntimeException("foo"));
+		publisher.publish(3);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void errorTestWithParticular() {
+		List<Integer> expected = Arrays.asList(1, 2, 15);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
+
+		observable.particularSubscribe(item -> actual.add(item.get()), throwable -> {
+			assertEquals("foo", throwable.getMessage());
+			actual.add(15);
+			return false;
+		});
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		publisher.publishError(new RuntimeException("foo"));
+		publisher.publish(3);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void errorTestWithThrowing() {
+		List<Integer> expected = Arrays.asList(1, 2);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
+
+		observable.particularSubscribe(item -> actual.add(item.get()), throwable -> {
+			throw WrapperException.wrap(throwable);
+		});
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		publisher.publishError(new RuntimeException("foo"));
+		publisher.publish(3);
 
 		assertEquals(expected, actual);
 	}

@@ -8,6 +8,7 @@ import java.util.function.Function;
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.function.*;
 import com.github.tix320.kiwi.api.util.None;
+import com.github.tix320.kiwi.api.util.WrapperException;
 
 public final class Failure<T> implements Try<T> {
 
@@ -37,9 +38,9 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception, M extends Exception> Try<None> rethrow(Class<X> exceptionType,
-																		Function<? super X, ? extends M> exMapper) {
-		if (exceptionType.isInstance(exception)) {
+	public <X extends Exception, M extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType,
+																			Function<? super X, ? extends M> exMapper) {
+		if (expectedExceptionType.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
 				X exception = (X) this.exception;
@@ -56,10 +57,10 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception> Try<None> rethrow(Class<X> exceptionType) {
-		if (exceptionType.isInstance(exception)) {
+	public <X extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType) {
+		if (expectedExceptionType.isInstance(exception)) {
 			try {
-				throw RecoverException.of(exception);
+				throw WrapperException.wrap(exception);
 			}
 			catch (Exception e) {
 				throw new IllegalStateException("An error occurred in rethrow function. See cause.", e);
@@ -138,7 +139,7 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception> Optional<T> getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
+	public <X extends Exception> Optional<T> optionalOrElseThrow(CheckedSupplier<? extends X> exSupplier)
 			throws X {
 		Objects.requireNonNull(exSupplier, "Supplier cannot be null");
 
@@ -153,7 +154,7 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception> Optional<T> getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
+	public <X extends Exception> Optional<T> optionalOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
 			throws X {
 		Objects.requireNonNull(exMapper, "Mapper cannot be null");
 
@@ -165,6 +166,20 @@ public final class Failure<T> implements Try<T> {
 			throw new IllegalStateException("An error occurred in mapper", e);
 		}
 		throw newException;
+	}
+
+	@Override
+	public <X extends Exception> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
+			throws X {
+		optionalOrElseThrow(exSupplier);
+		throw new IllegalStateException("Unreachable Code");
+	}
+
+	@Override
+	public <X extends Exception> T getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
+			throws X {
+		optionalOrElseThrow(exMapper);
+		throw new IllegalStateException("Unreachable Code");
 	}
 
 	@Override
@@ -211,7 +226,7 @@ public final class Failure<T> implements Try<T> {
 
 	@Override
 	public Optional<T> get() {
-		throw RecoverException.of(exception);
+		throw WrapperException.wrap(exception);
 	}
 
 	@Override

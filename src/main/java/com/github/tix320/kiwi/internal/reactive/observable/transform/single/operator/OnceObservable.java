@@ -23,11 +23,12 @@ public final class OnceObservable<T> extends TransformObservable<T> implements M
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
-		return observable.subscribeAndHandle(item -> {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
+		return observable.particularSubscribe(item -> {
 			consumer.consume(new LastItem<>(item.get()));
 			return false;
-		});
+		}, errorHandler);
 	}
 
 	@Override

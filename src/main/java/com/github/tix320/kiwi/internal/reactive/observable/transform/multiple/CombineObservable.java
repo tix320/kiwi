@@ -18,7 +18,8 @@ public final class CombineObservable<T> extends TransformObservable<List<T>> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends List<T>>> consumer) {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends List<T>>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
 		Subscription[] subscriptions = new Subscription[observables.size()];
 		List<Queue<T>> queues = new ArrayList<>();
 		for (int i = 0; i < observables.size(); i++) {
@@ -27,7 +28,7 @@ public final class CombineObservable<T> extends TransformObservable<List<T>> {
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<T> observable = observables.get(i);
 			Queue<T> queue = queues.get(i);
-			Subscription subscription = observable.subscribeAndHandle(item -> {
+			Subscription subscription = observable.particularSubscribe(item -> {
 				queue.add(item.get());
 
 				for (Queue<T> q : queues) {
@@ -42,16 +43,22 @@ public final class CombineObservable<T> extends TransformObservable<List<T>> {
 				}
 				consumer.consume(new RegularItem<>(combinedObjects));
 				return true;
-			});
+			}, errorHandler);
 
 			subscriptions[i] = subscription;
 		}
 
-		return () -> {
+		Subscription combinedSubscription = () -> {
 			for (Subscription subscription : subscriptions) {
 				subscription.unsubscribe();
 			}
 		};
+
+		for (Observable<T> observable : observables) {
+			observable.onComplete(combinedSubscription::unsubscribe);
+		}
+
+		return combinedSubscription;
 	}
 
 	@SuppressWarnings("unchecked")

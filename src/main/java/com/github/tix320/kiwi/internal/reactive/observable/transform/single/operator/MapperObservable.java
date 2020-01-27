@@ -26,11 +26,12 @@ public final class MapperObservable<S, R> extends TransformObservable<R> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends R>> consumer) {
-		return observable.subscribeAndHandle(item -> {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends R>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
+		return observable.particularSubscribe(item -> {
 			R mappedValue = mapper.apply(item.get());
 			return consumer.consume(new RegularItem<>(mappedValue));
-		});
+		}, errorHandler);
 	}
 
 	@Override

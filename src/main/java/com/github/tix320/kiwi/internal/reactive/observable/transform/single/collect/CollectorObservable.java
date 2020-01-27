@@ -28,11 +28,12 @@ public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends R>> consumer) {
-		Subscription subscription = observable.subscribeAndHandle(item -> {
+	public final Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends R>> consumer,
+												  ConditionalConsumer<Throwable> errorHandler) {
+		Subscription subscription = observable.particularSubscribe(item -> {
 			objects.add(item.get());
 			return true;
-		});
+		}, errorHandler);
 		observable.onComplete(() -> {
 			consumer.consume(new LastItem<>(collect(objects.stream())));
 			objects.clear();

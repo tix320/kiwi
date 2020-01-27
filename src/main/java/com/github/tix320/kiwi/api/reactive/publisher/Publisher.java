@@ -1,5 +1,8 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
+import java.util.function.Consumer;
+
+import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.internal.reactive.publisher.BufferPublisher;
@@ -36,6 +39,15 @@ public interface Publisher<T> {
 	 * @param iterable to extract objects
 	 */
 	void publish(Iterable<T> iterable);
+
+	/**
+	 * Publish error to subscribers.
+	 *
+	 * @param throwable to publish
+	 *
+	 * @see Observable#subscribe(Consumer, ConditionalConsumer)
+	 */
+	void publishError(Throwable throwable);
 
 	/**
 	 * Complete this publisher, after that cannot be published objects.

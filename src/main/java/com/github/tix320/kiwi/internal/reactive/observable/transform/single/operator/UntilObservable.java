@@ -26,19 +26,20 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
 		if (completed.get()) {
 			return () -> {
 			};
 		}
-		return observable.subscribeAndHandle(item -> {
+		return observable.particularSubscribe(item -> {
 			if (completed.get()) {
 				return false;
 			}
 			else {
 				return consumer.consume(item);
 			}
-		});
+		}, errorHandler);
 	}
 
 	@Override

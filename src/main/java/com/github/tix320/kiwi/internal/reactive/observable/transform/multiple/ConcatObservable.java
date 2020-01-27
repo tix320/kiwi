@@ -21,10 +21,11 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
 		Subscription[] subscriptions = new Subscription[observables.size()];
 		for (int i = 0; i < observables.size(); i++) {
-			Subscription subscription = observables.get(i).subscribeAndHandle(consumer);
+			Subscription subscription = observables.get(i).particularSubscribe(consumer, errorHandler);
 			subscriptions[i] = subscription;
 		}
 		return () -> {

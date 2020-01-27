@@ -19,9 +19,10 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
 		Object waitObject = new Object();
-		CompletableFuture.runAsync(() -> observable.subscribeAndHandle(item -> {
+		CompletableFuture.runAsync(() -> observable.particularSubscribe(item -> {
 			boolean needMore = consumer.consume(item);
 			if (!item.hasNext() || !needMore) {
 				synchronized (waitObject) {
@@ -29,7 +30,7 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 				}
 			}
 			return needMore;
-		}));
+		}, errorHandler));
 
 		observable.onComplete(() -> {
 			synchronized (waitObject) {

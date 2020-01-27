@@ -7,8 +7,8 @@ import java.util.function.Function;
 
 import com.github.tix320.kiwi.api.function.*;
 import com.github.tix320.kiwi.api.util.None;
+import com.github.tix320.kiwi.api.util.WrapperException;
 import com.github.tix320.kiwi.internal.check.Failure;
-import com.github.tix320.kiwi.internal.check.RecoverException;
 import com.github.tix320.kiwi.internal.check.Success;
 
 /**
@@ -80,7 +80,7 @@ public interface Try<T> {
 			runnable.run();
 		}
 		catch (Exception e) {
-			throw RecoverException.of(e);
+			WrapperException.wrapAndThrow(e);
 		}
 	}
 
@@ -91,17 +91,17 @@ public interface Try<T> {
 			return supplier.get();
 		}
 		catch (Exception e) {
-			throw RecoverException.of(e);
+			throw WrapperException.wrap(e);
 		}
 	}
 
 	<X extends Exception> void rethrow(Function<Exception, ? extends X> exMapper)
 			throws X;
 
-	<X extends Exception, M extends Exception> Try<None> rethrow(Class<X> exceptionType,
-																 Function<? super X, ? extends M> exMapper);
+	<X extends Exception, M extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType,
+																	 Function<? super X, ? extends M> exMapper);
 
-	<X extends Exception> Try<None> rethrow(Class<X> exceptionType);
+	<X extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType);
 
 	Try<T> peek(CheckedConsumer<? super T> consumer);
 
@@ -117,10 +117,16 @@ public interface Try<T> {
 
 	<X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction);
 
-	<X extends Exception> Optional<T> getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
+	<X extends Exception> Optional<T> optionalOrElseThrow(CheckedSupplier<? extends X> exSupplier)
 			throws X;
 
-	<X extends Exception> Optional<T> getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
+	<X extends Exception> Optional<T> optionalOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
+			throws X;
+
+	<X extends Exception> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
+			throws X;
+
+	<X extends Exception> T getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
 			throws X;
 
 	Try<T> onFailure(CheckedConsumer<Exception> consumer);

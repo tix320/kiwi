@@ -9,6 +9,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.github.tix320.kiwi.api.reactive.common.item.Item;
+import com.github.tix320.kiwi.internal.reactive.observable.UnhandledObservableException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;
@@ -20,6 +21,8 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.internal.reactive.publisher.SimplePublisher;
 
 /**
+ * @param <T> type of data.
+ *
  * @author Tigran Sargsyan on 21-Feb-19
  */
 public interface Observable<T> {
@@ -27,19 +30,68 @@ public interface Observable<T> {
 	/**
 	 * Subscribe to observable.
 	 * If observable already completed, then available values will be processed immediately.
+	 *
+	 * @param consumer for processing items
+	 *
+	 * @return object, for controlling subscription in future
 	 */
-	Subscription subscribe(Consumer<? super T> consumer);
+	default Subscription subscribe(Consumer<? super T> consumer) {
+		return subscribe(consumer, throwable -> {
+			throw new UnhandledObservableException(throwable);
+		});
+	}
+
+	/**
+	 * Subscribe to observable.
+	 * If observable already completed, then available values will be processed immediately.
+	 * If any error occurs, then errorHandler will be invoked.
+	 *
+	 * @param consumer     for processing items
+	 * @param errorHandler for handling errors
+	 *
+	 * @return object, for controlling subscription in future
+	 */
+	default Subscription subscribe(Consumer<? super T> consumer, ConditionalConsumer<Throwable> errorHandler) {
+		return particularSubscribe(item -> {
+			consumer.accept(item.get());
+			return true;
+		}, errorHandler);
+	}
 
 	/**
 	 * Subscribe to observable and handle every item, consumer must return boolean value,
 	 * which indicates that need more elements or not.
 	 * If observable already completed, then available values will be processed immediately.
+	 *
+	 * @param consumer for processing items
+	 *
+	 * @return object, for controlling subscription in future
 	 */
-	Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer);
+	default Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer) {
+		return particularSubscribe(consumer, throwable -> {
+			throw new UnhandledObservableException(throwable);
+		});
+	}
+
+	/**
+	 * Subscribe to observable and handle every item, consumer must return boolean value,
+	 * which indicates that need more elements or not.
+	 * If observable already completed, then available values will be processed immediately.
+	 * If any error occurs, then errorHandler will be invoked.
+	 *
+	 * @param consumer     for processing items
+	 * @param errorHandler for handling errors
+	 *
+	 * @return object, for controlling subscription in future
+	 */
+	Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+									 ConditionalConsumer<Throwable> errorHandler);
 
 	/**
 	 * Add handler on completion of observable.
 	 * If observable already completed, then handler be processed immediately.
+	 *
+	 * @param runnable for handle completeness
 	 */
 	void onComplete(Runnable runnable);
 
@@ -48,6 +100,8 @@ public interface Observable<T> {
 
 	/**
 	 * Returns observable, which will subscribe to this and blocks current thread until it will be completed or will not want more items.
+	 *
+	 * @return new observable
 	 */
 	default Observable<T> waitComplete() {
 		return new WaitCompleteObservable<>(this);
@@ -67,6 +121,8 @@ public interface Observable<T> {
 	/**
 	 * Return observable, which will subscribe to given observable
 	 * and unsubscribe from this observable, when given will be completed.
+	 *
+	 * @param observable to subscribe
 	 *
 	 * @return new observable
 	 */
@@ -164,6 +220,8 @@ public interface Observable<T> {
 
 	/**
 	 * Return empty observable, which will be immediately completed.
+	 *
+	 * @param <T> type of observable
 	 *
 	 * @return observable
 	 */

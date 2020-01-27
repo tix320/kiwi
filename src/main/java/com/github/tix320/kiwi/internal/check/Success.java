@@ -38,15 +38,15 @@ public class Success<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception, M extends Exception> Try<None> rethrow(Class<X> exceptionType,
-																		Function<? super X, ? extends M> exMapper) {
+	public <X extends Exception, M extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType,
+																			Function<? super X, ? extends M> exMapper) {
 		@SuppressWarnings("unchecked")
 		Try<None> typedThis = (Try<None>) this;
 		return typedThis;
 	}
 
 	@Override
-	public <X extends Exception> Try<None> rethrow(Class<X> exceptionType) {
+	public <X extends Exception> Try<None> rethrowWhen(Class<X> expectedExceptionType) {
 		@SuppressWarnings("unchecked")
 		Try<None> typedThis = (Try<None>) this;
 		return typedThis;
@@ -132,17 +132,33 @@ public class Success<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception> Optional<T> getOrElseThrow(CheckedSupplier<? extends X> exSupplier) {
+	public <X extends Exception> Optional<T> optionalOrElseThrow(CheckedSupplier<? extends X> exSupplier) {
 		Objects.requireNonNull(exSupplier, "Supplier cannot be null");
 
 		return Optional.ofNullable(value);
 	}
 
 	@Override
-	public <X extends Exception> Optional<T> getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper) {
+	public <X extends Exception> Optional<T> optionalOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper) {
 		Objects.requireNonNull(exMapper, "Mapper cannot be null");
 
 		return Optional.ofNullable(value);
+	}
+
+	@Override
+	public <X extends Exception> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
+			throws X {
+		Objects.requireNonNull(exSupplier, "Supplier cannot be null");
+
+		return value;
+	}
+
+	@Override
+	public <X extends Exception> T getOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
+			throws X {
+		Objects.requireNonNull(exMapper, "Mapper cannot be null");
+
+		return value;
 	}
 
 	@Override

@@ -25,15 +25,16 @@ public final class FilterObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
-		return observable.subscribeAndHandle((item -> {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
+		return observable.particularSubscribe((item -> {
 			if (filter.test(item.get())) {
 				return consumer.consume(item);
 			}
 			else {
 				return true;
 			}
-		}));
+		}), errorHandler);
 	}
 
 	@Override

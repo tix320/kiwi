@@ -29,13 +29,14 @@ public final class CountingObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribeAndHandle(ConditionalConsumer<? super Item<? extends T>> consumer) {
+	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
+											ConditionalConsumer<Throwable> errorHandler) {
 		if (count == 0) {
 			return () -> {
 			};
 		}
 		AtomicLong limit = new AtomicLong(count);
-		return observable.subscribeAndHandle(item -> {
+		return observable.particularSubscribe(item -> {
 			long remaining = limit.decrementAndGet();
 			if (remaining > 0) {
 				return consumer.consume(item);
@@ -44,7 +45,7 @@ public final class CountingObservable<T> extends TransformObservable<T> {
 				consumer.consume(new LastItem<>(item.get()));
 			}
 			return false;
-		});
+		}, errorHandler);
 	}
 
 	@Override
