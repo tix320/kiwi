@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,6 +35,7 @@ class ObservableTest {
 		empty.toMono().subscribe(integer -> {
 			throw new IllegalStateException();
 		});
+		new SubmissionPublisher<>().submit()
 
 		AtomicReference<Map<Integer, Integer>> actual = new AtomicReference<>(null);
 		empty.toMap(integer -> integer, integer -> integer).subscribe(actual::set);
@@ -202,7 +204,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void blockTest() {
+	void awaitTest() {
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -225,14 +227,14 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.take(2).waitComplete().map(integer -> integer * 2).subscribe(actual::add);
+			observable.take(2).await().map(integer -> integer * 2).subscribe(actual::add);
 		});
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void blockBeforeTakeTest() {
+	void awaitBeforeTakeTest() {
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -255,14 +257,14 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.waitComplete().take(2).map(integer -> integer * 2).subscribe(actual::add);
+			observable.await().take(2).map(integer -> integer * 2).subscribe(actual::add);
 		});
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void blockWithCompletedTest() {
+	void awaitWithCompletedTest() {
 		List<Integer> expected = Arrays.asList(20, 40, 50);
 		List<Integer> actual = new ArrayList<>();
 
@@ -286,7 +288,72 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.waitComplete().map(integer -> integer * 2).subscribe(actual::add);
+			observable.await().map(integer -> integer * 2).subscribe(actual::add);
+		});
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void blockWithCompleteTest() {
+		List<Integer> expected = Arrays.asList(10, 20, 25);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
+
+		CompletableFuture.runAsync(() -> {
+			try {
+				TimeUnit.SECONDS.sleep(1);
+				publisher.publish(10);
+				publisher.publish(20);
+				publisher.publish(25);
+				publisher.complete();
+			}
+			catch (InterruptedException e) {
+				throw new IllegalStateException();
+			}
+		}).exceptionally(throwable -> {
+			throwable.printStackTrace();
+			return null;
+		});
+
+		assertTimeout(Duration.ofSeconds(5), () -> {
+			observable.map(actual::add).blockUntilComplete();
+		});
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void blockWithCombineTest() {
+		List<Integer> expected = Arrays.asList(10, 20);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher1 = Publisher.simple();
+		Publisher<Integer> publisher2 = Publisher.simple();
+		Observable<Integer> observable1 = publisher1.asObservable();
+		Observable<Integer> observable2 = publisher2.asObservable();
+
+		CompletableFuture.runAsync(() -> {
+			try {
+				TimeUnit.SECONDS.sleep(1);
+				publisher1.publish(10);
+				TimeUnit.SECONDS.sleep(1);
+				publisher2.publish(20);
+				publisher1.complete();
+				publisher2.complete();
+			}
+			catch (InterruptedException e) {
+				throw new IllegalStateException();
+			}
+		}).exceptionally(throwable -> {
+			throwable.printStackTrace();
+			return null;
+		});
+
+		assertTimeout(Duration.ofSeconds(5), () -> {
+			Observable.combine(observable1, observable2).map(actual::addAll).blockUntilComplete();
 		});
 
 		assertEquals(expected, actual);

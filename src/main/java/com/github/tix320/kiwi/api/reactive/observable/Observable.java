@@ -95,15 +95,22 @@ public interface Observable<T> {
 	 */
 	void onComplete(Runnable runnable);
 
+	/**
+	 * Blocks current thread until this observable will be completed or will not want more items.
+	 */
+	default void blockUntilComplete() {
+		await().subscribe(t -> {});
+	}
+
 
 	// transforming functions --------------------------------------
 
 	/**
-	 * Returns observable, which will subscribe to this and blocks current thread until it will be completed or will not want more items.
+	 * Returns observable, which subscription will blocks thread until it will be completed or will not want more items.
 	 *
 	 * @return new observable
 	 */
-	default Observable<T> waitComplete() {
+	default Observable<T> await() {
 		return new WaitCompleteObservable<>(this);
 	}
 

@@ -7,6 +7,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.internal.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.internal.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.internal.reactive.publisher.SinglePublisher;
 
 /**
  * A producer of items (and related control messages) received by
@@ -68,10 +69,23 @@ public interface Publisher<T> {
 	 *
 	 * @param <T> type of objects.
 	 *
-	 * @return created subject.
+	 * @return created publisher.
 	 */
 	static <T> Publisher<T> simple() {
 		return new SimplePublisher<>();
+	}
+
+	/**
+	 * Create single publisher for publishing objects.
+	 * This publisher will hold last published object.
+	 * The subscribers will receive that object after subscription immediately.
+	 *
+	 * @param <T> type of objects.
+	 *
+	 * @return created publisher.
+	 */
+	static <T> Publisher<T> single(T initialValue) {
+		return new SinglePublisher<>(initialValue);
 	}
 
 	/**

@@ -20,8 +20,8 @@ class BufferPublisherTest {
 	void simpleTest() {
 
 		List<String> expected = Arrays.asList("a4", "a5", "a6", "a7", "a8", "b4", "b5", "b6", "b7", "b8", "a9", "b9",
-				"c5", "c6", "c7", "a10", "b10", "a11", "b11", "a12", "b12", "a13", "b13", "d9", "a14", "b14", "a15",
-				"b15");
+				"c5", "c6", "c7", "a10", "b10", "a11", "b11", "a12", "b12", "a13", "b13", "d9", "a14", "b14", "d14",
+				"a15", "b15");
 
 		List<String> actual = new ArrayList<>();
 

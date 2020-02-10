@@ -22,20 +22,22 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
 											ConditionalConsumer<Throwable> errorHandler) {
 		Object waitObject = new Object();
-		CompletableFuture.runAsync(() -> observable.particularSubscribe(item -> {
-			boolean needMore = consumer.consume(item);
-			if (!item.hasNext() || !needMore) {
+		CompletableFuture.runAsync(() -> {
+			observable.particularSubscribe(item -> {
+				boolean needMore = consumer.consume(item);
+				if (!item.hasNext() || !needMore) {
+					synchronized (waitObject) {
+						waitObject.notifyAll();
+					}
+				}
+				return needMore;
+			}, errorHandler);
+
+			observable.onComplete(() -> {
 				synchronized (waitObject) {
 					waitObject.notifyAll();
 				}
-			}
-			return needMore;
-		}, errorHandler));
-
-		observable.onComplete(() -> {
-			synchronized (waitObject) {
-				waitObject.notifyAll();
-			}
+			});
 		});
 
 		synchronized (waitObject) {

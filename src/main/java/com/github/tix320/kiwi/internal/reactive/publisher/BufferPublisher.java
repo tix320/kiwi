@@ -60,8 +60,8 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 
 	@Override
 	protected Subscription subscribe(Subscriber<T> subscriber) {
-		subscribers.add(subscriber);
 		publishFromBuffer(subscriber);
+		subscribers.add(subscriber);
 		return () -> subscribers.remove(subscriber);
 	}
 
