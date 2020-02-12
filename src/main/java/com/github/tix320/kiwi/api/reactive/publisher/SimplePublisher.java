@@ -1,8 +1,9 @@
-package com.github.tix320.kiwi.internal.reactive.publisher;
+package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.Iterator;
 
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19

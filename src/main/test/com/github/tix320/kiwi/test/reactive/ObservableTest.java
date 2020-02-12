@@ -6,10 +6,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
@@ -35,7 +35,6 @@ class ObservableTest {
 		empty.toMono().subscribe(integer -> {
 			throw new IllegalStateException();
 		});
-		new SubmissionPublisher<>().submit()
 
 		AtomicReference<Map<Integer, Integer>> actual = new AtomicReference<>(null);
 		empty.toMap(integer -> integer, integer -> integer).subscribe(actual::set);
@@ -44,7 +43,6 @@ class ObservableTest {
 
 	@Test
 	void ofTest() {
-
 		List<Integer> expected = Arrays.asList(32, 32, 32);
 		List<Integer> actual = new ArrayList<>();
 
@@ -423,6 +421,36 @@ class ObservableTest {
 		publisher.publish(3);
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	void getTest() {
+		Publisher<Integer> publisher = Publisher.simple();
+		Observable<Integer> observable = publisher.asObservable();
+
+		publisher.publish(2);
+		CompletableFuture.runAsync(() -> {
+			Try.run(() -> Thread.sleep(50));
+			publisher.publish(3);
+		});
+		Integer number = observable.map(integer -> integer + 5).get();
+
+		assertEquals(8, number);
+	}
+
+	@Test
+	void getWithBufferedTest() {
+		Publisher<Integer> publisher = Publisher.buffered(1);
+		Observable<Integer> observable = publisher.asObservable();
+
+		publisher.publish(2);
+		CompletableFuture.runAsync(() -> {
+			Try.run(() -> Thread.sleep(50));
+			publisher.publish(3);
+		});
+		Integer number = observable.map(integer -> integer + 5).get();
+
+		assertEquals(7, number);
 	}
 }
 

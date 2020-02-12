@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.common.item.Item;
 import com.github.tix320.kiwi.internal.reactive.observable.UnhandledObservableException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineObservable;
@@ -17,8 +20,8 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToListObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
-import com.github.tix320.kiwi.internal.reactive.publisher.BufferPublisher;
-import com.github.tix320.kiwi.internal.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 
 /**
  * @param <T> type of data.
@@ -100,6 +103,22 @@ public interface Observable<T> {
 	 */
 	default void blockUntilComplete() {
 		await().subscribe(t -> {});
+	}
+
+	/**
+	 * Blocks current thread until this observable will be published one value and return.
+	 */
+	default T get() {
+		CountDownLatch latch = new CountDownLatch(1);
+
+		AtomicReference<T> itemHolder = new AtomicReference<>();
+		this.toMono().subscribe(item -> {
+			itemHolder.set(item);
+			latch.countDown();
+		});
+
+		Try.run(latch::await);
+		return itemHolder.get();
 	}
 
 

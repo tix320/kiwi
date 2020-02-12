@@ -1,10 +1,11 @@
-package com.github.tix320.kiwi.internal.reactive.publisher;
+package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
@@ -52,8 +53,6 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 		checkCompleted();
 		for (T object : iterable) {
 			addToBuffer(object);
-		}
-		for (T object : iterable) {
 			publish(object);
 		}
 	}

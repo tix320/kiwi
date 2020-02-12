@@ -25,7 +25,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	protected final Collection<Subscriber<? super T>> subscribers;
 
-	BasePublisher() {
+	protected BasePublisher() {
 		this.onCompleteSubscribers = new LinkedList<>();
 		this.subscribers = new LinkedList<>();
 	}
