@@ -3,7 +3,9 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.single;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 
+import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.common.item.Item;
 import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -21,33 +23,21 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 	@Override
 	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
 											ConditionalConsumer<Throwable> errorHandler) {
-		Object waitObject = new Object();
+		CountDownLatch latch = new CountDownLatch(1);
 		CompletableFuture.runAsync(() -> {
 			observable.particularSubscribe(item -> {
 				boolean needMore = consumer.consume(item);
 				if (!item.hasNext() || !needMore) {
-					synchronized (waitObject) {
-						waitObject.notifyAll();
-					}
+					latch.countDown();
 				}
 				return needMore;
 			}, errorHandler);
 
-			observable.onComplete(() -> {
-				synchronized (waitObject) {
-					waitObject.notifyAll();
-				}
-			});
+			observable.onComplete(latch::countDown);
 		});
 
-		synchronized (waitObject) {
-			try {
-				waitObject.wait();
-			}
-			catch (InterruptedException e) {
-				throw new IllegalStateException(e);
-			}
-		}
+		Try.run(latch::await);
+
 		return () -> {
 		};
 	}
