@@ -51,4 +51,8 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 	public synchronized void publish(Iterable<T> iterable) {
 		throw new UnsupportedOperationException("Single publisher must publish only one value at once");
 	}
+
+	public T getValue() {
+		return value;
+	}
 }

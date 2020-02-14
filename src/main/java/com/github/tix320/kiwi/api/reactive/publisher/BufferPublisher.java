@@ -1,8 +1,9 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Deque;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
@@ -12,7 +13,7 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
  */
 public final class BufferPublisher<T> extends BasePublisher<T> {
 
-	private final Deque<T> buffer;
+	private final LinkedList<T> buffer;
 
 	private final int bufferCapacity;
 
@@ -62,6 +63,10 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 		publishFromBuffer(subscriber);
 		subscribers.add(subscriber);
 		return () -> subscribers.remove(subscriber);
+	}
+
+	public List<T> getBuffer() {
+		return Collections.unmodifiableList(buffer);
 	}
 
 	private void addToBuffer(T object) {

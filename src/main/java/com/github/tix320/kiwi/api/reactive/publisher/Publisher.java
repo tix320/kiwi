@@ -68,7 +68,7 @@ public interface Publisher<T> {
 	 *
 	 * @return created publisher.
 	 */
-	static <T> Publisher<T> simple() {
+	static <T> SimplePublisher<T> simple() {
 		return new SimplePublisher<>();
 	}
 
@@ -81,7 +81,7 @@ public interface Publisher<T> {
 	 *
 	 * @return created publisher.
 	 */
-	static <T> Publisher<T> single(T initialValue) {
+	static <T> SinglePublisher<T> single(T initialValue) {
 		return new SinglePublisher<>(initialValue);
 	}
 
@@ -95,7 +95,7 @@ public interface Publisher<T> {
 	 *
 	 * @return created publisher.
 	 */
-	static <T> Publisher<T> buffered(int bufferSize) {
+	static <T> BufferPublisher<T> buffered(int bufferSize) {
 		return new BufferPublisher<>(bufferSize);
 	}
 
