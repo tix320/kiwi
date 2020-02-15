@@ -1,13 +1,9 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.github.tix320.kiwi.api.reactive.common.item.Item;
-import com.github.tix320.kiwi.api.reactive.common.item.LastItem;
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
@@ -29,27 +25,37 @@ public final class CountingObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
-											ConditionalConsumer<Throwable> errorHandler) {
+	public Subscription subscribe(Subscriber<? super T> subscriber) {
 		if (count == 0) {
 			return () -> {
 			};
 		}
 		AtomicLong limit = new AtomicLong(count);
-		return observable.particularSubscribe(item -> {
-			long remaining = limit.decrementAndGet();
-			if (remaining > 0) {
-				return consumer.consume(item);
+		return observable.subscribe(new Subscriber<T>() {
+			@Override
+			public boolean consume(T item) {
+				long remaining = limit.decrementAndGet();
+				if (remaining > 0) {
+					return subscriber.consume(item);
+				}
+				else if (remaining == 0) {
+					subscriber.consume(item);
+					return false;
+				}
+				else {
+					throw new IllegalStateException();
+				}
 			}
-			else if (remaining == 0) {
-				consumer.consume(new LastItem<>(item.get()));
-			}
-			return false;
-		}, errorHandler);
-	}
 
-	@Override
-	protected Collection<Observable<?>> decoratedObservables() {
-		return Collections.singleton(observable);
+			@Override
+			public boolean onError(Throwable throwable) {
+				return subscriber.onError(throwable);
+			}
+
+			@Override
+			public void onComplete() {
+				subscriber.onComplete();
+			}
+		});
 	}
 }

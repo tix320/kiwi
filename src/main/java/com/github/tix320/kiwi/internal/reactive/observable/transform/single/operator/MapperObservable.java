@@ -1,13 +1,9 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.function.Function;
 
-import com.github.tix320.kiwi.api.reactive.common.item.Item;
-import com.github.tix320.kiwi.api.reactive.common.item.RegularItem;
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
@@ -26,16 +22,22 @@ public final class MapperObservable<S, R> extends TransformObservable<R> {
 	}
 
 	@Override
-	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends R>> consumer,
-											ConditionalConsumer<Throwable> errorHandler) {
-		return observable.particularSubscribe(item -> {
-			R mappedValue = mapper.apply(item.get());
-			return consumer.consume(new RegularItem<>(mappedValue));
-		}, errorHandler);
-	}
+	public Subscription subscribe(Subscriber<? super R> subscriber) {
+		return observable.subscribe(new Subscriber<>() {
+			@Override
+			public boolean consume(S item) {
+				return subscriber.consume(mapper.apply(item));
+			}
 
-	@Override
-	protected Collection<Observable<?>> decoratedObservables() {
-		return Collections.singleton(observable);
+			@Override
+			public boolean onError(Throwable throwable) {
+				return subscriber.onError(throwable);
+			}
+
+			@Override
+			public void onComplete() {
+				subscriber.onComplete();
+			}
+		});
 	}
 }

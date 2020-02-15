@@ -3,11 +3,10 @@ package com.github.tix320.kiwi.internal.reactive.publisher;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Objects;
 
-import com.github.tix320.kiwi.api.reactive.common.item.Item;
-import com.github.tix320.kiwi.api.reactive.common.item.RegularItem;
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.util.IDGenerator;
@@ -19,14 +18,13 @@ import com.github.tix320.kiwi.internal.reactive.observable.BaseObservable;
  */
 public abstract class BasePublisher<T> implements Publisher<T> {
 
-	private boolean completed;
+	private final IDGenerator ID_GEN = new IDGenerator();
 
-	private final Collection<Runnable> onCompleteSubscribers;
+	private boolean completed;
 
 	protected final Collection<Subscriber<? super T>> subscribers;
 
 	protected BasePublisher() {
-		this.onCompleteSubscribers = new LinkedList<>();
 		this.subscribers = new LinkedList<>();
 	}
 
@@ -35,14 +33,15 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		Iterator<Subscriber<? super T>> iterator = subscribers.iterator();
 		while (iterator.hasNext()) {
 			Subscriber<? super T> subscriber = iterator.next();
+			boolean needMore;
 			try {
-				boolean needMore = subscriber.consumeError(throwable);
+				needMore = subscriber.onError(throwable);
 				if (!needMore) {
 					iterator.remove();
+					subscriber.onComplete();
 				}
 			}
 			catch (Exception e) {
-				iterator.remove();
 				e.printStackTrace();
 			}
 
@@ -52,10 +51,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	@Override
 	public final synchronized void complete() {
 		if (!completed) {
+			subscribers.forEach(Subscriber::onComplete);
 			completed = true;
-			onCompleteSubscribers.forEach(Runnable::run);
 			subscribers.clear();
-			onCompleteSubscribers.clear();
 		}
 	}
 
@@ -70,63 +68,56 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 	}
 
-	protected abstract Subscription subscribe(Subscriber<T> subscriber);
+	protected abstract boolean onSubscribe(Subscriber<? super T> subscriber);
 
 	private final class PublisherObservable extends BaseObservable<T> {
 
-		public PublisherObservable() {
-		}
-
 		@Override
-		public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
-												ConditionalConsumer<Throwable> errorHandler) {
+		public Subscription subscribe(Subscriber<? super T> subscriber) {
 			synchronized (BasePublisher.this) {
-				Subscriber<T> subscriber = new Subscriber<>(consumer, errorHandler);
-				Subscription subscription = BasePublisher.this.subscribe(subscriber);
-				if (completed) {
-					subscribers.remove(subscriber);
-				}
-				return subscription;
-			}
-		}
+				Subscriber<? super T> subscriberWithId = new SubscriberWithId(subscriber);
+				boolean needRegister = BasePublisher.this.onSubscribe(subscriberWithId);
 
-
-		@Override
-		public void onComplete(Runnable runnable) {
-			synchronized (BasePublisher.this) {
 				if (completed) {
-					runnable.run();
+					subscriberWithId.onComplete();
 				}
-				else {
-					onCompleteSubscribers.add(runnable);
+				if (!needRegister) {
+					return () -> {};
 				}
+				subscribers.add(subscriberWithId);
+				return () -> {
+					boolean removed = subscribers.remove(subscriberWithId);
+					if (removed) {
+						subscriberWithId.onComplete();
+					}
+				};
 			}
 		}
 	}
 
-	protected final static class Subscriber<T> {
-
-		private static final IDGenerator GEN = new IDGenerator();
+	private final class SubscriberWithId implements Subscriber<T> {
 
 		private final long id;
+		private final Subscriber<? super T> subscriber;
 
-		private final ConditionalConsumer<? super Item<? extends T>> consumer;
-
-		private final ConditionalConsumer<Throwable> errorConsumer;
-
-		private Subscriber(ConditionalConsumer<? super Item<? extends T>> consumer,
-						   ConditionalConsumer<Throwable> errorConsumer) {
-			this.errorConsumer = errorConsumer;
-			this.id = GEN.next();
-			this.consumer = consumer;
+		private SubscriberWithId(Subscriber<? super T> subscriber) {
+			this.subscriber = subscriber;
+			this.id = ID_GEN.next();
 		}
 
-		public boolean consume(T object) {
-			return consumer.consume(new RegularItem<>(object));
+		@Override
+		public boolean consume(T item) {
+			return subscriber.consume(item);
 		}
 
-		public boolean consumeError(Throwable throwable) {
-			return errorConsumer.consume(throwable);
+		@Override
+		public boolean onError(Throwable throwable) {
+			return subscriber.onError(throwable);
+		}
+
+		@Override
+		public void onComplete() {
+			subscriber.onComplete();
 		}
 
 		@Override
@@ -135,13 +126,14 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				return true;
 			if (o == null || getClass() != o.getClass())
 				return false;
-			Subscriber<?> subscriber = (Subscriber<?>) o;
-			return id == subscriber.id;
+			@SuppressWarnings("unchecked")
+			SubscriberWithId that = (SubscriberWithId) o;
+			return id == that.id;
 		}
 
 		@Override
 		public int hashCode() {
-			return Long.hashCode(id);
+			return Objects.hash(id);
 		}
 	}
 }

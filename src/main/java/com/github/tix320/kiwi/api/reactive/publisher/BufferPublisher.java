@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
@@ -32,6 +32,7 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 				boolean needMore = subscriber.consume(object);
 				if (!needMore) {
 					iterator.remove();
+					subscriber.onComplete();
 				}
 			}
 			catch (Exception e) {
@@ -59,10 +60,9 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected Subscription subscribe(Subscriber<T> subscriber) {
+	protected boolean onSubscribe(Subscriber<? super T> subscriber) {
 		publishFromBuffer(subscriber);
-		subscribers.add(subscriber);
-		return () -> subscribers.remove(subscriber);
+		return true;
 	}
 
 	public List<T> getBuffer() {

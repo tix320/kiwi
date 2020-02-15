@@ -1,11 +1,12 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import com.github.tix320.kiwi.api.reactive.common.item.Item;
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
@@ -21,23 +22,47 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
-											ConditionalConsumer<Throwable> errorHandler) {
-		Subscription[] subscriptions = new Subscription[observables.size()];
-		for (int i = 0; i < observables.size(); i++) {
-			Subscription subscription = observables.get(i).particularSubscribe(consumer, errorHandler);
-			subscriptions[i] = subscription;
-		}
-		return () -> {
+	public Subscription subscribe(Subscriber<? super T> subscriber) {
+		List<Subscription> subscriptions = new ArrayList<>(observables.size());
+
+		AtomicBoolean unsubscribed = new AtomicBoolean(false);
+
+		Subscription generalSubscription = () -> {
+			unsubscribed.set(true);
 			for (Subscription subscription : subscriptions) {
 				subscription.unsubscribe();
 			}
 		};
-	}
+		AtomicInteger completedCount = new AtomicInteger(0);
 
-	@SuppressWarnings("unchecked")
-	@Override
-	protected Collection<Observable<?>> decoratedObservables() {
-		return (Collection) observables;
+		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
+			@Override
+			public synchronized boolean consume(T item) {
+				return subscriber.consume(item);
+			}
+
+			@Override
+			public synchronized boolean onError(Throwable throwable) {
+				return subscriber.onError(throwable);
+			}
+
+			@Override
+			public synchronized void onComplete() {
+				int count = completedCount.incrementAndGet();
+				if (count == observables.size()) {
+					subscriber.onComplete();
+				}
+			}
+		};
+
+		for (Observable<T> observable : observables) {
+			if (unsubscribed.get()) {
+				break;
+			}
+			Subscription subscription = observable.subscribe(generalSubscriber);
+			subscriptions.add(subscription);
+		}
+
+		return generalSubscription;
 	}
 }

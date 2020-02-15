@@ -11,17 +11,16 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.github.tix320.kiwi.api.check.Try;
-import com.github.tix320.kiwi.api.reactive.common.item.Item;
+import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.internal.reactive.observable.UnhandledObservableException;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
+import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.JoinObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToListObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
-import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 
 /**
  * @param <T> type of data.
@@ -29,6 +28,7 @@ import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
  * @author Tigran Sargsyan on 21-Feb-19
  */
 public interface Observable<T> {
+
 
 	/**
 	 * Subscribe to observable.
@@ -44,6 +44,36 @@ public interface Observable<T> {
 		});
 	}
 
+
+	/**
+	 * Subscribe to observable.
+	 * If observable already completed, then available values will be processed immediately.
+	 *
+	 * @param consumer   for processing items
+	 * @param onComplete action on complete
+	 *
+	 * @return object, for controlling subscription in future
+	 */
+	default Subscription subscribe(Consumer<? super T> consumer, Runnable onComplete) {
+		return subscribe(new Subscriber<>() {
+			@Override
+			public boolean consume(T item) {
+				consumer.accept(item);
+				return true;
+			}
+
+			@Override
+			public boolean onError(Throwable throwable) {
+				throw new UnhandledObservableException(throwable);
+			}
+
+			@Override
+			public void onComplete() {
+				onComplete.run();
+			}
+		});
+	}
+
 	/**
 	 * Subscribe to observable.
 	 * If observable already completed, then available values will be processed immediately.
@@ -56,7 +86,7 @@ public interface Observable<T> {
 	 */
 	default Subscription subscribe(Consumer<? super T> consumer, ConditionalConsumer<Throwable> errorHandler) {
 		return particularSubscribe(item -> {
-			consumer.accept(item.get());
+			consumer.accept(item);
 			return true;
 		}, errorHandler);
 	}
@@ -70,7 +100,7 @@ public interface Observable<T> {
 	 *
 	 * @return object, for controlling subscription in future
 	 */
-	default Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer) {
+	default Subscription particularSubscribe(ConditionalConsumer<? super T> consumer) {
 		return particularSubscribe(consumer, throwable -> {
 			throw new UnhandledObservableException(throwable);
 		});
@@ -87,16 +117,36 @@ public interface Observable<T> {
 	 *
 	 * @return object, for controlling subscription in future
 	 */
-	Subscription particularSubscribe(ConditionalConsumer<? super Item<? extends T>> consumer,
-									 ConditionalConsumer<Throwable> errorHandler);
+	default Subscription particularSubscribe(ConditionalConsumer<? super T> consumer,
+											 ConditionalConsumer<Throwable> errorHandler) {
+		return subscribe(new Subscriber<>() {
+			@Override
+			public boolean consume(T item) {
+				return consumer.consume(item);
+			}
+
+			@Override
+			public boolean onError(Throwable throwable) {
+				return errorHandler.consume(throwable);
+			}
+
+			@Override
+			public void onComplete() {
+
+			}
+		});
+	}
 
 	/**
-	 * Add handler on completion of observable.
-	 * If observable already completed, then handler be processed immediately.
+	 * Subscribe to observable and handle every item, error or completeness.
+	 * If observable already completed, then available values will be processed immediately
+	 * and after which completed handler will be invoked.
 	 *
-	 * @param runnable for handle completeness
+	 * @param subscriber for subscribing
+	 *
+	 * @return object, for controlling subscription in future
 	 */
-	void onComplete(Runnable runnable);
+	Subscription subscribe(Subscriber<? super T> subscriber);
 
 	/**
 	 * Blocks current thread until this observable will be completed or will not want more items.
@@ -329,25 +379,26 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	@SafeVarargs
-	static <T> Observable<List<T>> combine(Observable<T>... observables) {
+	static <T> Observable<List<T>> zip(Observable<T>... observables) {
 		List<Observable<T>> list = new ArrayList<>(Arrays.asList(observables));
-		return new CombineObservable<>(list);
+		return new ZipObservable<>(list);
 	}
 
 	/**
 	 * Return observable, which will be subscribe to given observables.
 	 * It will ba wait for objects from every observable and then combine them to list and publish.
+	 * Items order in list will be same as a given observables.
 	 *
 	 * @param observables to subscribe
 	 * @param <T>         type of object
 	 *
 	 * @return observable
 	 */
-	static <T> Observable<List<T>> combine(Iterable<Observable<T>> observables) {
+	static <T> Observable<List<T>> zip(Iterable<Observable<T>> observables) {
 		List<Observable<T>> list = new ArrayList<>();
 		for (Observable<T> observable : observables) {
 			list.add(observable);
 		}
-		return new CombineObservable<>(list);
+		return new ZipObservable<>(list);
 	}
 }

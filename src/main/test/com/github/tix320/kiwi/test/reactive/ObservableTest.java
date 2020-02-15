@@ -132,7 +132,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void combineTest() {
+	void zipTest() {
 		List<Integer> expected = Arrays.asList(10, 20, -1, 30, 50, -1);
 		List<Integer> actual = new ArrayList<>();
 
@@ -140,7 +140,7 @@ class ObservableTest {
 
 		Observable<Integer> observable2 = Observable.of(20, 50);
 
-		Observable.combine(observable1, observable2).subscribe(integers -> {
+		Observable.zip(observable1, observable2).subscribe(integers -> {
 			actual.addAll(integers);
 			actual.add(-1);
 		});
@@ -324,7 +324,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void blockWithCombineTest() {
+	void blockWithZipTest() {
 		List<Integer> expected = Arrays.asList(10, 20);
 		List<Integer> actual = new ArrayList<>();
 
@@ -351,7 +351,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			Observable.combine(observable1, observable2).map(actual::addAll).blockUntilComplete();
+			Observable.zip(observable1, observable2).map(actual::addAll).blockUntilComplete();
 		});
 
 		assertEquals(expected, actual);
@@ -387,7 +387,7 @@ class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.particularSubscribe(item -> actual.add(item.get()), throwable -> {
+		observable.particularSubscribe(actual::add, throwable -> {
 			assertEquals("foo", throwable.getMessage());
 			actual.add(15);
 			return false;
@@ -404,13 +404,13 @@ class ObservableTest {
 
 	@Test
 	void errorTestWithThrowing() {
-		List<Integer> expected = Arrays.asList(1, 2);
+		List<Integer> expected = Arrays.asList(1, 2, 3);
 		List<Integer> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.particularSubscribe(item -> actual.add(item.get()), throwable -> {
+		observable.particularSubscribe(actual::add, throwable -> {
 			throw WrapperException.wrap(throwable);
 		});
 
@@ -451,6 +451,45 @@ class ObservableTest {
 		Integer number = observable.map(integer -> integer + 5).get();
 
 		assertEquals(7, number);
+	}
+
+	@Test
+	void onCompleteOnUnsubscribe() {
+		List<Integer> expected = Arrays.asList(1, 2, 15);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+
+		Observable<Integer> observable = publisher.asObservable();
+
+		Subscription subscription = observable.subscribe(actual::add, () -> actual.add(15));
+
+		publisher.publish(1);
+		publisher.publish(2);
+		subscription.unsubscribe();
+		publisher.publish(3);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void doubleUnsubscribe() {
+		List<Integer> expected = Arrays.asList(1, 2, 15);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+
+		Observable<Integer> observable = publisher.asObservable();
+
+		Subscription subscription = observable.subscribe(actual::add, () -> actual.add(15));
+
+		publisher.publish(1);
+		publisher.publish(2);
+		subscription.unsubscribe();
+		publisher.publish(3);
+		subscription.unsubscribe();
+
+		assertEquals(expected, actual);
 	}
 }
 
