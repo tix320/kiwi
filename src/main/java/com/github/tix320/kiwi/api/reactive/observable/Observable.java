@@ -167,7 +167,7 @@ public interface Observable<T> {
 			latch.countDown();
 		});
 
-		Try.run(latch::await);
+		Try.runOrRethrow(latch::await);
 		return itemHolder.get();
 	}
 

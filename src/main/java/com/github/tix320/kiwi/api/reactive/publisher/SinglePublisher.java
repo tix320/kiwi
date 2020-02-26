@@ -9,18 +9,27 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 
 	private T value;
 
+	public SinglePublisher() {
+
+	}
+
 	public SinglePublisher(T initialValue) {
-		this.value = initialValue;
+		this.value = validateValue(initialValue);
 	}
 
 	@Override
 	protected boolean onSubscribe(Subscriber<? super T> subscriber) {
-		return subscriber.consume(value);
+		if (value == null) {
+			return true;
+		}
+		else {
+			return subscriber.consume(value);
+		}
 	}
 
 	@Override
 	public synchronized void publish(T object) {
-		value = object;
+		value = validateValue(object);
 		checkCompleted();
 		Iterator<Subscriber<? super T>> iterator = subscribers.iterator();
 		while (iterator.hasNext()) {
@@ -49,6 +58,13 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 	}
 
 	public T getValue() {
+		return value;
+	}
+
+	private T validateValue(T value) {
+		if (value == null) {
+			throw new NullPointerException("Value in SinglePublisher cannot be null");
+		}
 		return value;
 	}
 }

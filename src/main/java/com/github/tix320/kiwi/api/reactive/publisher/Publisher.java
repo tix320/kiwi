@@ -77,12 +77,24 @@ public interface Publisher<T> {
 	 * This publisher will hold last published object.
 	 * The subscribers will receive that object after subscription immediately.
 	 *
-	 * @param <T> type of objects.
+	 * @param initialValue initial value of publisher
+	 * @param <T>          type of objects.
 	 *
 	 * @return created publisher.
 	 */
 	static <T> SinglePublisher<T> single(T initialValue) {
 		return new SinglePublisher<>(initialValue);
+	}
+
+	/**
+	 * Equivalent to {@link Publisher#single(Object)} without initial value.
+	 *
+	 * @param <T> type of objects.
+	 *
+	 * @return created publisher.
+	 */
+	static <T> SinglePublisher<T> single() {
+		return new SinglePublisher<>();
 	}
 
 	/**

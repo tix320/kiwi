@@ -430,7 +430,7 @@ class ObservableTest {
 
 		publisher.publish(2);
 		CompletableFuture.runAsync(() -> {
-			Try.run(() -> Thread.sleep(50));
+			Try.runOrRethrow(() -> Thread.sleep(50));
 			publisher.publish(3);
 		});
 		Integer number = observable.map(integer -> integer + 5).get();
@@ -445,7 +445,7 @@ class ObservableTest {
 
 		publisher.publish(2);
 		CompletableFuture.runAsync(() -> {
-			Try.run(() -> Thread.sleep(50));
+			Try.runOrRethrow(() -> Thread.sleep(50));
 			publisher.publish(3);
 		});
 		Integer number = observable.map(integer -> integer + 5).get();

@@ -42,7 +42,7 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 			}
 		});
 
-		Try.run(latch::await);
+		Try.runOrRethrow(latch::await);
 
 		return () -> {
 		};
