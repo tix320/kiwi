@@ -1,4 +1,6 @@
 module kiwi {
+	requires transitive net.bytebuddy;
+
 	exports com.github.tix320.kiwi.api.util;
 	exports com.github.tix320.kiwi.api.check;
 	exports com.github.tix320.kiwi.api.function;
