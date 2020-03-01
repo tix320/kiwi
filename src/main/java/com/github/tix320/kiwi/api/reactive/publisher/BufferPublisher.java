@@ -1,11 +1,9 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
@@ -25,14 +23,14 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 	public synchronized void publish(T object) {
 		checkCompleted();
 		addToBuffer(object);
-		Iterator<Subscriber<? super T>> iterator = subscribers.iterator();
-		while (iterator.hasNext()) {
-			Subscriber<? super T> subscriber = iterator.next();
+		List<InternalSubscription> subscriptions = getSubscriptions();
+		for (int i = 0; i < subscriptions.size(); i++) {
+			InternalSubscription subscription = subscriptions.get(i);
 			try {
-				boolean needMore = subscriber.consume(object);
+				boolean needMore = subscription.onPublish(object);
 				if (!needMore) {
-					iterator.remove();
-					subscriber.onComplete();
+					subscription.unsubscribe();
+					i--;
 				}
 			}
 			catch (Exception e) {
@@ -60,8 +58,8 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected boolean onSubscribe(Subscriber<? super T> subscriber) {
-		publishFromBuffer(subscriber);
+	protected boolean onSubscribe(InternalSubscription subscription) {
+		publishFromBuffer(subscription);
 		return true;
 	}
 
@@ -88,11 +86,11 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 		}
 	}
 
-	private void publishFromBuffer(Subscriber<? super T> subscriber) {
+	private void publishFromBuffer(InternalSubscription subscription) {
 		for (T object : buffer) {
-			boolean needMore = subscriber.consume(object);
+			boolean needMore = subscription.onPublish(object);
 			if (!needMore) {
-				subscribers.remove(subscriber);
+				subscription.unsubscribe();
 				break;
 			}
 		}

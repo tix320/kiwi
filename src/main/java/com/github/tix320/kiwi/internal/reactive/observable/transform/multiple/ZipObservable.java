@@ -1,9 +1,6 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -21,20 +18,35 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 
 	@Override
 	public Subscription subscribe(Subscriber<? super List<T>> subscriber) {
-		Queue<Subscription> subscriptions = new LinkedList<>();
 		List<Queue<T>> queues = new ArrayList<>();
 		for (int i = 0; i < observables.size(); i++) {
 			queues.add(new LinkedList<>());
 		}
 
-		AtomicBoolean unsubscribed = new AtomicBoolean(false);
+
+		AtomicBoolean completed = new AtomicBoolean(false);
+		List<Subscription> subscriptions = new ArrayList<>(observables.size());
+		Runnable cleanup = () -> {
+			queues.forEach(Collection::clear);
+			queues.clear();
+			subscriptions.forEach(Subscription::unsubscribe);
+			subscriber.onComplete();
+		};
 
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<T> observable = observables.get(i);
 			Queue<T> queue = queues.get(i);
-			Subscription subscription = observable.subscribe(new Subscriber<T>() {
+			observable.subscribe(new Subscriber<>() {
+				private Subscription subscription;
+
 				@Override
-				public boolean consume(T item) {
+				public void onSubscribe(Subscription subscription) {
+					subscriptions.add(subscription);
+					this.subscription = subscription;
+				}
+
+				@Override
+				public boolean onPublish(T item) {
 					queue.add(item);
 					for (Queue<T> q : queues) {
 						if (q.isEmpty()) {
@@ -46,8 +58,20 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 					for (Queue<T> q : queues) {
 						combinedObjects.add(q.poll());
 					}
+					boolean needMore = subscriber.onPublish(combinedObjects);
 
-					return subscriber.consume(combinedObjects);
+					if (completed.get()) {
+						for (int j = 0; j < queues.size(); j++) {
+							Queue<T> q = queues.get(j);
+							Subscription subscription = subscriptions.get(j);
+							if (subscription.isCompleted() && q.isEmpty()) {
+								cleanup.run();
+								break;
+							}
+						}
+					}
+
+					return needMore;
 				}
 
 				@Override
@@ -57,16 +81,28 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 
 				@Override
 				public void onComplete() {
-					subscriptions.forEach(Subscription::unsubscribe);
-					if (unsubscribed.compareAndSet(false, true)) {
-						subscriber.onComplete();
+					subscription.unsubscribe();
+					if (completed.compareAndSet(false, true) && queue.isEmpty()) {
+						cleanup.run();
 					}
 				}
 			});
-
-			subscriptions.add(subscription);
 		}
 
-		return () -> subscriptions.forEach(Subscription::unsubscribe);
+		Subscription subscription = new Subscription() {
+			@Override
+			public boolean isCompleted() {
+				return completed.get();
+			}
+
+			@Override
+			public void unsubscribe() {
+				if (completed.compareAndSet(false, true)) {
+					cleanup.run();
+				}
+			}
+		};
+		subscriber.onSubscribe(subscription);
+		return subscription;
 	}
 }

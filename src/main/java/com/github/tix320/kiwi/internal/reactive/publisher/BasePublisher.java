@@ -1,8 +1,8 @@
 package com.github.tix320.kiwi.internal.reactive.publisher;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -22,39 +22,46 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private boolean completed;
 
-	protected final Collection<Subscriber<? super T>> subscribers;
+	private final List<InternalSubscription> subscriptions;
 
 	protected BasePublisher() {
-		this.subscribers = new LinkedList<>();
+		this.subscriptions = new ArrayList<>();
 	}
 
 	@Override
 	public final synchronized void publishError(Throwable throwable) {
-		Iterator<Subscriber<? super T>> iterator = subscribers.iterator();
-		while (iterator.hasNext()) {
-			Subscriber<? super T> subscriber = iterator.next();
-			boolean needMore;
+		checkCompleted();
+
+		List<InternalSubscription> subscriptions = getSubscriptions();
+		for (int i = 0; i < subscriptions.size(); i++) {
+			InternalSubscription subscription = subscriptions.get(i);
 			try {
-				needMore = subscriber.onError(throwable);
+				boolean needMore = subscription.onError(throwable);
 				if (!needMore) {
-					iterator.remove();
-					subscriber.onComplete();
+					subscription.unsubscribe();
+					i--;
 				}
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
-
 		}
 	}
 
 	@Override
 	public final synchronized void complete() {
 		if (!completed) {
-			subscribers.forEach(Subscriber::onComplete);
-			completed = true;
-			subscribers.clear();
+			while (!subscriptions.isEmpty()) {
+				try {
+					InternalSubscription subscription = subscriptions.get(0);
+					subscription.unsubscribe();
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
+		completed = true;
 	}
 
 	@Override
@@ -68,46 +75,51 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 	}
 
-	protected abstract boolean onSubscribe(Subscriber<? super T> subscriber);
+	protected abstract boolean onSubscribe(InternalSubscription subscription);
+
+	protected List<InternalSubscription> getSubscriptions() {
+		return Collections.unmodifiableList(subscriptions);
+	}
 
 	private final class PublisherObservable extends BaseObservable<T> {
 
 		@Override
 		public Subscription subscribe(Subscriber<? super T> subscriber) {
 			synchronized (BasePublisher.this) {
-				Subscriber<? super T> subscriberWithId = new SubscriberWithId(subscriber);
-				boolean needRegister = BasePublisher.this.onSubscribe(subscriberWithId);
+				InternalSubscription subscription = new InternalSubscription(subscriber);
+				subscriptions.add(subscription);
 
-				if (completed) {
-					subscriberWithId.onComplete();
+				subscription.onSubscribe(subscription);
+
+				boolean needRegister = BasePublisher.this.onSubscribe(subscription);
+
+				if (!needRegister || completed) {
+					subscription.unsubscribe();
 				}
-				if (!needRegister) {
-					return () -> {};
-				}
-				subscribers.add(subscriberWithId);
-				return () -> {
-					boolean removed = subscribers.remove(subscriberWithId);
-					if (removed) {
-						subscriberWithId.onComplete();
-					}
-				};
+
+				return subscription;
 			}
 		}
 	}
 
-	private final class SubscriberWithId implements Subscriber<T> {
+	protected final class InternalSubscription implements Subscriber<T>, Subscription {
 
 		private final long id;
 		private final Subscriber<? super T> subscriber;
 
-		private SubscriberWithId(Subscriber<? super T> subscriber) {
+		private InternalSubscription(Subscriber<? super T> subscriber) {
 			this.subscriber = subscriber;
 			this.id = ID_GEN.next();
 		}
 
 		@Override
-		public boolean consume(T item) {
-			return subscriber.consume(item);
+		public void onSubscribe(Subscription subscription) {
+			subscriber.onSubscribe(subscription);
+		}
+
+		@Override
+		public boolean onPublish(T item) {
+			return subscriber.onPublish(item);
 		}
 
 		@Override
@@ -121,13 +133,26 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 
 		@Override
+		public boolean isCompleted() {
+			return !subscriptions.contains(this);
+		}
+
+		@Override
+		public void unsubscribe() {
+			boolean removed = subscriptions.remove(InternalSubscription.this);
+			if (removed) {
+				InternalSubscription.this.onComplete();
+			}
+		}
+
+		@Override
 		public boolean equals(Object o) {
 			if (this == o)
 				return true;
 			if (o == null || getClass() != o.getClass())
 				return false;
 			@SuppressWarnings("unchecked")
-			SubscriberWithId that = (SubscriberWithId) o;
+			InternalSubscription that = (InternalSubscription) o;
 			return id == that.id;
 		}
 

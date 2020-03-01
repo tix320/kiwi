@@ -28,11 +28,16 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 
 		return observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(T item) {
 				if (completed.get()) {
 					return false;
 				}
-				return subscriber.consume(item);
+				return subscriber.onPublish(item);
 			}
 
 			@Override

@@ -21,8 +21,13 @@ public final class OnceObservable<T> extends TransformObservable<T> implements M
 	public Subscription subscribe(Subscriber<? super T> subscriber) {
 		return observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
-				subscriber.consume(item);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(T item) {
+				subscriber.onPublish(item);
 				return false;
 			}
 

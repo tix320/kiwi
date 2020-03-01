@@ -25,7 +25,12 @@ public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
 		Queue<S> objects = new LinkedList<>();
 		return observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(S item) {
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(S item) {
 				objects.add(item);
 				return true;
 			}
@@ -37,7 +42,7 @@ public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
 
 			@Override
 			public void onComplete() {
-				subscriber.consume(collect(objects.stream()));
+				subscriber.onPublish(collect(objects.stream()));
 				subscriber.onComplete();
 			}
 		});

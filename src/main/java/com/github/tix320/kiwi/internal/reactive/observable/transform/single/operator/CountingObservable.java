@@ -27,19 +27,23 @@ public final class CountingObservable<T> extends TransformObservable<T> {
 	@Override
 	public Subscription subscribe(Subscriber<? super T> subscriber) {
 		if (count == 0) {
-			return () -> {
-			};
+			return Subscription.EMPTY;
 		}
 		AtomicLong limit = new AtomicLong(count);
-		return observable.subscribe(new Subscriber<T>() {
+		return observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(T item) {
 				long remaining = limit.decrementAndGet();
 				if (remaining > 0) {
-					return subscriber.consume(item);
+					return subscriber.onPublish(item);
 				}
 				else if (remaining == 0) {
-					subscriber.consume(item);
+					subscriber.onPublish(item);
 					return false;
 				}
 				else {

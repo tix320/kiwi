@@ -57,7 +57,12 @@ public interface Observable<T> {
 	default Subscription subscribe(Consumer<? super T> consumer, Runnable onComplete) {
 		return subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
+			public void onSubscribe(Subscription subscription) {
+
+			}
+
+			@Override
+			public boolean onPublish(T item) {
 				consumer.accept(item);
 				return true;
 			}
@@ -121,7 +126,12 @@ public interface Observable<T> {
 											 ConditionalConsumer<Throwable> errorHandler) {
 		return subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
+			public void onSubscribe(Subscription subscription) {
+
+			}
+
+			@Override
+			public boolean onPublish(T item) {
 				return consumer.consume(item);
 			}
 
@@ -394,7 +404,7 @@ public interface Observable<T> {
 	 *
 	 * @return observable
 	 */
-	static <T> Observable<List<T>> zip(Iterable<Observable<T>> observables) {
+	static <T> Observable<List<T>> zip(Iterable<? extends Observable<T>> observables) {
 		List<Observable<T>> list = new ArrayList<>();
 		for (Observable<T> observable : observables) {
 			list.add(observable);

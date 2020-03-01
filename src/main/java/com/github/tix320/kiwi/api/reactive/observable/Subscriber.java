@@ -3,11 +3,18 @@ package com.github.tix320.kiwi.api.reactive.observable;
 public interface Subscriber<T> {
 
 	/**
+	 * This method invoked first after subscribe. Typically it will be saved for future controlling subscription.
+	 *
+	 * @param subscription a new subscription
+	 */
+	void onSubscribe(Subscription subscription);
+
+	/**
 	 * Consume regular item.
 	 *
 	 * @return true if need more elements, false otherwise.
 	 */
-	boolean consume(T item);
+	boolean onPublish(T item);
 
 	/**
 	 * Handle published error.
@@ -17,8 +24,8 @@ public interface Subscriber<T> {
 	boolean onError(Throwable throwable);
 
 	/**
-	 * Add handler on completion of observable.
-	 * If observable already completed, then handler be processed immediately.
+	 * Handle subscription completeness.
+	 * After calling this method, no more methods will be called.
 	 */
 	void onComplete();
 }

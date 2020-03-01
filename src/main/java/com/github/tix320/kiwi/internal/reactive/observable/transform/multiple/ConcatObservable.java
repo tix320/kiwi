@@ -27,18 +27,31 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 
 		AtomicBoolean unsubscribed = new AtomicBoolean(false);
 
-		Subscription generalSubscription = () -> {
-			unsubscribed.set(true);
-			for (Subscription subscription : subscriptions) {
-				subscription.unsubscribe();
+		Subscription generalSubscription = new Subscription() {
+			@Override
+			public boolean isCompleted() {
+				return unsubscribed.get();
+			}
+
+			@Override
+			public void unsubscribe() {
+				unsubscribed.set(true);
+				for (Subscription subscription : subscriptions) {
+					subscription.unsubscribe();
+				}
 			}
 		};
 		AtomicInteger completedCount = new AtomicInteger(0);
 
 		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
 			@Override
-			public synchronized boolean consume(T item) {
-				return subscriber.consume(item);
+			public void onSubscribe(Subscription subscription) {
+
+			}
+
+			@Override
+			public synchronized boolean onPublish(T item) {
+				return subscriber.onPublish(item);
 			}
 
 			@Override
@@ -55,6 +68,7 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 			}
 		};
 
+		subscriber.onSubscribe(generalSubscription);
 		for (Observable<T> observable : observables) {
 			if (unsubscribed.get()) {
 				break;

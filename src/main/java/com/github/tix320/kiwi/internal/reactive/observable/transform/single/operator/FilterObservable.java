@@ -23,11 +23,16 @@ public final class FilterObservable<T> extends TransformObservable<T> {
 
 	@Override
 	public Subscription subscribe(Subscriber<? super T> subscriber) {
-		return observable.subscribe(new Subscriber<T>() {
+		return observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(T item) {
 				if (filter.test(item)) {
-					subscriber.consume(item);
+					subscriber.onPublish(item);
 				}
 				return true;
 			}

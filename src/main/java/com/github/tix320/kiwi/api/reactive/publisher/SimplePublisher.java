@@ -1,8 +1,7 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Iterator;
+import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
@@ -12,14 +11,14 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 
 	public synchronized void publish(T object) {
 		checkCompleted();
-		Iterator<Subscriber<? super T>> iterator = subscribers.iterator();
-		while (iterator.hasNext()) {
-			Subscriber<? super T> subscriber = iterator.next();
+		List<InternalSubscription> subscriptions = getSubscriptions();
+		for (int i = 0; i < subscriptions.size(); i++) {
+			InternalSubscription subscription = subscriptions.get(i);
 			try {
-				boolean needMore = subscriber.consume(object);
+				boolean needMore = subscription.onPublish(object);
 				if (!needMore) {
-					iterator.remove();
-					subscriber.onComplete();
+					subscription.unsubscribe();
+					i--;
 				}
 			}
 			catch (Exception e) {
@@ -45,7 +44,7 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected boolean onSubscribe(Subscriber<? super T> subscriber) {
+	protected boolean onSubscribe(InternalSubscription subscription) {
 		return true;
 	}
 }

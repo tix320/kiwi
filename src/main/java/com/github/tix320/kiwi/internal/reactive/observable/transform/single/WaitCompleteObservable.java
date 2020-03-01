@@ -20,10 +20,15 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 	public Subscription subscribe(Subscriber<? super T> subscriber) {
 		CountDownLatch latch = new CountDownLatch(1);
 
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean consume(T item) {
-				boolean needMore = subscriber.consume(item);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+			}
+
+			@Override
+			public boolean onPublish(T item) {
+				boolean needMore = subscriber.onPublish(item);
 				if (!needMore) {
 					latch.countDown();
 				}
@@ -44,7 +49,6 @@ public final class WaitCompleteObservable<T> extends TransformObservable<T> {
 
 		Try.runOrRethrow(latch::await);
 
-		return () -> {
-		};
+		return Subscription.EMPTY;
 	}
 }
