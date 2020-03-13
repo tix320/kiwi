@@ -61,11 +61,11 @@ public class AnnotationBasedProxyCreatorTest {
 	public static class TestClass1 {
 
 		private static final AnnotationBasedProxyCreator<TestClass1> PROXY_CREATOR_IMPL = new AnnotationBasedProxyCreator<>(
-				TestClass1.class, new AnnotationInterceptor<>(Deprecated.class, (method, o) -> {
-			if (o.message.equals("foo")) {
+				TestClass1.class, new AnnotationInterceptor<>(Deprecated.class, (method, args, target) -> {
+			if (target.message.equals("foo")) {
 				return "boo";
 			}
-			return o.message += "Deprecated";
+			return target.message += "Deprecated";
 		}));
 
 		String message;
@@ -94,11 +94,11 @@ public class AnnotationBasedProxyCreatorTest {
 
 		static {
 			List<AnnotationInterceptor<TestClass2>> interceptors = List.of(
-					new AnnotationInterceptor<>(MyAnno.class, (method, o) -> {
-						o.message += "Intercepted1";
+					new AnnotationInterceptor<>(MyAnno.class, (method, args, target) -> {
+						target.message += "Intercepted1";
 						return None.SELF;
-					}), new AnnotationInterceptor<>(Deprecated.class, (method, o) -> {
-						o.message += "Intercepted2";
+					}), new AnnotationInterceptor<>(Deprecated.class, (method, args, target) -> {
+						target.message += "Intercepted2";
 						return None.SELF;
 					}));
 			PROXY_CREATOR = new AnnotationBasedProxyCreator<>(TestClass2.class, interceptors);

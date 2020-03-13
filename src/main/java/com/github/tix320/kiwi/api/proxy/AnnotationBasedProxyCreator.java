@@ -44,7 +44,7 @@ public final class AnnotationBasedProxyCreator<T> implements ProxyCreator<T> {
 		}
 		this.targetClass = targetClass;
 		this.interceptors = interceptors;
-		this.proxyClass = createProxyClass(targetClass);
+		this.proxyClass = interceptors.isEmpty() ? targetClass : createProxyClass(targetClass);
 		this.constructorsMethodHandles = createConstructorMethodHandles(proxyClass);
 	}
 
@@ -107,7 +107,7 @@ public final class AnnotationBasedProxyCreator<T> implements ProxyCreator<T> {
 				throws Throwable {
 			for (AnnotationInterceptor<T> annotationInterceptor : interceptors) {
 				if (method.isAnnotationPresent(annotationInterceptor.getAnnotationClass())) {
-					Object result = annotationInterceptor.getInterceptor().intercept(method, (T) proxy);
+					Object result = annotationInterceptor.getInterceptor().intercept(method, allArguments, (T) proxy);
 					if (result != None.SELF) {
 						return result;
 					}
