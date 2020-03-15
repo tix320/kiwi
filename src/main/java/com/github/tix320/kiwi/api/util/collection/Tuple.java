@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.api.util;
+package com.github.tix320.kiwi.api.util.collection;
 
 public class Tuple<T1, T2> {
 
