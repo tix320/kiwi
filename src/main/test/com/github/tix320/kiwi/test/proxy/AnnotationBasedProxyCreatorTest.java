@@ -39,34 +39,43 @@ public class AnnotationBasedProxyCreatorTest {
 	void twoInterceptorsWithCallingOneAnnotatedMethod() {
 		TestClass2 testClass = TestClass2.create("message");
 		String message = testClass.getMessage();
-		assertEquals("messageIntercepted1", message);
+		assertEquals("messageIntercepted1plainMyAnnoValue", message);
 	}
 
 	@Test
 	void twoInterceptorsWithCallingAnnotatedMethodsInRotation() {
 		TestClass2 testClass = TestClass2.create("message");
 		String message = testClass.getMessage();
-		assertEquals("messageIntercepted1", message);
+		assertEquals("messageIntercepted1plainMyAnnoValue", message);
 		message = testClass.getMessageDeprecated();
-		assertEquals("messageIntercepted1Intercepted2", message);
+		assertEquals("messageIntercepted1plainMyAnnoValueIntercepted2", message);
 	}
 
 	@Test
 	void twoInterceptorsWithCallingAnnotatedMethodsInSameTime() {
 		TestClass2 testClass = TestClass2.create("message");
 		String message = testClass.getMessageDoubled();
-		assertEquals("messageIntercepted1Intercepted2", message);
+		assertEquals("messageIntercepted1doubledMyAnnoValueIntercepted2", message);
 	}
 
 	public static class TestClass1 {
 
 		private static final AnnotationBasedProxyCreator<TestClass1> PROXY_CREATOR_IMPL = new AnnotationBasedProxyCreator<>(
-				TestClass1.class, new AnnotationInterceptor<>(Deprecated.class, (method, args, target) -> {
-			if (target.message.equals("foo")) {
-				return "boo";
+				TestClass1.class, new AnnotationInterceptor<TestClass1, Deprecated>() {
+			@Override
+			public Class<Deprecated> getAnnotationClass() {
+				return Deprecated.class;
 			}
-			return target.message += "Deprecated";
-		}));
+
+			@Override
+			public Object intercept(Deprecated annotation, InterceptionContext<TestClass1> context) {
+				TestClass1 proxy = context.getProxy();
+				if (proxy.message.equals("foo")) {
+					return "boo";
+				}
+				return proxy.message += "Deprecated";
+			}
+		});
 
 		String message;
 
@@ -93,15 +102,33 @@ public class AnnotationBasedProxyCreatorTest {
 		private static final ProxyCreator<TestClass2> PROXY_CREATOR;
 
 		static {
-			List<AnnotationInterceptor<TestClass2>> interceptors = List.of(
-					new AnnotationInterceptor<>(MyAnno.class, (method, args, target) -> {
-						target.message += "Intercepted1";
-						return None.SELF;
-					}), new AnnotationInterceptor<>(Deprecated.class, (method, args, target) -> {
-						target.message += "Intercepted2";
-						return None.SELF;
-					}));
-			PROXY_CREATOR = new AnnotationBasedProxyCreator<>(TestClass2.class, interceptors);
+			List<AnnotationInterceptor<? super TestClass2, ?>> interceptors = List.of(
+					new AnnotationInterceptor<TestClass2, MyAnno>() {
+						@Override
+						public Class<MyAnno> getAnnotationClass() {
+							return MyAnno.class;
+						}
+
+						@Override
+						public Object intercept(MyAnno annotation, InterceptionContext<TestClass2> context) {
+							TestClass2 proxy = context.getProxy();
+							proxy.message += "Intercepted1" + annotation.value();
+							return None.SELF;
+						}
+					}, new AnnotationInterceptor<TestClass2, Deprecated>() {
+						@Override
+						public Class<Deprecated> getAnnotationClass() {
+							return Deprecated.class;
+						}
+
+						@Override
+						public Object intercept(Deprecated annotation, InterceptionContext<TestClass2> context) {
+							context.getProxy().message += "Intercepted2";
+							return None.SELF;
+						}
+					});
+
+			PROXY_CREATOR = new AnnotationBasedProxyCreator<TestClass2>(TestClass2.class, interceptors);
 		}
 
 		String message;
@@ -119,13 +146,13 @@ public class AnnotationBasedProxyCreatorTest {
 			return message;
 		}
 
-		@MyAnno
+		@MyAnno("plainMyAnnoValue")
 		public String getMessage() {
 			return message;
 		}
 
 		@Deprecated
-		@MyAnno
+		@MyAnno("doubledMyAnnoValue")
 		public String getMessageDoubled() {
 			return message;
 		}
@@ -133,6 +160,6 @@ public class AnnotationBasedProxyCreatorTest {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@interface MyAnno {
-
+		String value();
 	}
 }

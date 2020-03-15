@@ -5,6 +5,4 @@ public interface ProxyCreator<T> {
 	T create(Object... args);
 
 	Class<? extends T> getTargetClass();
-
-	Class<? extends T> getProxyClass();
 }

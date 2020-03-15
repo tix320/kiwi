@@ -1,23 +1,24 @@
 package com.github.tix320.kiwi.api.proxy;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Map;
 
-public final class AnnotationInterceptor<T> {
+public interface AnnotationInterceptor<P, A extends Annotation> {
 
-	private final Class<? extends Annotation> annotationClass;
+	Class<A> getAnnotationClass();
 
-	private final Interceptor<T> interceptor;
+	Object intercept(A annotation, InterceptionContext<P> context);
 
-	public AnnotationInterceptor(Class<? extends Annotation> annotationClass, Interceptor<T> interceptor) {
-		this.annotationClass = annotationClass;
-		this.interceptor = interceptor;
-	}
+	interface InterceptionContext<P> {
+		Method getMethod();
 
-	public Class<? extends Annotation> getAnnotationClass() {
-		return annotationClass;
-	}
+		Object[] getArgs();
 
-	public Interceptor<T> getInterceptor() {
-		return interceptor;
+		P getProxy();
+
+		void putData(String key, Object value);
+
+		Map<String, Object> getData();
 	}
 }
