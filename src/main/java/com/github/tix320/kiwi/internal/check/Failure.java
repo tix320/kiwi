@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.function.*;
@@ -166,6 +167,17 @@ public final class Failure<T> implements Try<T> {
 			throw new IllegalStateException("An error occurred in mapper", e);
 		}
 		throw newException;
+	}
+
+	@Override
+	public T getOrElse(T value) {
+		return value;
+	}
+
+	@Override
+	public T getOrElse(Supplier<T> valueSupplier) {
+		Objects.requireNonNull(valueSupplier, "Supplier cannot be null");
+		return valueSupplier.get();
 	}
 
 	@Override

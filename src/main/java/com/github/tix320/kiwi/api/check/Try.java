@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.function.*;
 import com.github.tix320.kiwi.api.util.None;
@@ -122,6 +123,10 @@ public interface Try<T> {
 
 	<X extends Exception> Optional<T> optionalOrElseThrow(CheckedFunction<Exception, ? extends X> exMapper)
 			throws X;
+
+	T getOrElse(T value);
+
+	T getOrElse(Supplier<T> valueSupplier);
 
 	<X extends Exception> T getOrElseThrow(CheckedSupplier<? extends X> exSupplier)
 			throws X;

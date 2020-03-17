@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.function.*;
@@ -143,6 +144,17 @@ public class Success<T> implements Try<T> {
 		Objects.requireNonNull(exMapper, "Mapper cannot be null");
 
 		return Optional.ofNullable(value);
+	}
+
+	@Override
+	public T getOrElse(T ignored) {
+		return value;
+	}
+
+	@Override
+	public T getOrElse(Supplier<T> valueSupplier) {
+		Objects.requireNonNull(valueSupplier, "Supplier cannot be null");
+		return value;
 	}
 
 	@Override
