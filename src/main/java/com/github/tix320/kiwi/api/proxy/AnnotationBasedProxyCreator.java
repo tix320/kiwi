@@ -45,16 +45,18 @@ public final class AnnotationBasedProxyCreator<T> implements ProxyCreator<T> {
 		if (targetClass.getConstructors().length == 0) {
 			throw new IllegalArgumentException(String.format("%s does not have any public constructor", targetClass));
 		}
-		Class<?> proxyClass = annotationInterceptors.isEmpty() ? targetClass : createProxyClass(targetClass);
 		this.targetClass = targetClass;
+		Class<?> proxyClass = annotationInterceptors.isEmpty() ? targetClass : createProxyClass(targetClass);
 		this.annotationInterceptors = annotationInterceptors;
 		this.constructorsMethodHandles = createConstructorMethodHandles(proxyClass);
 	}
 
 	private List<MethodHandle> createConstructorMethodHandles(Class<?> proxyClass) {
-		Lookup lookup = MethodHandles.publicLookup();
+		Lookup lookup = MethodHandles.lookup();
 		return Arrays.stream(proxyClass.getConstructors())
-				.map(constructor -> Try.supplyOrRethrow(() -> lookup.unreflectConstructor(constructor)))
+				.map(constructor -> Try.supply(() -> lookup.unreflectConstructor(constructor))
+						.getOrElseThrow(e -> new IllegalStateException(
+								String.format("Cannot access to %s for creating proxy.", targetClass), e)))
 				.collect(Collectors.toList());
 	}
 
