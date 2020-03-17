@@ -33,7 +33,7 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 	}
 
 	@Override
-	public T1 inverseRemove(T2 key) {
+	public synchronized T1 inverseRemove(T2 key) {
 		T1 value = inverse.remove(key);
 		straight.remove(value);
 		return value;
