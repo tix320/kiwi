@@ -2,27 +2,26 @@ package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.Collection;
 
+import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
+import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
-public final class SinglePublisher<T> extends BasePublisher<T> {
+public class MonoPublisher<T> extends BasePublisher<T> {
 
 	private volatile T value;
 
-	public SinglePublisher() {
-
-	}
-
-	public SinglePublisher(T initialValue) {
-		this.value = validateValue(initialValue);
+	public MonoPublisher() {
 	}
 
 	@Override
 	protected boolean onSubscribe(InternalSubscription subscription) {
-		if (value == null) {
-			return true;
+		if (value != null) {
+			subscription.onPublish(value);
+			return false;
 		}
 		else {
-			return subscription.onPublish(value);
+			return true;
 		}
 	}
 
@@ -30,19 +29,18 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 	public void publish(T object) {
 		runInLock(() -> {
 			failIfCompleted();
-			value = validateValue(object);
+			value = object;
 			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
 			for (InternalSubscription subscription : subscriptions) {
 				try {
-					boolean needMore = subscription.onPublish(object);
-					if (!needMore) {
-						subscription.unsubscribe();
-					}
+					subscription.onPublish(object);
+					subscription.unsubscribe();
 				}
 				catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
+			complete();
 		});
 	}
 
@@ -56,14 +54,18 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 		throw new UnsupportedOperationException("Single publisher must publish only one value at once");
 	}
 
-	public T getValue() {
-		return value;
+	@Override
+	public MonoObservable<T> asObservable() {
+		PublisherObservable publisherObservable = new PublisherObservable();
+		return new MonoObservable<T>() {
+			@Override
+			public Subscription subscribe(Subscriber<? super T> subscriber) {
+				return publisherObservable.subscribe(subscriber);
+			}
+		};
 	}
 
-	private T validateValue(T value) {
-		if (value == null) {
-			throw new NullPointerException("Value in SinglePublisher cannot be null");
-		}
+	public T getValue() {
 		return value;
 	}
 }

@@ -73,6 +73,18 @@ public interface Publisher<T> {
 	}
 
 	/**
+	 * Create mono publisher for publishing exactly one object.
+	 * The subscribers will receive that object after subscription immediately.
+	 *
+	 * @param <T> type of objects.
+	 *
+	 * @return created publisher.
+	 */
+	static <T> MonoPublisher<T> mono() {
+		return new MonoPublisher<>();
+	}
+
+	/**
 	 * Create single publisher for publishing objects.
 	 * This publisher will hold last published object.
 	 * The subscribers will receive that object after subscription immediately.

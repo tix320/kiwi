@@ -50,17 +50,17 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 			}
 
 			@Override
-			public synchronized boolean onPublish(T item) {
+			public boolean onPublish(T item) {
 				return subscriber.onPublish(item);
 			}
 
 			@Override
-			public synchronized boolean onError(Throwable throwable) {
+			public boolean onError(Throwable throwable) {
 				return subscriber.onError(throwable);
 			}
 
 			@Override
-			public synchronized void onComplete() {
+			public void onComplete() {
 				int count = completedCount.incrementAndGet();
 				if (count == observables.size()) {
 					subscriber.onComplete();

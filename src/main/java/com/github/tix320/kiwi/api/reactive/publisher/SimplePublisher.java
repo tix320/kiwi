@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.List;
+import java.util.Collection;
 
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
@@ -9,38 +9,41 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
  */
 public final class SimplePublisher<T> extends BasePublisher<T> {
 
-	public synchronized void publish(T object) {
-		checkCompleted();
-		List<InternalSubscription> subscriptions = getSubscriptions();
-		for (int i = 0; i < subscriptions.size(); i++) {
-			InternalSubscription subscription = subscriptions.get(i);
-			try {
-				boolean needMore = subscription.onPublish(object);
-				if (!needMore) {
-					subscription.unsubscribe();
-					i--;
+
+	public void publish(T object) {
+		runInLock(() -> {
+			failIfCompleted();
+			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+			for (InternalSubscription subscription : subscriptions) {
+				try {
+					boolean needMore = subscription.onPublish(object);
+					if (!needMore) {
+						subscription.unsubscribe();
+					}
+				}
+				catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
-			catch (Exception e) {
-				e.printStackTrace();
+		});
+	}
+
+	@Override
+	public void publish(T[] objects) {
+		runInLock(() -> {
+			for (T object : objects) {
+				publish(object);
 			}
-		}
+		});
 	}
 
 	@Override
-	public synchronized void publish(T[] objects) {
-		checkCompleted();
-		for (T object : objects) {
-			publish(object);
-		}
-	}
-
-	@Override
-	public synchronized void publish(Iterable<T> iterable) {
-		checkCompleted();
-		for (T object : iterable) {
-			publish(object);
-		}
+	public void publish(Iterable<T> iterable) {
+		runInLock(() -> {
+			for (T object : iterable) {
+				publish(object);
+			}
+		});
 	}
 
 	@Override

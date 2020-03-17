@@ -1,8 +1,10 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Collections;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
@@ -11,50 +13,57 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
  */
 public final class BufferPublisher<T> extends BasePublisher<T> {
 
-	private final LinkedList<T> buffer;
+	private final Deque<T> buffer;
 
 	private final int bufferCapacity;
 
 	public BufferPublisher(int bufferCapacity) {
-		buffer = new LinkedList<>();
+		buffer = new ConcurrentLinkedDeque<>();
 		this.bufferCapacity = Math.max(bufferCapacity, 0);
 	}
 
-	public synchronized void publish(T object) {
-		checkCompleted();
-		addToBuffer(object);
-		List<InternalSubscription> subscriptions = getSubscriptions();
-		for (int i = 0; i < subscriptions.size(); i++) {
-			InternalSubscription subscription = subscriptions.get(i);
-			try {
-				boolean needMore = subscription.onPublish(object);
-				if (!needMore) {
-					subscription.unsubscribe();
-					i--;
-				}
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	@Override
-	public synchronized void publish(T[] objects) {
-		checkCompleted();
-		addToBuffer(objects);
-		for (T object : objects) {
-			publish(object);
-		}
-	}
-
-	@Override
-	public synchronized void publish(Iterable<T> iterable) {
-		checkCompleted();
-		for (T object : iterable) {
+	public void publish(T object) {
+		runInLock(() -> {
+			failIfCompleted();
 			addToBuffer(object);
-			publish(object);
-		}
+			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+			runAsync(() -> {
+				for (InternalSubscription subscription : subscriptions) {
+					try {
+						boolean needMore = subscription.onPublish(object);
+						if (!needMore) {
+							subscription.unsubscribe();
+						}
+					}
+					catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			});
+		});
+	}
+
+	@Override
+	public void publish(T[] objects) {
+		runInLock(() -> {
+			addToBuffer(objects);
+			for (T object : objects) {
+				publish(object);
+			}
+		});
+	}
+
+	@Override
+	public void publish(Iterable<T> iterable) {
+		runInLock(() -> {
+			for (T object : iterable) {
+				addToBuffer(object);
+			}
+
+			for (T object : iterable) {
+				publish(object);
+			}
+		});
 	}
 
 	@Override
@@ -64,7 +73,7 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 	}
 
 	public List<T> getBuffer() {
-		return Collections.unmodifiableList(buffer);
+		return new ArrayList<>(buffer);
 	}
 
 	private void addToBuffer(T object) {
