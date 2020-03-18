@@ -25,6 +25,8 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 
 public final class AnnotationBasedProxyCreator<T> implements ProxyCreator<T> {
 
+	private static final Lookup LOOKUP = MethodHandles.publicLookup();
+
 	private final Class<? extends T> targetClass;
 
 	private final List<MethodHandle> constructorsMethodHandles;
@@ -52,9 +54,8 @@ public final class AnnotationBasedProxyCreator<T> implements ProxyCreator<T> {
 	}
 
 	private List<MethodHandle> createConstructorMethodHandles(Class<?> proxyClass) {
-		Lookup lookup = MethodHandles.lookup();
 		return Arrays.stream(proxyClass.getConstructors())
-				.map(constructor -> Try.supply(() -> lookup.unreflectConstructor(constructor))
+				.map(constructor -> Try.supply(() -> LOOKUP.unreflectConstructor(constructor))
 						.getOrElseThrow(e -> new IllegalStateException(
 								String.format("Cannot access to %s for creating proxy.", targetClass), e)))
 				.collect(Collectors.toList());

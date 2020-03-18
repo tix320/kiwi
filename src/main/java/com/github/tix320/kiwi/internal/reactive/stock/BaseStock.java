@@ -22,7 +22,9 @@ public abstract class BaseStock<T> implements Stock<T> {
 
 	@Override
 	public final void addAll(Iterable<T> values) {
-		publisher.publish(values);
+		for (T value : values) {
+			publisher.publish(value);
+		}
 	}
 
 	@Override

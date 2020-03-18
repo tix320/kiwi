@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.function.Consumer;
 
+import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
 import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.util.None;
@@ -15,7 +16,7 @@ import com.github.tix320.kiwi.api.util.None;
  *
  * @author Tigran Sargsyan on 21-Feb-19
  */
-public interface Publisher<T> {
+public interface Publisher<T> extends ObservableCandidate<T> {
 
 	/**
 	 * Publish object.
@@ -52,13 +53,6 @@ public interface Publisher<T> {
 	 * Invoking this method more than one time will no effect.
 	 */
 	void complete();
-
-	/**
-	 * Create {@link Observable observable} to subscribe this publisher.
-	 *
-	 * @return created observable
-	 */
-	Observable<T> asObservable();
 
 	/**
 	 * Create simple publisher for publishing objects.

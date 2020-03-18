@@ -9,7 +9,6 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
  */
 public final class SimplePublisher<T> extends BasePublisher<T> {
 
-
 	public void publish(T object) {
 		runInLock(() -> {
 			failIfCompleted();
