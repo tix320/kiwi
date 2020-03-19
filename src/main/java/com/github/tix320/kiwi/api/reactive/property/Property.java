@@ -6,6 +6,10 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	void set(T value);
 
+	default void reset() {
+		set(get());
+	}
+
 	ReadOnlyProperty<T> toReadOnly();
 
 	static <T> Property<T> forObject() {
