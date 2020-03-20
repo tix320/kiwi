@@ -1,49 +1,23 @@
 package com.github.tix320.kiwi.test.reactive;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.internal.reactive.CompletedException;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
 class PublisherTest {
-
-	@Test
-	void iterableTest() {
-		List<String> expected = Arrays.asList("2", "1", "0");
-		List<String> actual = new ArrayList<>();
-
-
-		Publisher<String> publisher = Publisher.simple();
-		Observable<String> observable = publisher.asObservable();
-		observable.subscribe(actual::add);
-
-		publisher.publish(() -> new Iterator<>() {
-			int index = 3;
-
-			@Override
-			public boolean hasNext() {
-				return index-- > 0;
-			}
-
-			@Override
-			public String next() {
-				return index + "";
-			}
-		});
-
-		assertEquals(expected, actual);
-	}
 
 	@Test
 	void completeTest() {
@@ -54,5 +28,98 @@ class PublisherTest {
 		publisher.publish(3);
 		publisher.complete();
 		assertThrows(CompletedException.class, () -> publisher.publish(4));
+	}
+
+	@Test
+	void unsubscribeOnPublishTest() {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		List<Integer> expected = List.of(1);
+		List<Integer> actual = new ArrayList<>();
+
+		Observable<Integer> observable = publisher.asObservable();
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		Subscription subscription = observable.subscribe(integer -> {
+			actual.add(integer);
+			subscriptionHolder.get().unsubscribe();
+		});
+		subscriptionHolder.set(subscription);
+
+		publisher.publish(1);
+		publisher.publish(2);
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void unsubscribeFromOtherSubscriptionOnPublishTest() {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		System.setErr(new PrintStream(baos));
+
+		List<Integer> expected = List.of(10, 20, 50);
+		List<Integer> actual = new ArrayList<>();
+
+		Observable<Integer> observable = publisher.asObservable();
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		observable.subscribe(integer -> {
+			actual.add(integer * 10);
+			subscriptionHolder.get().unsubscribe();
+		});
+
+		Subscription subscription = observable.subscribe(integer -> actual.add(integer * 20));
+		subscriptionHolder.set(subscription);
+
+		publisher.publish(1);
+		publisher.publish(5);
+
+		String output = baos.toString();
+		System.out.println(output);
+		assertFalse(output.contains("SubscriptionIllegalStateException"));
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void completeOnPublishTest() {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		List<Integer> expected = List.of(1);
+		List<Integer> actual = new ArrayList<>();
+
+		Observable<Integer> observable = publisher.asObservable();
+		observable.subscribe(integer -> {
+			actual.add(integer);
+			publisher.complete();
+		});
+
+		publisher.publish(1);
+		assertThrows(CompletedException.class, () -> publisher.publish(2));
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void completeOnPublishWithTwoSubscribersTest() {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		List<Integer> expected = List.of(10, 20);
+		List<Integer> actual = new ArrayList<>();
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		System.setErr(new PrintStream(baos));
+
+		Observable<Integer> observable = publisher.asObservable();
+		observable.subscribe(integer -> {
+			actual.add(integer * 10);
+			publisher.complete();
+		});
+		observable.subscribe(integer -> actual.add(integer * 20));
+
+		publisher.publish(1);
+		assertThrows(CompletedException.class, () -> publisher.publish(2));
+
+		String output = baos.toString();
+		System.out.println(output);
+		assertFalse(output.contains("SubscriptionIllegalStateException"));
+		assertEquals(expected, actual);
 	}
 }

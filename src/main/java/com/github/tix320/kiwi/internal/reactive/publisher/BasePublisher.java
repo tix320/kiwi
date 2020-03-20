@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.internal.reactive.publisher;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.Lock;
@@ -34,15 +34,36 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	@Override
+	public final void publish(T object) {
+		runInLock(() -> {
+			failIfCompleted();
+
+			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+			subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
+
+			publishOverride(subscriptions, object);
+
+			subscriptions.forEach(subscription -> {
+				subscription.currentlyInUse = false;
+				if (subscription.markForUnsubscribe) {
+					subscription.unsubscribe();
+				}
+			});
+		});
+	}
+
+	@Override
 	public final void publishError(Throwable throwable) {
 		runInLock(() -> {
 			failIfCompleted();
 
 			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+			subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
 			for (InternalSubscription subscription : subscriptions) {
 				try {
 					boolean needMore = subscription.onError(throwable);
 					if (!needMore) {
+						subscription.currentlyInUse = false;
 						subscription.unsubscribe();
 					}
 				}
@@ -50,6 +71,12 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 					e.printStackTrace();
 				}
 			}
+			subscriptions.forEach(subscription -> {
+				subscription.currentlyInUse = false;
+				if (subscription.markForUnsubscribe) {
+					subscription.unsubscribe();
+				}
+			});
 		});
 	}
 
@@ -71,16 +98,28 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		return new PublisherObservable();
 	}
 
-	protected void failIfCompleted() {
+	protected abstract boolean onSubscribe(InternalSubscription subscription);
+
+	protected abstract void publishOverride(Collection<InternalSubscription> subscriptions, T object);
+
+	private void failIfCompleted() {
 		if (completed) {
 			throw new CompletedException("Publisher is completed, you can not subscribe to it or publish items.");
 		}
 	}
 
-	protected abstract boolean onSubscribe(InternalSubscription subscription);
+	private Collection<InternalSubscription> getSubscriptionsCopy() {
+		return new ArrayList<>(subscriptions);
+	}
 
-	protected Collection<InternalSubscription> getSubscriptionsCopy() {
-		return new LinkedList<>(subscriptions);
+	private void runInLock(Runnable runnable) {
+		try {
+			lock.lock();
+			runnable.run();
+		}
+		finally {
+			lock.unlock();
+		}
 	}
 
 	public final class PublisherObservable extends BaseObservable<T> {
@@ -110,18 +149,22 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		// for validation, antibug
 		private volatile boolean onSubscribeCalled;
 		private volatile boolean onCompleteCalled;
+		public volatile boolean currentlyInUse;
+		public volatile boolean markForUnsubscribe;
 
 		private InternalSubscription(Subscriber<? super T> subscriber) {
 			this.subscriber = subscriber;
 			this.id = ID_GEN.next();
 			this.onSubscribeCalled = false;
 			this.onCompleteCalled = false;
+			this.currentlyInUse = false;
+			this.markForUnsubscribe = false;
 		}
 
 		@Override
 		public void onSubscribe(Subscription subscription) {
 			if (onSubscribeCalled) {
-				throw new IllegalStateException("OnSubscribe must be called only once");
+				throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
 			}
 			onSubscribeCalled = true;
 			subscriber.onSubscribe(subscription);
@@ -130,10 +173,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		@Override
 		public boolean onPublish(T item) {
 			if (!onSubscribeCalled) {
-				throw new IllegalStateException("OnPublish must be called only after onSubscribe");
+				throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
 			}
 			if (onCompleteCalled) {
-				throw new IllegalStateException("OnPublish must not be called after onComplete");
+				throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
 			}
 			return subscriber.onPublish(item);
 		}
@@ -141,10 +184,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		@Override
 		public boolean onError(Throwable throwable) {
 			if (!onSubscribeCalled) {
-				throw new IllegalStateException("OnError must be called only after onSubscribe");
+				throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
 			}
 			if (onCompleteCalled) {
-				throw new IllegalStateException("OnError must not be called after onComplete");
+				throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
 			}
 			return subscriber.onError(throwable);
 		}
@@ -152,10 +195,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		@Override
 		public void onComplete() {
 			if (!onSubscribeCalled) {
-				throw new IllegalStateException("OnComplete must be called only after onSubscribe");
+				throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
 			}
 			if (onCompleteCalled) {
-				throw new IllegalStateException("OnComplete must be called only once");
+				throw new SubscriptionIllegalStateException("OnComplete must be called only once");
 			}
 			onCompleteCalled = true;
 			subscriber.onComplete();
@@ -168,10 +211,17 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public void unsubscribe() {
-			boolean removed = subscriptions.remove(InternalSubscription.this);
-			if (removed) {
-				runAsync(InternalSubscription.this::onComplete);
-			}
+			runInLock(() -> {
+				if (currentlyInUse) {
+					markForUnsubscribe = true;
+				}
+				else {
+					boolean removed = subscriptions.remove(this);
+					if (removed) {
+						onComplete();
+					}
+				}
+			});
 		}
 
 		@Override
@@ -189,19 +239,5 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		public int hashCode() {
 			return Objects.hash(id);
 		}
-	}
-
-	protected void runInLock(Runnable runnable) {
-		try {
-			lock.lock();
-			runnable.run();
-		}
-		finally {
-			lock.unlock();
-		}
-	}
-
-	protected void runAsync(Runnable runnable) {
-		runnable.run();
 	}
 }

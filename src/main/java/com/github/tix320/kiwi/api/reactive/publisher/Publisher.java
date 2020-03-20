@@ -26,20 +26,6 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	void publish(T object);
 
 	/**
-	 * Publish array elements
-	 *
-	 * @param objects to publish
-	 */
-	void publish(T[] objects);
-
-	/**
-	 * Publish all objects from iterable
-	 *
-	 * @param iterable to extract objects
-	 */
-	void publish(Iterable<T> iterable);
-
-	/**
 	 * Publish error to subscribers.
 	 *
 	 * @param throwable to publish

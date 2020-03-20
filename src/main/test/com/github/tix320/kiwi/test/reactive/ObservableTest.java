@@ -98,10 +98,8 @@ class ObservableTest {
 
 		Observable.concat(observable1, observable2, observable3).take(7).subscribe(actual::add);
 
-		publisher.publish(new Integer[]{
-				70,
-				80
-		});
+		publisher.publish(70);
+		publisher.publish(80);
 
 		assertEquals(expected, actual);
 	}

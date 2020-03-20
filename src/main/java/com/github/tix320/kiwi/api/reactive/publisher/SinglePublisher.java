@@ -27,33 +27,19 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	public void publish(T object) {
-		runInLock(() -> {
-			failIfCompleted();
-			value = validateValue(object);
-			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-			for (InternalSubscription subscription : subscriptions) {
-				try {
-					boolean needMore = subscription.onPublish(object);
-					if (!needMore) {
-						subscription.unsubscribe();
-					}
-				}
-				catch (Exception e) {
-					e.printStackTrace();
+	protected void publishOverride(Collection<InternalSubscription> subscriptions, T object) {
+		value = validateValue(object);
+		for (InternalSubscription subscription : subscriptions) {
+			try {
+				boolean needMore = subscription.onPublish(object);
+				if (!needMore) {
+					subscription.unsubscribe();
 				}
 			}
-		});
-	}
-
-	@Override
-	public void publish(T[] objects) {
-		throw new UnsupportedOperationException("Single publisher must publish only one value at once");
-	}
-
-	@Override
-	public void publish(Iterable<T> iterable) {
-		throw new UnsupportedOperationException("Single publisher must publish only one value at once");
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public T getValue() {

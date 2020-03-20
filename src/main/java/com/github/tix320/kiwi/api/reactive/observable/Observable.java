@@ -344,7 +344,9 @@ public interface Observable<T> {
 	@SafeVarargs
 	static <T> Observable<T> of(T... values) {
 		BufferPublisher<T> subject = new BufferPublisher<>(values.length);
-		subject.publish(values);
+		for (T value : values) {
+			subject.publish(value);
+		}
 		subject.complete();
 		return subject.asObservable();
 	}

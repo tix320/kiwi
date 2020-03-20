@@ -22,54 +22,26 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 		this.bufferCapacity = Math.max(bufferCapacity, 0);
 	}
 
-	public void publish(T object) {
-		runInLock(() -> {
-			failIfCompleted();
-			addToBuffer(object);
-			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-			runAsync(() -> {
-				for (InternalSubscription subscription : subscriptions) {
-					try {
-						boolean needMore = subscription.onPublish(object);
-						if (!needMore) {
-							subscription.unsubscribe();
-						}
-					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			});
-		});
-	}
-
-	@Override
-	public void publish(T[] objects) {
-		runInLock(() -> {
-			addToBuffer(objects);
-			for (T object : objects) {
-				publish(object);
-			}
-		});
-	}
-
-	@Override
-	public void publish(Iterable<T> iterable) {
-		runInLock(() -> {
-			for (T object : iterable) {
-				addToBuffer(object);
-			}
-
-			for (T object : iterable) {
-				publish(object);
-			}
-		});
-	}
-
 	@Override
 	protected boolean onSubscribe(InternalSubscription subscription) {
 		publishFromBuffer(subscription);
 		return true;
+	}
+
+	@Override
+	protected void publishOverride(Collection<InternalSubscription> subscriptions, T object) {
+		addToBuffer(object);
+		for (InternalSubscription subscription : subscriptions) {
+			try {
+				boolean needMore = subscription.onPublish(object);
+				if (!needMore) {
+					subscription.unsubscribe();
+				}
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public List<T> getBuffer() {
@@ -81,18 +53,6 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 			buffer.removeFirst();
 		}
 		buffer.addLast(object);
-	}
-
-
-	private void addToBuffer(T[] objects) {
-		int removeCount = Math.min(objects.length, bufferCapacity) - (bufferCapacity - buffer.size());
-		for (int i = 0; i < removeCount; i++) {
-			buffer.removeFirst();
-		}
-		int insertCount = Math.min(objects.length, bufferCapacity);
-		for (int i = objects.length - insertCount; i < objects.length; i++) {
-			buffer.addLast(objects[i]);
-		}
 	}
 
 	private void publishFromBuffer(InternalSubscription subscription) {

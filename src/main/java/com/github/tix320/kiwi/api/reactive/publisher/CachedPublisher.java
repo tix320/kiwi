@@ -1,6 +1,9 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
@@ -19,10 +22,8 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	public void publish(T object) {
-		failIfCompleted();
-		fillCache(object);
-		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+	protected void publishOverride(Collection<InternalSubscription> subscriptions, T object) {
+		addToCache(object);
 		for (InternalSubscription subscription : subscriptions) {
 			try {
 				boolean needMore = subscription.onPublish(object);
@@ -36,45 +37,21 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 		}
 	}
 
-	@Override
-	public void publish(T[] objects) {
-		failIfCompleted();
-		fillCache(objects);
-		for (T object : objects) {
-			publish(object);
-		}
-	}
-
-	@Override
-	public void publish(Iterable<T> iterable) {
-		failIfCompleted();
-		for (T object : iterable) {
-			fillCache(object);
-			publish(object);
-		}
-	}
-
 	public List<T> getCache() {
 		return Collections.unmodifiableList(cache);
 	}
 
-	private void fillCache(T object) {
+	private void addToCache(T object) {
 		cache.add(object);
 	}
 
-	private void fillCache(T[] objects) {
-		cache.addAll(Arrays.asList(objects));
-	}
-
 	private void publishFromCache(InternalSubscription subscription) {
-		runAsync(() -> {
-			for (T object : cache) {
-				boolean needMore = subscription.onPublish(object);
-				if (!needMore) {
-					subscription.unsubscribe();
-					break;
-				}
+		for (T object : cache) {
+			boolean needMore = subscription.onPublish(object);
+			if (!needMore) {
+				subscription.unsubscribe();
+				break;
 			}
-		});
+		}
 	}
 }
