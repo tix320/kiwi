@@ -18,6 +18,11 @@ public abstract class BaseProperty<T> implements Property<T> {
 	}
 
 	@Override
+	public void close() {
+		publisher.complete();
+	}
+
+	@Override
 	public final void set(T value) {
 		publisher.publish(value);
 	}

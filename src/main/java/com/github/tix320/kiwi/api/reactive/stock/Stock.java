@@ -8,6 +8,8 @@ public interface Stock<T> extends ObservableStock<T> {
 
 	void addAll(Iterable<T> values);
 
+	void close();
+
 	ReadOnlyStock<T> toReadOnly();
 
 	static <T> Stock<T> forObject() {

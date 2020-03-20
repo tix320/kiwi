@@ -16,6 +16,11 @@ public abstract class BaseStock<T> implements Stock<T> {
 	}
 
 	@Override
+	public void close() {
+		publisher.complete();
+	}
+
+	@Override
 	public final void add(T value) {
 		publisher.publish(value);
 	}
