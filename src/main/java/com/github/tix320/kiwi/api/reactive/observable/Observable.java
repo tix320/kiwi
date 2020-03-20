@@ -44,7 +44,6 @@ public interface Observable<T> {
 		});
 	}
 
-
 	/**
 	 * Subscribe to observable.
 	 * If observable already completed, then available values will be processed immediately.
@@ -214,6 +213,17 @@ public interface Observable<T> {
 	 */
 	default Observable<T> takeUntil(Observable<?> observable) {
 		return new UntilObservable<>(this, observable);
+	}
+
+	/**
+	 * Return observable, which will subscribe to this and skip n objects.
+	 *
+	 * @param count for skipped objects
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> skip(long count) {
+		return new SkipObservable<>(this, count);
 	}
 
 	/**

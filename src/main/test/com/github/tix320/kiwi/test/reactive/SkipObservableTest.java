@@ -1,0 +1,37 @@
+package com.github.tix320.kiwi.test.reactive;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class SkipObservableTest {
+
+	@Test
+	void simpleTest() {
+		List<Integer> expected = List.of(6, 7);
+		List<Integer> actual = new ArrayList<>();
+		Observable.of(4, 5, 6, 7).skip(2).subscribe(actual::add);
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void completeBeforeSkipAll() {
+		List<Integer> expected = List.of();
+		List<Integer> actual = new ArrayList<>();
+		Publisher<Integer> publisher = Publisher.simple();
+		Subscription subscription = publisher.asObservable().skip(2).subscribe(actual::add);
+
+		publisher.publish(4);
+		publisher.publish(5);
+		subscription.unsubscribe();
+		publisher.publish(7);
+
+		assertEquals(expected, actual);
+	}
+}
