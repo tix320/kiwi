@@ -94,6 +94,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	@Override
+	public final boolean isCompleted() {
+		return completed;
+	}
+
+	@Override
 	public Observable<T> asObservable() {
 		return new PublisherObservable();
 	}

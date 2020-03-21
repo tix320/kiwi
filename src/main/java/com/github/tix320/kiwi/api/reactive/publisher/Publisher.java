@@ -41,6 +41,13 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	void complete();
 
 	/**
+	 * Indicated publisher completeness.
+	 *
+	 * @return true, if completed, false otherwise.
+	 */
+	boolean isCompleted();
+
+	/**
 	 * Create simple publisher for publishing objects.
 	 * The subscribers will receive that objects, which is published after subscription.
 	 *

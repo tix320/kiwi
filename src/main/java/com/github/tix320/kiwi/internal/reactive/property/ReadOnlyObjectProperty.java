@@ -23,8 +23,8 @@ public class ReadOnlyObjectProperty<T> implements ReadOnlyProperty<T> {
 	}
 
 	@Override
-	public T get() {
-		return property.get();
+	public T getValue() {
+		return property.getValue();
 	}
 
 	@Override

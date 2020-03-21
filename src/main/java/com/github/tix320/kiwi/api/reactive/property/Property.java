@@ -1,24 +1,46 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import com.github.tix320.kiwi.internal.reactive.property.ObjectProperty;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public interface Property<T> extends ObservableProperty<T> {
 
-	void set(T value);
-
-	default void reset() {
-		set(get());
-	}
+	void setValue(T value);
 
 	void close();
 
 	ReadOnlyProperty<T> toReadOnly();
 
-	static <T> Property<T> forObject() {
+	static <T> ObjectProperty<T> forObject() {
 		return new ObjectProperty<>();
 	}
 
-	static <T> Property<T> forObject(T initialValue) {
+	static <T> ObjectProperty<T> forObject(T initialValue) {
 		return new ObjectProperty<>(initialValue);
+	}
+
+	static <T> ListProperty<T> forList() {
+		return new ListProperty<>();
+	}
+
+	static <T> ListProperty<T> forList(List<T> initialValue) {
+		return new ListProperty<>(initialValue);
+	}
+
+	static <T> CollectionProperty<T> forCollection() {
+		return new CollectionProperty<>();
+	}
+
+	static <T> CollectionProperty<T> forCollection(Collection<T> initialValue) {
+		return new CollectionProperty<>(initialValue);
+	}
+
+	static <K, V> MapProperty<K, V> forMap() {
+		return new MapProperty<>();
+	}
+
+	static <K, V> MapProperty<K, V> forMap(Map<K, V> initialValue) {
+		return new MapProperty<>(initialValue);
 	}
 }
