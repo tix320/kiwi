@@ -1,7 +1,5 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -23,18 +21,29 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 
 	@Override
 	public Subscription subscribe(Subscriber<? super T> subscriber) {
-		AtomicBoolean completed = new AtomicBoolean(false);
-		until.subscribe(o -> {}, () -> completed.set(true));
-
 		return observable.subscribe(new Subscriber<>() {
+
+			private volatile Subscription subscription;
+
+			private volatile boolean completed;
+
 			@Override
 			public void onSubscribe(Subscription subscription) {
+				this.subscription = subscription;
 				subscriber.onSubscribe(subscription);
+				until.subscribe(o -> {}, () -> {
+					completed = true;
+					subscription.unsubscribe();
+				});
 			}
 
 			@Override
 			public boolean onPublish(T item) {
-				if (completed.get()) {
+				until.subscribe(o -> {}, () -> {
+					completed = true;
+					subscription.unsubscribe();
+				});
+				if (completed) {
 					return false;
 				}
 				return subscriber.onPublish(item);
@@ -42,6 +51,13 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 
 			@Override
 			public boolean onError(Throwable throwable) {
+				until.subscribe(o -> {}, () -> {
+					completed = true;
+					subscription.unsubscribe();
+				});
+				if (completed) {
+					return false;
+				}
 				return subscriber.onError(throwable);
 			}
 
