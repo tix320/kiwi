@@ -4,8 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
@@ -20,82 +19,75 @@ import com.github.tix320.kiwi.internal.reactive.observable.BaseObservable;
  */
 public abstract class BasePublisher<T> implements Publisher<T> {
 
-	private final IDGenerator ID_GEN = new IDGenerator();
+	private final IDGenerator subscriberIdGenerator;
 
-	private volatile boolean completed;
+	private final AtomicBoolean completed;
 
 	private final Collection<InternalSubscription> subscriptions;
 
-	private final Lock lock;
-
 	protected BasePublisher() {
+		this.subscriberIdGenerator = new IDGenerator(1);
+		this.completed = new AtomicBoolean(false);
 		this.subscriptions = new ConcurrentLinkedQueue<>();
-		this.lock = new ReentrantLock();
 	}
 
 	@Override
 	public final void publish(T object) {
-		runInLock(() -> {
-			failIfCompleted();
+		failIfCompleted();
 
-			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-			subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
+		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+		subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
 
-			publishOverride(subscriptions, object);
+		publishOverride(subscriptions, object);
 
-			subscriptions.forEach(subscription -> {
-				subscription.currentlyInUse = false;
-				if (subscription.markForUnsubscribe) {
-					subscription.unsubscribe();
-				}
-			});
+		subscriptions.forEach(subscription -> {
+			subscription.currentlyInUse = false;
+			if (subscription.markForUnsubscribe) {
+				subscription.unsubscribe();
+			}
 		});
 	}
 
 	@Override
 	public final void publishError(Throwable throwable) {
-		runInLock(() -> {
-			failIfCompleted();
+		failIfCompleted();
 
-			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-			subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
-			for (InternalSubscription subscription : subscriptions) {
-				try {
-					boolean needMore = subscription.onError(throwable);
-					if (!needMore) {
-						subscription.currentlyInUse = false;
-						subscription.unsubscribe();
-					}
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			subscriptions.forEach(subscription -> {
-				subscription.currentlyInUse = false;
-				if (subscription.markForUnsubscribe) {
+		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+		subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
+		for (InternalSubscription subscription : subscriptions) {
+			try {
+				boolean needMore = subscription.onError(throwable);
+				if (!needMore) {
+					subscription.currentlyInUse = false;
 					subscription.unsubscribe();
 				}
-			});
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		subscriptions.forEach(subscription -> {
+			subscription.currentlyInUse = false;
+			if (subscription.markForUnsubscribe) {
+				subscription.unsubscribe();
+			}
 		});
 	}
 
 	@Override
 	public final void complete() {
-		runInLock(() -> {
-			failIfCompleted();
+		failIfCompleted();
 
-			Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-			for (InternalSubscription subscription : subscriptions) {
-				subscription.unsubscribe();
-			}
-			completed = true;
-		});
+		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
+		for (InternalSubscription subscription : subscriptions) {
+			subscription.unsubscribe();
+		}
+		completed.set(true);
 	}
 
 	@Override
 	public final boolean isCompleted() {
-		return completed;
+		return completed.get();
 	}
 
 	@Override
@@ -108,23 +100,13 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	protected abstract void publishOverride(Collection<InternalSubscription> subscriptions, T object);
 
 	private void failIfCompleted() {
-		if (completed) {
-			throw new CompletedException("Publisher is completed, you can not subscribe to it or publish items.");
+		if (completed.get()) {
+			throw new CompletedException("Publisher is completed, you can not complete again or publish items.");
 		}
 	}
 
 	private Collection<InternalSubscription> getSubscriptionsCopy() {
 		return new ArrayList<>(subscriptions);
-	}
-
-	private void runInLock(Runnable runnable) {
-		try {
-			lock.lock();
-			runnable.run();
-		}
-		finally {
-			lock.unlock();
-		}
 	}
 
 	public final class PublisherObservable extends BaseObservable<T> {
@@ -138,7 +120,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 			boolean needRegister = BasePublisher.this.onSubscribe(subscription);
 
-			if (!needRegister || completed) {
+			if (!needRegister || completed.get()) {
 				subscription.unsubscribe();
 			}
 
@@ -159,7 +141,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		private InternalSubscription(Subscriber<? super T> subscriber) {
 			this.subscriber = subscriber;
-			this.id = ID_GEN.next();
+			this.id = subscriberIdGenerator.next();
 			this.onSubscribeCalled = false;
 			this.onCompleteCalled = false;
 			this.currentlyInUse = false;
@@ -216,17 +198,15 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public void unsubscribe() {
-			runInLock(() -> {
-				if (currentlyInUse) {
-					markForUnsubscribe = true;
+			if (currentlyInUse) {
+				markForUnsubscribe = true;
+			}
+			else {
+				boolean removed = subscriptions.remove(this);
+				if (removed) {
+					onComplete();
 				}
-				else {
-					boolean removed = subscriptions.remove(this);
-					if (removed) {
-						onComplete();
-					}
-				}
-			});
+			}
 		}
 
 		@Override

@@ -103,16 +103,17 @@ class SimplePublisherTest {
 
 	@Test
 	void concurrentTest() {
-		Publisher<String> publisher = Publisher.simple();
-		Observable<String> observable = publisher.asObservable();
+		Publisher<Character> publisher = Publisher.simple();
+		Observable<Character> observable = publisher.asObservable();
 
+		List<Character> wtf = new ArrayList<>();
 		Stream.iterate('a', character -> (char) (character + 1))
 				.limit(500)
 				.parallel()
 				.unordered()
 				.forEach(character -> {
-					observable.subscribe(s -> s = "test");
-					publisher.publish("1");
+					observable.subscribe(wtf::add);
+					publisher.publish(character);
 				});
 	}
 }
