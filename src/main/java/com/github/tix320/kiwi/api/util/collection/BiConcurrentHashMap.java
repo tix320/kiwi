@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.api.util.collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 
@@ -21,12 +22,15 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 
 	@Override
 	public synchronized void put(T1 key, T2 value) {
+		Objects.requireNonNull(key);
+		Objects.requireNonNull(value);
 		straight.put(key, value);
 		inverse.put(value, key);
 	}
 
 	@Override
 	public synchronized T2 straightRemove(T1 key) {
+		Objects.requireNonNull(key);
 		T2 value = straight.remove(key);
 		inverse.remove(value);
 		return value;
@@ -34,6 +38,7 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 
 	@Override
 	public synchronized T1 inverseRemove(T2 key) {
+		Objects.requireNonNull(key);
 		T1 value = inverse.remove(key);
 		straight.remove(value);
 		return value;
