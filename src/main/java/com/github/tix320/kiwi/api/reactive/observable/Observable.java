@@ -13,6 +13,7 @@ import java.util.function.Predicate;
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.UnhandledObservableException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
@@ -379,6 +380,19 @@ public interface Observable<T> {
 	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
 	 *
 	 * @param observables to subscribe
+	 *
+	 * @return observable
+	 */
+	@SuppressWarnings("all")
+	static Observable<Object> concatRaw(Observable<?>... observables) {
+		List<Observable<Object>> list = (List) Arrays.asList(observables);
+		return new ConcatObservable<>(list);
+	}
+
+	/**
+	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
+	 *
+	 * @param observables to subscribe
 	 * @param <T>         type of object
 	 *
 	 * @return observable
@@ -422,5 +436,23 @@ public interface Observable<T> {
 			list.add(observable);
 		}
 		return new ZipObservable<>(list);
+	}
+
+	/**
+	 * Return observable, which will be subscribe to given observables.
+	 * It will ba wait for objects from every observable and then combine them to list and publish.
+	 * Items order in list will be same as a given observables.
+	 *
+	 * @param observable1 to subscribe
+	 * @param observable2 to subscribe
+	 * @param <A>         type of first object
+	 * @param <B>         type of second object
+	 *
+	 * @return observable
+	 */
+	@SuppressWarnings("all")
+	static <A, B> Observable<Tuple<A, B>> zip(Observable<A> observable1, Observable<B> observable2) {
+		ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
+		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
 }
