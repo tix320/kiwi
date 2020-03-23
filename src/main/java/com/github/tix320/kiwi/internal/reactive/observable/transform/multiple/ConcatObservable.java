@@ -18,6 +18,9 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 	private final List<Observable<T>> observables;
 
 	public ConcatObservable(List<Observable<T>> observables) {
+		if (observables.size() == 0) {
+			throw new IllegalArgumentException();
+		}
 		this.observables = observables;
 	}
 

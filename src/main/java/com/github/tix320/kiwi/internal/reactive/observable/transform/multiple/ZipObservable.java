@@ -13,6 +13,9 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 	private final List<Observable<T>> observables;
 
 	public ZipObservable(List<Observable<T>> observables) {
+		if (observables.size() == 0) {
+			throw new IllegalArgumentException();
+		}
 		this.observables = observables;
 	}
 
@@ -22,7 +25,6 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 		for (int i = 0; i < observables.size(); i++) {
 			queues.add(new LinkedList<>());
 		}
-
 
 		AtomicBoolean completed = new AtomicBoolean(false);
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
