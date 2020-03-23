@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.util.WrapperException;
@@ -71,11 +72,12 @@ class ObservableTest {
 
 		Observable<Integer> observable3 = publisher.asObservable();
 
-		Subscription subscription = Observable.concat(observable1, observable2, observable3).subscribe(actual::add);
+		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(object -> {
+			actual.add(object);
+			return !object.equals(25);
+		});
 
 		publisher.publish(25);
-
-		subscription.unsubscribe();
 
 		publisher.publish(50);
 
@@ -139,15 +141,16 @@ class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		Subscription subscription = observable.map(integer -> integer + "lol").subscribe(actual::add);
+		observable.map(integer -> integer + "lol").conditionalSubscribe(item -> {
+			actual.add(item);
+			return !item.equals("25lol");
+		});
 
 		publisher.publish(10);
 		observable.map(integer -> integer + "wtf").toMono().subscribe(actual::add);
 
 		publisher.publish(20);
 		publisher.publish(25);
-
-		subscription.unsubscribe();
 
 		publisher.publish(50);
 
@@ -332,7 +335,10 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			Observable.zip(observable1, observable2).map(actual::addAll).blockUntilComplete();
+			Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
+				actual.add(integerIntegerTuple.first());
+				actual.add(integerIntegerTuple.second());
+			}).blockUntilComplete();
 		});
 
 		assertEquals(expected, actual);
@@ -346,10 +352,10 @@ class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.subscribe(actual::add, throwable -> {
+		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onError(throwable -> {
 			assertEquals("foo", throwable.getMessage());
-			return actual.add(15);
-		});
+			actual.add(15);
+		}));
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -368,11 +374,11 @@ class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.particularSubscribe(actual::add, throwable -> {
+		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onErrorConditional(throwable -> {
 			assertEquals("foo", throwable.getMessage());
 			actual.add(15);
 			return false;
-		});
+		}));
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -391,9 +397,9 @@ class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.particularSubscribe(actual::add, throwable -> {
+		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onError(throwable -> {
 			throw WrapperException.wrap(throwable);
-		});
+		}));
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -443,11 +449,14 @@ class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		Subscription subscription = observable.subscribe(actual::add, () -> actual.add(15));
+		observable.subscribe(Subscriber.<Integer>builder().onPublishConditional(object -> {
+			actual.add(object);
+			return !object.equals(2);
+		}).onComplete(() -> actual.add(15)));
 
 		publisher.publish(1);
 		publisher.publish(2);
-		subscription.unsubscribe();
+
 		publisher.publish(3);
 
 		assertEquals(expected, actual);
@@ -462,13 +471,16 @@ class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		Subscription subscription = observable.subscribe(actual::add, () -> actual.add(15));
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set)
+				.onPublish(actual::add)
+				.onComplete(() -> actual.add(15)));
 
 		publisher.publish(1);
 		publisher.publish(2);
-		subscription.unsubscribe();
+		subscriptionHolder.get().unsubscribe();
 		publisher.publish(3);
-		subscription.unsubscribe();
+		subscriptionHolder.get().unsubscribe();
 
 		assertEquals(expected, actual);
 	}

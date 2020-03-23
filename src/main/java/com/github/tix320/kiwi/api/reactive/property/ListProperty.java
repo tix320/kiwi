@@ -12,8 +12,8 @@ import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyListProperty;
-import com.github.tix320.kiwi.internal.reactive.property.UnmodifiableIterator;
-import com.github.tix320.kiwi.internal.reactive.property.UnmodifiableListIterator;
+import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
+import com.github.tix320.kiwi.api.util.collection.UnmodifiableListIterator;
 
 public class ListProperty<T> implements Property<List<T>>, List<T> {
 

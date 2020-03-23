@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ public class MonoObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
-		observable.subscribe(actual::add, () -> actual.add(7));
+		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onComplete(() -> actual.add(7)));
 
 		publisher.publish(3);
 

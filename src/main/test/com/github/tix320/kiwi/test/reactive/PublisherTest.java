@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.internal.reactive.CompletedException;
@@ -39,11 +40,10 @@ class PublisherTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		Subscription subscription = observable.subscribe(integer -> {
+		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
 			actual.add(integer);
 			subscriptionHolder.get().unsubscribe();
-		});
-		subscriptionHolder.set(subscription);
+		}));
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -57,7 +57,7 @@ class PublisherTest {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		System.setErr(new PrintStream(baos));
 
-		List<Integer> expected = List.of(10, 20, 50);
+		List<Integer> expected = List.of(10, 50);
 		List<Integer> actual = new ArrayList<>();
 
 		Observable<Integer> observable = publisher.asObservable();
@@ -67,8 +67,8 @@ class PublisherTest {
 			subscriptionHolder.get().unsubscribe();
 		});
 
-		Subscription subscription = observable.subscribe(integer -> actual.add(integer * 20));
-		subscriptionHolder.set(subscription);
+		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set)
+				.onPublish(integer -> actual.add(integer * 20)));
 
 		publisher.publish(1);
 		publisher.publish(5);
@@ -101,7 +101,7 @@ class PublisherTest {
 	void completeOnPublishWithTwoSubscribersTest() {
 		Publisher<Integer> publisher = Publisher.simple();
 
-		List<Integer> expected = List.of(10, 20);
+		List<Integer> expected = List.of(10);
 		List<Integer> actual = new ArrayList<>();
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

@@ -20,7 +20,7 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super List<T>> subscriber) {
+	public void subscribe(Subscriber<? super List<T>> subscriber) {
 		List<Queue<T>> queues = new ArrayList<>();
 		for (int i = 0; i < observables.size(); i++) {
 			queues.add(new LinkedList<>());
@@ -105,6 +105,5 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 			}
 		};
 		subscriber.onSubscribe(subscription);
-		return subscription;
 	}
 }

@@ -24,7 +24,7 @@ public class ConcatObservableTest {
 
 		Observable<Integer> observable3 = publisher.asObservable();
 
-		Observable.concat(observable1, observable2, observable3).particularSubscribe(number -> {
+		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(number -> {
 			actual.add(number);
 			return number != 5;
 		});

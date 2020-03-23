@@ -3,9 +3,10 @@ package com.github.tix320.kiwi.test.reactive;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import org.junit.jupiter.api.Test;
@@ -29,12 +30,13 @@ class SimplePublisherTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Subscription subscription = observable.subscribe(actual::add);
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(actual::add));
 
 		publisher.publish(6);
 		publisher.publish(7);
 
-		subscription.unsubscribe();
+		subscriptionHolder.get().unsubscribe();
 
 		publisher.publish(8);
 
@@ -99,21 +101,5 @@ class SimplePublisherTest {
 		publisher.publish(5);
 
 		assertEquals(expected, actual);
-	}
-
-	@Test
-	void concurrentTest() {
-		Publisher<Character> publisher = Publisher.simple();
-		Observable<Character> observable = publisher.asObservable();
-
-		List<Character> wtf = new ArrayList<>();
-		Stream.iterate('a', character -> (char) (character + 1))
-				.limit(500)
-				.parallel()
-				.unordered()
-				.forEach(character -> {
-					observable.subscribe(wtf::add);
-					publisher.publish(character);
-				});
 	}
 }

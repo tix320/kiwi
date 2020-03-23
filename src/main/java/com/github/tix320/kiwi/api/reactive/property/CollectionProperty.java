@@ -12,9 +12,9 @@ import java.util.stream.Stream;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
+import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyCollectionProperty;
-import com.github.tix320.kiwi.internal.reactive.property.UnmodifiableIterator;
 
 public class CollectionProperty<T> implements Property<Collection<T>>, Collection<T> {
 

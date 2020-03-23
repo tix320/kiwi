@@ -20,8 +20,8 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super T> subscriber) {
-		return observable.subscribe(new Subscriber<>() {
+	public void subscribe(Subscriber<? super T> subscriber) {
+		observable.subscribe(new Subscriber<>() {
 
 			private volatile Subscription subscription;
 
@@ -31,33 +31,37 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 			public void onSubscribe(Subscription subscription) {
 				this.subscription = subscription;
 				subscriber.onSubscribe(subscription);
-				until.subscribe(o -> {}, () -> {
+				until.subscribe(Subscriber.builder().onComplete(() -> {
 					completed = true;
 					subscription.unsubscribe();
-				});
+				}));
 			}
 
 			@Override
 			public boolean onPublish(T item) {
-				until.subscribe(o -> {}, () -> {
+				until.subscribe(Subscriber.builder().onComplete(() -> {
 					completed = true;
 					subscription.unsubscribe();
-				});
+				}));
+
 				if (completed) {
 					return false;
 				}
+
 				return subscriber.onPublish(item);
 			}
 
 			@Override
 			public boolean onError(Throwable throwable) {
-				until.subscribe(o -> {}, () -> {
+				until.subscribe(Subscriber.builder().onComplete(() -> {
 					completed = true;
 					subscription.unsubscribe();
-				});
+				}));
+
 				if (completed) {
 					return false;
 				}
+
 				return subscriber.onError(throwable);
 			}
 

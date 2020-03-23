@@ -16,5 +16,5 @@ public interface ConditionalConsumer<T> {
 	 *
 	 * @return value, to indicate need more elements or not.
 	 */
-	boolean consume(T object);
+	boolean accept(T object);
 }

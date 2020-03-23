@@ -21,9 +21,9 @@ public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super R> subscriber) {
+	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new LinkedList<>();
-		return observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);

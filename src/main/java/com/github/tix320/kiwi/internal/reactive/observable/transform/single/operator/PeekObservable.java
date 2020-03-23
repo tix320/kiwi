@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
@@ -8,25 +8,21 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 /**
- * @author Tigran Sargsyan on 22-Feb-19
+ * @author Tigran Sargsyan on 02-Mar-19
  */
-public final class CountingObservable<T> extends TransformObservable<T> {
+public final class PeekObservable<T> extends TransformObservable<T> {
 
 	private final Observable<T> observable;
 
-	private final long count;
+	private final Consumer<? super T> action;
 
-	public CountingObservable(Observable<T> observable, long count) {
-		if (count < 0) {
-			throw new IllegalArgumentException("Count must not be negative");
-		}
+	public PeekObservable(Observable<T> observable, Consumer<? super T> action) {
 		this.observable = observable;
-		this.count = count;
+		this.action = action;
 	}
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		AtomicLong limit = new AtomicLong(count);
 		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -35,17 +31,8 @@ public final class CountingObservable<T> extends TransformObservable<T> {
 
 			@Override
 			public boolean onPublish(T item) {
-				long remaining = limit.decrementAndGet();
-				if (remaining > 0) {
-					return subscriber.onPublish(item);
-				}
-				else {
-					if (remaining == 0) {
-						subscriber.onPublish(item);
-					}
-
-					return false;
-				}
+				action.accept(item);
+				return subscriber.onPublish(item);
 			}
 
 			@Override

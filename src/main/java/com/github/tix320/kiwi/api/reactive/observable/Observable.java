@@ -14,7 +14,6 @@ import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
-import com.github.tix320.kiwi.internal.reactive.observable.UnhandledObservableException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;
@@ -36,64 +35,9 @@ public interface Observable<T> {
 	 * If observable already completed, then available values will be processed immediately.
 	 *
 	 * @param consumer for processing items
-	 *
-	 * @return object, for controlling subscription in future
 	 */
-	default Subscription subscribe(Consumer<? super T> consumer) {
-		return subscribe(consumer, throwable -> {
-			throw new UnhandledObservableException(throwable);
-		});
-	}
-
-	/**
-	 * Subscribe to observable.
-	 * If observable already completed, then available values will be processed immediately.
-	 *
-	 * @param consumer   for processing items
-	 * @param onComplete action on complete
-	 *
-	 * @return object, for controlling subscription in future
-	 */
-	default Subscription subscribe(Consumer<? super T> consumer, Runnable onComplete) {
-		return subscribe(new Subscriber<>() {
-			@Override
-			public void onSubscribe(Subscription subscription) {
-
-			}
-
-			@Override
-			public boolean onPublish(T item) {
-				consumer.accept(item);
-				return true;
-			}
-
-			@Override
-			public boolean onError(Throwable throwable) {
-				throw new UnhandledObservableException(throwable);
-			}
-
-			@Override
-			public void onComplete() {
-				onComplete.run();
-			}
-		});
-	}
-
-	/**
-	 * Subscribe to observable.
-	 * If observable already completed, then available values will be processed immediately.
-	 * If any error occurs, then errorHandler will be invoked.
-	 *
-	 * @param consumer     for processing items
-	 * @param errorHandler for handling errors
-	 *
-	 * @return object, for controlling subscription in future
-	 */
-	default Subscription subscribe(Consumer<? super T> consumer, ConditionalConsumer<Throwable> errorHandler) {
-		return particularSubscribe(item -> {
-			consumer.accept(item);
-			return true;
-		}, errorHandler);
+	default void subscribe(Consumer<? super T> consumer) {
+		subscribe(Subscriber.<T>builder().onPublish(consumer).build());
 	}
 
 	/**
@@ -102,49 +46,20 @@ public interface Observable<T> {
 	 * If observable already completed, then available values will be processed immediately.
 	 *
 	 * @param consumer for processing items
-	 *
-	 * @return object, for controlling subscription in future
 	 */
-	default Subscription particularSubscribe(ConditionalConsumer<? super T> consumer) {
-		return particularSubscribe(consumer, throwable -> {
-			throw new UnhandledObservableException(throwable);
-		});
+	default void conditionalSubscribe(ConditionalConsumer<? super T> consumer) {
+		subscribe(Subscriber.<T>builder().onPublishConditional(consumer).build());
 	}
 
 	/**
-	 * Subscribe to observable and handle every item, consumer must return boolean value,
-	 * which indicates that need more elements or not.
-	 * If observable already completed, then available values will be processed immediately.
-	 * If any error occurs, then errorHandler will be invoked.
+	 * Build subscriber from builder and subscribe.
 	 *
-	 * @param consumer     for processing items
-	 * @param errorHandler for handling errors
+	 * @param subscriberBuilder for constructing subscriber
 	 *
-	 * @return object, for controlling subscription in future
+	 * @see #subscribe(Subscriber)
 	 */
-	default Subscription particularSubscribe(ConditionalConsumer<? super T> consumer,
-											 ConditionalConsumer<Throwable> errorHandler) {
-		return subscribe(new Subscriber<>() {
-			@Override
-			public void onSubscribe(Subscription subscription) {
-
-			}
-
-			@Override
-			public boolean onPublish(T item) {
-				return consumer.consume(item);
-			}
-
-			@Override
-			public boolean onError(Throwable throwable) {
-				return errorHandler.consume(throwable);
-			}
-
-			@Override
-			public void onComplete() {
-
-			}
-		});
+	default void subscribe(SubscriberBuilder<? super T> subscriberBuilder) {
+		subscribe(subscriberBuilder.build());
 	}
 
 	/**
@@ -153,10 +68,8 @@ public interface Observable<T> {
 	 * and after which completed handler will be invoked.
 	 *
 	 * @param subscriber for subscribing
-	 *
-	 * @return object, for controlling subscription in future
 	 */
-	Subscription subscribe(Subscriber<? super T> subscriber);
+	void subscribe(Subscriber<? super T> subscriber);
 
 	/**
 	 * Blocks current thread until this observable will be completed or will not want more items.
@@ -237,6 +150,17 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * Return observable, which will subscribe to this and do given action on every consumed object.
+	 *
+	 * @param action to perform over objects
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> peek(Consumer<? super T> action) {
+		return new PeekObservable<>(this, action);
+	}
+
+	/**
 	 * Return observable, which will subscribe to this and transform every object according to given transformer.
 	 *
 	 * @param mapper for transform objects
@@ -247,7 +171,6 @@ public interface Observable<T> {
 	default <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
 		return new MapperObservable<>(this, mapper);
 	}
-
 
 	/**
 	 * Return observable, which will subscribe to this and set filter to objects according to given filter.

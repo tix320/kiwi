@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.internal.reactive.property;
+package com.github.tix320.kiwi.api.util.collection;
 
 import java.util.ListIterator;
 import java.util.function.Consumer;
@@ -46,17 +46,17 @@ public final class UnmodifiableListIterator<T> implements ListIterator<T> {
 
 	@Override
 	public void remove() {
-		throw new UnsupportedOperationException("ListProperty `iterator.remove()` not allowed");
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void set(T t) {
-		throw new UnsupportedOperationException("ListProperty `iterator.set()` not allowed");
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void add(T t) {
-		throw new UnsupportedOperationException("ListProperty `iterator.add()` not allowed");
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

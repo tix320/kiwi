@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.internal.reactive.property;
+package com.github.tix320.kiwi.api.util.collection;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
  */
-public class UnmodifiableIterator<T> implements Iterator<T> {
+public final class UnmodifiableIterator<T> implements Iterator<T> {
 
 	private final Iterator<T> iterator;
 
@@ -26,7 +26,7 @@ public class UnmodifiableIterator<T> implements Iterator<T> {
 
 	@Override
 	public void remove() {
-		throw new UnsupportedOperationException("`iterator.remove()` not allowed on `Property` objects");
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

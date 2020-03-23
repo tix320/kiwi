@@ -18,8 +18,8 @@ public final class OnceObservable<T> extends TransformObservable<T> implements M
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super T> subscriber) {
-		return observable.subscribe(new Subscriber<>() {
+	public void subscribe(Subscriber<? super T> subscriber) {
+		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);

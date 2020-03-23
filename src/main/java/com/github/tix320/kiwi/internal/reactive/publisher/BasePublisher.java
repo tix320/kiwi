@@ -1,11 +1,14 @@
 package com.github.tix320.kiwi.internal.reactive.publisher;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
+import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -25,64 +28,39 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private final Collection<InternalSubscription> subscriptions;
 
+	private final Lock publishLock;
+
 	protected BasePublisher() {
 		this.subscriberIdGenerator = new IDGenerator(1);
 		this.completed = new AtomicBoolean(false);
 		this.subscriptions = new ConcurrentLinkedQueue<>();
+		this.publishLock = new ReentrantLock();
 	}
 
 	@Override
 	public final void publish(T object) {
-		failIfCompleted();
-
-		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-		subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
-
-		publishOverride(subscriptions, object);
-
-		subscriptions.forEach(subscription -> {
-			subscription.currentlyInUse = false;
-			if (subscription.markForUnsubscribe) {
-				subscription.unsubscribe();
-			}
-		});
+		publishObject(object, true);
 	}
 
 	@Override
 	public final void publishError(Throwable throwable) {
-		failIfCompleted();
-
-		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-		subscriptions.forEach(subscription -> subscription.currentlyInUse = true);
-		for (InternalSubscription subscription : subscriptions) {
-			try {
-				boolean needMore = subscription.onError(throwable);
-				if (!needMore) {
-					subscription.currentlyInUse = false;
-					subscription.unsubscribe();
-				}
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		subscriptions.forEach(subscription -> {
-			subscription.currentlyInUse = false;
-			if (subscription.markForUnsubscribe) {
-				subscription.unsubscribe();
-			}
-		});
+		publishObject(throwable, false);
 	}
 
 	@Override
 	public final void complete() {
-		failIfCompleted();
-
-		Collection<InternalSubscription> subscriptions = getSubscriptionsCopy();
-		for (InternalSubscription subscription : subscriptions) {
-			subscription.unsubscribe();
+		publishLock.lock();
+		try {
+			failIfCompleted();
+			for (InternalSubscription subscription : subscriptions) {
+				subscription.unsubscribe();
+			}
+			completed.set(true);
 		}
-		completed.set(true);
+		finally {
+			publishLock.unlock();
+		}
+
 	}
 
 	@Override
@@ -95,9 +73,64 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		return new PublisherObservable();
 	}
 
-	protected abstract boolean onSubscribe(InternalSubscription subscription);
+	protected abstract void onNewSubscriber(ConditionalConsumer<T> publisherFunction);
 
-	protected abstract void publishOverride(Collection<InternalSubscription> subscriptions, T object);
+	protected void prePublish(T object) {
+
+	}
+
+	protected void postPublish() {
+
+	}
+
+	private void publishObject(Object object, boolean isNormal) {
+		Collection<InternalSubscription> subscriptions;
+		publishLock.lock();
+		try {
+			failIfCompleted();
+
+			subscriptions = getSubscriptionsCopy();
+			if (isNormal) {
+				prePublish((T) object);
+			}
+		}
+		finally {
+			publishLock.unlock();
+		}
+
+		for (InternalSubscription subscription : subscriptions) {
+			try {
+				publishObjectToOneSubscriber(subscription, object, isNormal);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		publishLock.lock();
+		try {
+
+			subscriptions.forEach(subscription -> {
+				if (subscription.unsubscribeCalled) {
+					subscription.unsubscribe();
+				}
+			});
+
+			if (isNormal) {
+				postPublish();
+			}
+		}
+		finally {
+			publishLock.unlock();
+		}
+	}
+
+	private void publishObjectToOneSubscriber(InternalSubscription subscription, Object object, boolean isNormal) {
+		boolean needMore = isNormal ? subscription.onPublish((T) object) : subscription.onError((Throwable) object);
+		if (!needMore) {
+			subscription.unsubscribe();
+		}
+	}
 
 	private void failIfCompleted() {
 		if (completed.get()) {
@@ -106,106 +139,164 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	private Collection<InternalSubscription> getSubscriptionsCopy() {
-		return new ArrayList<>(subscriptions);
+		return subscriptions.stream()
+				.filter(subscription -> !subscription.unsubscribeCalled)
+				.collect(Collectors.toList());
 	}
 
 	public final class PublisherObservable extends BaseObservable<T> {
 
 		@Override
-		public Subscription subscribe(Subscriber<? super T> subscriber) {
-			InternalSubscription subscription = new InternalSubscription(subscriber);
-			subscriptions.add(subscription);
+		public void subscribe(Subscriber<? super T> subscriber) {
+			InternalSubscription subscription;
+			boolean needUnsubscribe;
+			publishLock.lock();
+			try {
+				subscription = new InternalSubscription(subscriber);
+				subscriptions.add(subscription);
+				subscription.onSubscribe(subscription);
 
-			subscription.onSubscribe(subscription);
+				AtomicBoolean needMoreHolder = new AtomicBoolean(true);
+				BasePublisher.this.onNewSubscriber(object -> {
+					boolean needMore = subscription.onPublish(object);
+					needMoreHolder.set(needMore);
+					return needMore;
+				});
 
-			boolean needRegister = BasePublisher.this.onSubscribe(subscription);
-
-			if (!needRegister || completed.get()) {
-				subscription.unsubscribe();
+				needUnsubscribe = !needMoreHolder.get() || subscription.unsubscribeCalled || completed.get();
+			}
+			finally {
+				publishLock.unlock();
 			}
 
-			return subscription;
+			if (needUnsubscribe) {
+				subscription.unsubscribe();
+			}
 		}
 	}
 
-	protected final class InternalSubscription implements Subscriber<T>, Subscription {
+	private final class InternalSubscription implements Subscriber<T>, Subscription {
 
 		private final long id;
 		private final Subscriber<? super T> subscriber;
 
-		// for validation, antibug
+		private final Lock subscriptionLock;
+
+		public volatile boolean unsubscribeCalled;
+
+		// for validation, antiBug
 		private volatile boolean onSubscribeCalled;
 		private volatile boolean onCompleteCalled;
-		public volatile boolean currentlyInUse;
-		public volatile boolean markForUnsubscribe;
 
 		private InternalSubscription(Subscriber<? super T> subscriber) {
 			this.subscriber = subscriber;
 			this.id = subscriberIdGenerator.next();
+			this.subscriptionLock = new ReentrantLock();
 			this.onSubscribeCalled = false;
 			this.onCompleteCalled = false;
-			this.currentlyInUse = false;
-			this.markForUnsubscribe = false;
+			this.unsubscribeCalled = false;
 		}
 
 		@Override
 		public void onSubscribe(Subscription subscription) {
-			if (onSubscribeCalled) {
-				throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
+			subscriptionLock.lock();
+			try {
+				if (onSubscribeCalled) {
+					throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
+				}
+				onSubscribeCalled = true;
 			}
-			onSubscribeCalled = true;
+			finally {
+				subscriptionLock.unlock();
+			}
+
 			subscriber.onSubscribe(subscription);
 		}
 
 		@Override
 		public boolean onPublish(T item) {
-			if (!onSubscribeCalled) {
-				throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
+			subscriptionLock.lock();
+			try {
+				if (unsubscribeCalled) {
+					return false;
+				}
+				if (!onSubscribeCalled) {
+					throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
+				}
+				if (onCompleteCalled) {
+					throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
+				}
 			}
-			if (onCompleteCalled) {
-				throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
+			finally {
+				subscriptionLock.unlock();
 			}
+
 			return subscriber.onPublish(item);
 		}
 
 		@Override
 		public boolean onError(Throwable throwable) {
-			if (!onSubscribeCalled) {
-				throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
+			subscriptionLock.lock();
+			try {
+				if (unsubscribeCalled) {
+					return false;
+				}
+				if (!onSubscribeCalled) {
+					throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
+				}
+				if (onCompleteCalled) {
+					throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
+				}
 			}
-			if (onCompleteCalled) {
-				throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
+			finally {
+				subscriptionLock.unlock();
 			}
+
 			return subscriber.onError(throwable);
 		}
 
 		@Override
 		public void onComplete() {
-			if (!onSubscribeCalled) {
-				throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
+			subscriptionLock.lock();
+			try {
+				if (!onSubscribeCalled) {
+					throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
+				}
+				if (onCompleteCalled) {
+					throw new SubscriptionIllegalStateException("OnComplete must be called only once");
+				}
+				onCompleteCalled = true;
 			}
-			if (onCompleteCalled) {
-				throw new SubscriptionIllegalStateException("OnComplete must be called only once");
+			finally {
+				subscriptionLock.unlock();
 			}
-			onCompleteCalled = true;
+
 			subscriber.onComplete();
 		}
 
 		@Override
 		public boolean isCompleted() {
-			return !subscriptions.contains(this);
+			subscriptionLock.lock();
+			try {
+				return !subscriptions.contains(this);
+			}
+			finally {
+				subscriptionLock.unlock();
+			}
 		}
 
 		@Override
 		public void unsubscribe() {
-			if (currentlyInUse) {
-				markForUnsubscribe = true;
-			}
-			else {
+			subscriptionLock.lock();
+			try {
+				unsubscribeCalled = true;
 				boolean removed = subscriptions.remove(this);
 				if (removed) {
 					onComplete();
 				}
+			}
+			finally {
+				subscriptionLock.unlock();
 			}
 		}
 

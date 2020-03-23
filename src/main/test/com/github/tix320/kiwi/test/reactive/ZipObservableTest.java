@@ -6,7 +6,9 @@ import java.util.Collections;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.api.util.collection.Tuple;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,7 +25,8 @@ public class ZipObservableTest {
 		Observable<Integer> observable2 = Observable.of(20, 50);
 
 		Observable.zip(observable1, observable2).subscribe(integers -> {
-			actual.addAll(integers);
+			actual.add(integers.first());
+			actual.add(integers.second());
 			actual.add(-1);
 		});
 
@@ -39,7 +42,8 @@ public class ZipObservableTest {
 		Observable<Integer> observable2 = Observable.of(50, 60);
 
 		Observable.zip(observable1, observable2.toMono()).subscribe(integers -> {
-			actual.addAll(integers);
+			actual.add(integers.first());
+			actual.add(integers.second());
 			actual.add(-1);
 		});
 
@@ -56,7 +60,9 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher2 = Publisher.single(4);
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(actual::add, () -> actual.add(Collections.singletonList(25)));
+				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
+						o -> actual.add(List.of(o.first(), o.second())))
+						.onComplete(() -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -80,7 +86,9 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher2 = Publisher.single(4);
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(actual::add, () -> actual.add(Collections.singletonList(25)));
+				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
+						o -> actual.add(List.of(o.first(), o.second())))
+						.onComplete(() -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -108,8 +116,9 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher2 = Publisher.simple();
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(actual::add, () -> actual.add(Collections.singletonList(25)));
-
+				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
+						o -> actual.add(List.of(o.first(), o.second())))
+						.onComplete(() -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(1);
 		publisher1.publish(2);

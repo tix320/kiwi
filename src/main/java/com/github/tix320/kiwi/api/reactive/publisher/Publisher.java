@@ -1,10 +1,7 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.function.Consumer;
-
 import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.util.None;
 
 /**
@@ -30,7 +27,7 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 *
 	 * @param throwable to publish
 	 *
-	 * @see Observable#subscribe(Consumer, ConditionalConsumer)
+	 * @see Subscriber#onError(Throwable)
 	 */
 	void publishError(Throwable throwable);
 

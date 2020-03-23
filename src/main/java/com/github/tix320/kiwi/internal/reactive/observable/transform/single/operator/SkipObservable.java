@@ -22,9 +22,9 @@ public class SkipObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super T> subscriber) {
+	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong mustSkip = new AtomicLong(count);
-		return observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);
@@ -32,15 +32,12 @@ public class SkipObservable<T> extends TransformObservable<T> {
 
 			@Override
 			public boolean onPublish(T item) {
-				if (mustSkip.get() == 0) {
-					return subscriber.onPublish(item);
-				}
-				else if (mustSkip.get() > 0) {
-					mustSkip.decrementAndGet();
+				long remaining = mustSkip.decrementAndGet();
+				if (remaining >= 0) {
 					return true;
 				}
 				else {
-					throw new IllegalStateException();
+					return subscriber.onPublish(item);
 				}
 			}
 

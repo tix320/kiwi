@@ -25,7 +25,7 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 	}
 
 	@Override
-	public Subscription subscribe(Subscriber<? super T> subscriber) {
+	public void subscribe(Subscriber<? super T> subscriber) {
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
 
 		AtomicBoolean unsubscribed = new AtomicBoolean(false);
@@ -49,7 +49,7 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
-
+				subscriptions.add(subscription);
 			}
 
 			@Override
@@ -76,10 +76,7 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 			if (unsubscribed.get()) {
 				break;
 			}
-			Subscription subscription = observable.subscribe(generalSubscriber);
-			subscriptions.add(subscription);
+			observable.subscribe(generalSubscriber);
 		}
-
-		return generalSubscription;
 	}
 }

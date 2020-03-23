@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 public final class CachedPublisher<T> extends BasePublisher<T> {
@@ -16,25 +17,13 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected boolean onSubscribe(InternalSubscription subscription) {
-		publishFromCache(subscription);
-		return true;
+	protected void onNewSubscriber(ConditionalConsumer<T> publisherFUnction) {
+		publishFromCache(publisherFUnction);
 	}
 
 	@Override
-	protected void publishOverride(Collection<InternalSubscription> subscriptions, T object) {
+	protected void prePublish( T object) {
 		addToCache(object);
-		for (InternalSubscription subscription : subscriptions) {
-			try {
-				boolean needMore = subscription.onPublish(object);
-				if (!needMore) {
-					subscription.unsubscribe();
-				}
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 	public List<T> getCache() {
@@ -45,11 +34,10 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 		cache.add(object);
 	}
 
-	private void publishFromCache(InternalSubscription subscription) {
+	private void publishFromCache(ConditionalConsumer<T> publisherFUnction) {
 		for (T object : cache) {
-			boolean needMore = subscription.onPublish(object);
+			boolean needMore = publisherFUnction.accept(object);
 			if (!needMore) {
-				subscription.unsubscribe();
 				break;
 			}
 		}

@@ -16,16 +16,4 @@ public interface Subscription {
 	 * Unsubscribe from observable.
 	 */
 	void unsubscribe();
-
-	Subscription EMPTY = new Subscription() {
-		@Override
-		public boolean isCompleted() {
-			return true;
-		}
-
-		@Override
-		public void unsubscribe() {
-
-		}
-	};
 }
