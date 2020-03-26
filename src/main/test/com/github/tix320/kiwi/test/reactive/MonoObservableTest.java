@@ -36,7 +36,7 @@ public class MonoObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onComplete(() -> actual.add(7)));
+		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onComplete((completionType) -> actual.add(7)));
 
 		publisher.publish(3);
 

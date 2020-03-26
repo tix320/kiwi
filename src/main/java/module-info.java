@@ -9,7 +9,6 @@ module kiwi {
 	exports com.github.tix320.kiwi.api.reactive;
 	exports com.github.tix320.kiwi.api.reactive.observable;
 	exports com.github.tix320.kiwi.api.reactive.publisher;
-	exports com.github.tix320.kiwi.api.reactive.common.item;
 	exports com.github.tix320.kiwi.api.reactive.property;
 	exports com.github.tix320.kiwi.api.reactive.stock;
 }

@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.single.ope
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -47,8 +48,8 @@ public class SkipObservable<T> extends TransformObservable<T> {
 			}
 
 			@Override
-			public void onComplete() {
-				subscriber.onComplete();
+			public void onComplete(CompletionType completionType) {
+				subscriber.onComplete(completionType);
 			}
 		});
 	}

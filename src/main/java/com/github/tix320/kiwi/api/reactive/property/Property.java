@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.api.reactive.property;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface Property<T> extends ObservableProperty<T> {
 
@@ -26,6 +27,14 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	static <T> ListProperty<T> forList(List<T> initialValue) {
 		return new ListProperty<>(initialValue);
+	}
+
+	static <T> SetProperty<T> forSet() {
+		return new SetProperty<>();
+	}
+
+	static <T> SetProperty<T> forSet(Set<T> initialValue) {
+		return new SetProperty<>(initialValue);
 	}
 
 	static <T> CollectionProperty<T> forCollection() {

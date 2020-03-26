@@ -62,7 +62,7 @@ public class ZipObservableTest {
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
 				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
 						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete(() -> actual.add(Collections.singletonList(25))));
+						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -88,7 +88,7 @@ public class ZipObservableTest {
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
 				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
 						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete(() -> actual.add(Collections.singletonList(25))));
+						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -118,7 +118,7 @@ public class ZipObservableTest {
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
 				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
 						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete(() -> actual.add(Collections.singletonList(25))));
+						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
 
 		publisher1.publish(1);
 		publisher1.publish(2);

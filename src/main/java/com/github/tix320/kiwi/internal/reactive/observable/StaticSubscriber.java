@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.internal.reactive.observable;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -18,15 +19,15 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 
 	private final ConditionalConsumer<Throwable> onError;
 
-	private final Runnable onComplete;
+	private final Consumer<CompletionType> onComplete;
 
 	public StaticSubscriber(Consumer<Subscription> onSubscribe, ConditionalConsumer<? super T> onPublish,
-							ConditionalConsumer<Throwable> onError, Runnable onComplete) {
+							ConditionalConsumer<Throwable> onError, Consumer<CompletionType> onComplete) {
 		this.onSubscribe = Objects.requireNonNullElse(onSubscribe, subscription -> { });
 		this.onPublish = Objects.requireNonNullElse(onPublish, subscription -> true);
 		this.onError = Objects.requireNonNullElse(onError,
 				throwable -> {throw new UnhandledObservableException(throwable);});
-		this.onComplete = Objects.requireNonNullElse(onComplete, () -> {});
+		this.onComplete = Objects.requireNonNullElse(onComplete, (c) -> {});
 	}
 
 	@Override
@@ -45,7 +46,7 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 	}
 
 	@Override
-	public void onComplete() {
-		onComplete.run();
+	public void onComplete(CompletionType completionType) {
+		onComplete.accept(completionType);
 	}
 }

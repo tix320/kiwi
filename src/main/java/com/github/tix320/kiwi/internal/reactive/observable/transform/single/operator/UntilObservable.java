@@ -1,5 +1,9 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -21,30 +25,31 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		final AtomicBoolean untilCompleted = new AtomicBoolean(false);
+
+		until.subscribe(Subscriber.builder().onComplete((completionType) -> {
+			untilCompleted.set(true);
+			Subscription subscription = subscriptionHolder.get();
+			if (subscription != null) {
+				subscription.unsubscribe();
+			}
+		}));
 		observable.subscribe(new Subscriber<>() {
-
-			private volatile Subscription subscription;
-
-			private volatile boolean completed;
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				this.subscription = subscription;
-				subscriber.onSubscribe(subscription);
-				until.subscribe(Subscriber.builder().onComplete(() -> {
-					completed = true;
+				subscriptionHolder.set(subscription);
+				subscriber.onSubscribe(
+						subscription); // TODO in case of user unsubscription, until subscription not deleted
+				if (untilCompleted.get()) {
 					subscription.unsubscribe();
-				}));
+				}
 			}
 
 			@Override
 			public boolean onPublish(T item) {
-				until.subscribe(Subscriber.builder().onComplete(() -> {
-					completed = true;
-					subscription.unsubscribe();
-				}));
-
-				if (completed) {
+				if (untilCompleted.get()) {
 					return false;
 				}
 
@@ -53,12 +58,7 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 
 			@Override
 			public boolean onError(Throwable throwable) {
-				until.subscribe(Subscriber.builder().onComplete(() -> {
-					completed = true;
-					subscription.unsubscribe();
-				}));
-
-				if (completed) {
+				if (untilCompleted.get()) {
 					return false;
 				}
 
@@ -66,8 +66,13 @@ public final class UntilObservable<T> extends TransformObservable<T> {
 			}
 
 			@Override
-			public void onComplete() {
-				subscriber.onComplete();
+			public void onComplete(CompletionType completionType) {
+				if (untilCompleted.get()) {
+					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+				}
+				else {
+					subscriber.onComplete(completionType);
+				}
 			}
 		});
 	}

@@ -254,7 +254,7 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 	}
 
 	private void republish() {
-		publisher.publish(this);
+		publisher.publish(list);
 	}
 
 	private void failIfCompleted() {

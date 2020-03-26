@@ -184,7 +184,7 @@ public class CollectionProperty<T> implements Property<Collection<T>>, Collectio
 	}
 
 	private void republish() {
-		publisher.publish(this);
+		publisher.publish(collection);
 	}
 
 	private void failIfCompleted() {

@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.test.reactive;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
@@ -44,7 +45,7 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public void onComplete() {
+			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
 		});
@@ -84,7 +85,7 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public void onComplete() {
+			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
 		});
@@ -123,7 +124,7 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public void onComplete() {
+			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
 		});

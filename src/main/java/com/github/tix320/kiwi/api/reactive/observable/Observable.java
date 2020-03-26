@@ -13,6 +13,7 @@ import java.util.function.Predicate;
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
@@ -72,7 +73,7 @@ public interface Observable<T> {
 	void subscribe(Subscriber<? super T> subscriber);
 
 	/**
-	 * Blocks current thread until this observable will be completed or will not want more items.
+	 * Blocks current thread until this observable will be completed.
 	 */
 	default void blockUntilComplete() {
 		await().subscribe(t -> {});
@@ -98,12 +99,12 @@ public interface Observable<T> {
 	// transforming functions --------------------------------------
 
 	/**
-	 * Returns observable, which subscription will blocks thread until it will be completed or will not want more items.
+	 * Returns observable, which will be publish single item on this observable completeness.
 	 *
 	 * @return new observable
 	 */
-	default Observable<T> await() {
-		return new WaitCompleteObservable<>(this);
+	default Observable<None> await() {
+		return new WaitCompleteObservable(this);
 	}
 
 	/**
@@ -246,9 +247,9 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> Observable<T> empty() {
-		SimplePublisher<T> subject = new SimplePublisher<>();
-		subject.complete();
-		return subject.asObservable();
+		SimplePublisher<T> publisher = new SimplePublisher<>();
+		publisher.complete();
+		return publisher.asObservable();
 	}
 
 	/**

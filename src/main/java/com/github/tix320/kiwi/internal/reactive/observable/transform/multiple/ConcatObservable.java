@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -27,7 +28,6 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
-
 		AtomicBoolean unsubscribed = new AtomicBoolean(false);
 
 		Subscription generalSubscription = new Subscription() {
@@ -44,6 +44,9 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 				}
 			}
 		};
+
+		subscriber.onSubscribe(generalSubscription);
+
 		AtomicInteger completedCount = new AtomicInteger(0);
 
 		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
@@ -63,15 +66,19 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 			}
 
 			@Override
-			public void onComplete() {
-				int count = completedCount.incrementAndGet();
-				if (count == observables.size()) {
-					subscriber.onComplete();
+			public void onComplete(CompletionType completionType) {
+				if (completionType == CompletionType.UNSUBSCRIPTION) {
+					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
+				}
+				else {
+					int count = completedCount.incrementAndGet();
+					if (count == observables.size()) {
+						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+					}
 				}
 			}
 		};
 
-		subscriber.onSubscribe(generalSubscription);
 		for (Observable<T> observable : observables) {
 			if (unsubscribed.get()) {
 				break;

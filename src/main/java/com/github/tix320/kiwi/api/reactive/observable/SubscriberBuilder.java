@@ -16,7 +16,7 @@ public class SubscriberBuilder<T> {
 
 	private ConditionalConsumer<Throwable> onError;
 
-	private Runnable onComplete;
+	private Consumer<CompletionType> onComplete;
 
 	SubscriberBuilder() {
 	}
@@ -57,7 +57,7 @@ public class SubscriberBuilder<T> {
 		return this;
 	}
 
-	public SubscriberBuilder<T> onComplete(Runnable onComplete) {
+	public SubscriberBuilder<T> onComplete(Consumer<CompletionType> onComplete) {
 		Objects.requireNonNull(onComplete);
 		this.onComplete = onComplete;
 		return this;

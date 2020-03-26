@@ -1,5 +1,7 @@
 package com.github.tix320.kiwi.api.reactive.observable;
 
+import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+
 public interface Subscriber<T> {
 
 	/**
@@ -28,8 +30,10 @@ public interface Subscriber<T> {
 	/**
 	 * Handle subscription completeness.
 	 * After calling this method, no more methods will be called.
+	 *
+	 * @param completionType indicates, that how subscription is completed, via {@link Subscription#unsubscribe()} or {@link Publisher#complete()}.
 	 */
-	void onComplete();
+	void onComplete(CompletionType completionType);
 
 	static <T> SubscriberBuilder<T> builder() {
 		return new SubscriberBuilder<>();

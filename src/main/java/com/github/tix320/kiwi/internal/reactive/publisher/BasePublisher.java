@@ -8,10 +8,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.util.IDGenerator;
 import com.github.tix320.kiwi.internal.reactive.CompletedException;
@@ -53,7 +50,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		try {
 			failIfCompleted();
 			for (InternalSubscription subscription : subscriptions) {
-				subscription.unsubscribe();
+				subscription.cancel(CompletionType.SOURCE_COMPLETED);
 			}
 			completed.set(true);
 		}
@@ -110,12 +107,6 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		publishLock.lock();
 		try {
 
-			subscriptions.forEach(subscription -> {
-				if (subscription.unsubscribeCalled) {
-					subscription.unsubscribe();
-				}
-			});
-
 			if (isNormal) {
 				postPublish();
 			}
@@ -128,7 +119,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	private void publishObjectToOneSubscriber(InternalSubscription subscription, Object object, boolean isNormal) {
 		boolean needMore = isNormal ? subscription.onPublish((T) object) : subscription.onError((Throwable) object);
 		if (!needMore) {
-			subscription.unsubscribe();
+			subscription.cancel(CompletionType.UNSUBSCRIPTION);
 		}
 	}
 
@@ -139,9 +130,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	private Collection<InternalSubscription> getSubscriptionsCopy() {
-		return subscriptions.stream()
-				.filter(subscription -> !subscription.unsubscribeCalled)
-				.collect(Collectors.toList());
+		return subscriptions.stream().filter(subscription -> !subscription.completed).collect(Collectors.toList());
 	}
 
 	public final class PublisherObservable extends BaseObservable<T> {
@@ -149,28 +138,29 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
 			InternalSubscription subscription;
-			boolean needUnsubscribe;
 			publishLock.lock();
+			AtomicBoolean needMoreHolder = new AtomicBoolean(true);
 			try {
 				subscription = new InternalSubscription(subscriber);
 				subscriptions.add(subscription);
 				subscription.onSubscribe(subscription);
 
-				AtomicBoolean needMoreHolder = new AtomicBoolean(true);
 				BasePublisher.this.onNewSubscriber(object -> {
 					boolean needMore = subscription.onPublish(object);
 					needMoreHolder.set(needMore);
 					return needMore;
 				});
-
-				needUnsubscribe = !needMoreHolder.get() || subscription.unsubscribeCalled || completed.get();
 			}
 			finally {
 				publishLock.unlock();
 			}
 
-			if (needUnsubscribe) {
-				subscription.unsubscribe();
+			if (completed.get()) {
+				subscription.cancel(CompletionType.SOURCE_COMPLETED);
+			}
+
+			else if (!needMoreHolder.get()) {
+				subscription.cancel(CompletionType.UNSUBSCRIPTION);
 			}
 		}
 	}
@@ -182,7 +172,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		private final Lock subscriptionLock;
 
-		public volatile boolean unsubscribeCalled;
+		public volatile boolean completed;
 
 		// for validation, antiBug
 		private volatile boolean onSubscribeCalled;
@@ -194,7 +184,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 			this.subscriptionLock = new ReentrantLock();
 			this.onSubscribeCalled = false;
 			this.onCompleteCalled = false;
-			this.unsubscribeCalled = false;
+			this.completed = false;
 		}
 
 		@Override
@@ -217,7 +207,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		public boolean onPublish(T item) {
 			subscriptionLock.lock();
 			try {
-				if (unsubscribeCalled) {
+				if (completed) {
 					return false;
 				}
 				if (!onSubscribeCalled) {
@@ -238,7 +228,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		public boolean onError(Throwable throwable) {
 			subscriptionLock.lock();
 			try {
-				if (unsubscribeCalled) {
+				if (completed) {
 					return false;
 				}
 				if (!onSubscribeCalled) {
@@ -256,7 +246,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 
 		@Override
-		public void onComplete() {
+		public void onComplete(CompletionType completionType) {
 			subscriptionLock.lock();
 			try {
 				if (!onSubscribeCalled) {
@@ -271,14 +261,22 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				subscriptionLock.unlock();
 			}
 
-			subscriber.onComplete();
+			subscriber.onComplete(completionType);
 		}
 
 		@Override
 		public boolean isCompleted() {
+			return completed;
+		}
+
+		public void cancel(CompletionType completionType) {
 			subscriptionLock.lock();
 			try {
-				return !subscriptions.contains(this);
+				completed = true;
+				boolean removed = subscriptions.remove(this);
+				if (removed) {
+					onComplete(completionType);
+				}
 			}
 			finally {
 				subscriptionLock.unlock();
@@ -287,17 +285,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public void unsubscribe() {
-			subscriptionLock.lock();
-			try {
-				unsubscribeCalled = true;
-				boolean removed = subscriptions.remove(this);
-				if (removed) {
-					onComplete();
-				}
-			}
-			finally {
-				subscriptionLock.unlock();
-			}
+			cancel(CompletionType.UNSUBSCRIPTION);
 		}
 
 		@Override

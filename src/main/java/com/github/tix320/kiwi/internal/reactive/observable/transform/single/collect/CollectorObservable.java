@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.Stream;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -41,9 +42,11 @@ public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
 			}
 
 			@Override
-			public void onComplete() {
-				subscriber.onPublish(collect(objects.stream()));
-				subscriber.onComplete();
+			public void onComplete(CompletionType completionType) {
+				if (completionType == CompletionType.SOURCE_COMPLETED) {
+					subscriber.onPublish(collect(objects.stream()));
+				}
+				subscriber.onComplete(completionType);
 			}
 		});
 	}

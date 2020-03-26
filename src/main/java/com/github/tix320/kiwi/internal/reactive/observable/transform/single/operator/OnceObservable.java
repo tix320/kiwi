@@ -1,9 +1,6 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 /**
@@ -20,9 +17,23 @@ public final class OnceObservable<T> extends TransformObservable<T> implements M
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		observable.subscribe(new Subscriber<>() {
+
+			private volatile boolean completedFromSubscriber = false;
+
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+				subscriber.onSubscribe(new Subscription() {
+					@Override
+					public boolean isCompleted() {
+						return subscription.isCompleted();
+					}
+
+					@Override
+					public void unsubscribe() {
+						completedFromSubscriber = true;
+						subscription.unsubscribe();
+					}
+				});
 			}
 
 			@Override
@@ -37,8 +48,13 @@ public final class OnceObservable<T> extends TransformObservable<T> implements M
 			}
 
 			@Override
-			public void onComplete() {
-				subscriber.onComplete();
+			public void onComplete(CompletionType completionType) {
+				if (completedFromSubscriber) {
+					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
+				}
+				else {
+					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+				}
 			}
 		});
 	}

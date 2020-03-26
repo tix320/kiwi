@@ -2,7 +2,9 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
@@ -26,25 +28,26 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 			queues.add(new LinkedList<>());
 		}
 
+		AtomicBoolean atLeastOneObservableCompleted = new AtomicBoolean(false);
 		AtomicBoolean completed = new AtomicBoolean(false);
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
-		Runnable cleanup = () -> {
+
+		Consumer<CompletionType> cleanup = (completionType) -> {
+			completed.set(true);
+			subscriptions.forEach(Subscription::unsubscribe);
+			subscriber.onComplete(completionType);
 			queues.forEach(Collection::clear);
 			queues.clear();
-			subscriptions.forEach(Subscription::unsubscribe);
-			subscriber.onComplete();
 		};
 
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<T> observable = observables.get(i);
 			Queue<T> queue = queues.get(i);
 			observable.subscribe(new Subscriber<>() {
-				private Subscription subscription;
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
 					subscriptions.add(subscription);
-					this.subscription = subscription;
 				}
 
 				@Override
@@ -62,18 +65,23 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 					}
 					boolean needMore = subscriber.onPublish(combinedObjects);
 
-					if (completed.get()) {
+					if (!needMore) {
+						cleanup.accept(CompletionType.UNSUBSCRIPTION);
+						return false;
+					}
+
+					if (atLeastOneObservableCompleted.get()) {
 						for (int j = 0; j < queues.size(); j++) {
 							Queue<T> q = queues.get(j);
 							Subscription subscription = subscriptions.get(j);
 							if (subscription.isCompleted() && q.isEmpty()) {
-								cleanup.run();
+								cleanup.accept(CompletionType.SOURCE_COMPLETED);
 								break;
 							}
 						}
 					}
 
-					return needMore;
+					return true;
 				}
 
 				@Override
@@ -82,10 +90,11 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 				}
 
 				@Override
-				public void onComplete() {
-					subscription.unsubscribe();
-					if (completed.compareAndSet(false, true) && queue.isEmpty()) {
-						cleanup.run();
+				public void onComplete(CompletionType completionType) {
+					if (completionType == CompletionType.SOURCE_COMPLETED) {
+						if (atLeastOneObservableCompleted.compareAndSet(false, true) && queue.isEmpty()) {
+							cleanup.accept(CompletionType.SOURCE_COMPLETED);
+						}
 					}
 				}
 			});
@@ -100,7 +109,7 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 			@Override
 			public void unsubscribe() {
 				if (completed.compareAndSet(false, true)) {
-					cleanup.run();
+					cleanup.accept(CompletionType.UNSUBSCRIPTION);
 				}
 			}
 		};

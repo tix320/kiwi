@@ -209,7 +209,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.take(2).await().map(integer -> integer * 2).subscribe(actual::add);
+			observable.take(2).map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
 		});
 
 		assertEquals(expected, actual);
@@ -239,7 +239,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.await().take(2).map(integer -> integer * 2).subscribe(actual::add);
+			observable.take(2).map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
 		});
 
 		assertEquals(expected, actual);
@@ -270,7 +270,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.await().map(integer -> integer * 2).subscribe(actual::add);
+			observable.map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
 		});
 
 		assertEquals(expected, actual);
@@ -452,7 +452,7 @@ class ObservableTest {
 		observable.subscribe(Subscriber.<Integer>builder().onPublishConditional(object -> {
 			actual.add(object);
 			return !object.equals(2);
-		}).onComplete(() -> actual.add(15)));
+		}).onComplete((completionType) -> actual.add(15)));
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -474,7 +474,7 @@ class ObservableTest {
 		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
 		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set)
 				.onPublish(actual::add)
-				.onComplete(() -> actual.add(15)));
+				.onComplete((completionType) -> actual.add(15)));
 
 		publisher.publish(1);
 		publisher.publish(2);

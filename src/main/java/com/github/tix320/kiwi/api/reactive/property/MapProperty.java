@@ -209,7 +209,7 @@ public class MapProperty<K, V> implements Property<Map<K, V>>, Map<K, V> {
 	}
 
 	private void republish() {
-		publisher.publish(this);
+		publisher.publish(map);
 	}
 
 	private void failIfCompleted() {
