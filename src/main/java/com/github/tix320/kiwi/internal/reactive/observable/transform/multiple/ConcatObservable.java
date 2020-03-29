@@ -16,9 +16,9 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformOb
  */
 public final class ConcatObservable<T> extends TransformObservable<T> {
 
-	private final List<Observable<T>> observables;
+	private final List<Observable<? extends T>> observables;
 
-	public ConcatObservable(List<Observable<T>> observables) {
+	public ConcatObservable(List<Observable<? extends T>> observables) {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
@@ -79,7 +79,7 @@ public final class ConcatObservable<T> extends TransformObservable<T> {
 			}
 		};
 
-		for (Observable<T> observable : observables) {
+		for (Observable<? extends T> observable : observables) {
 			if (unsubscribed.get()) {
 				break;
 			}

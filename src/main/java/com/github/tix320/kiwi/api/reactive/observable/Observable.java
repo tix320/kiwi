@@ -181,6 +181,18 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * Return observable, which will subscribe to this observable
+	 * and unsubscribe, when predicate result will be negative.
+	 *
+	 * @param predicate for testing objects
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> takeWhile(Predicate<? super T> predicate) {
+		return new TakeWhileObservable<>(this, predicate);
+	}
+
+	/**
 	 * Return observable, which will subscribe to this and skip n objects.
 	 *
 	 * @param count for skipped objects
@@ -345,8 +357,8 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	@SafeVarargs
-	static <T> Observable<T> concat(Observable<T>... observables) {
-		List<Observable<T>> list = new ArrayList<>(Arrays.asList(observables));
+	static <T> Observable<T> concat(Observable<? extends T>... observables) {
+		List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
 		return new ConcatObservable<>(list);
 	}
 
@@ -359,7 +371,7 @@ public interface Observable<T> {
 	 */
 	@SuppressWarnings("all")
 	static Observable<Object> concatRaw(Observable<?>... observables) {
-		List<Observable<Object>> list = (List) Arrays.asList(observables);
+		List<Observable<? extends Object>> list = (List) Arrays.asList(observables);
 		return new ConcatObservable<>(list);
 	}
 
@@ -371,9 +383,9 @@ public interface Observable<T> {
 	 *
 	 * @return observable
 	 */
-	static <T> Observable<T> concat(Iterable<Observable<T>> observables) {
-		List<Observable<T>> list = new ArrayList<>();
-		for (Observable<T> observable : observables) {
+	static <T> Observable<T> concat(Iterable<Observable<? extends T>> observables) {
+		List<Observable<? extends T>> list = new ArrayList<>();
+		for (Observable<? extends T> observable : observables) {
 			list.add(observable);
 		}
 		return new ConcatObservable<>(list);
@@ -414,8 +426,7 @@ public interface Observable<T> {
 
 	/**
 	 * Return observable, which will be subscribe to given observables.
-	 * It will ba wait for objects from every observable and then combine them to list and publish.
-	 * Items order in list will be same as a given observables.
+	 * It will ba wait for objects from every observable and then combine them to as tuple and publish.
 	 *
 	 * @param observable1 to subscribe
 	 * @param observable2 to subscribe
