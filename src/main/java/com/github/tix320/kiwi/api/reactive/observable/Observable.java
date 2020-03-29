@@ -17,7 +17,6 @@ import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
-import com.github.tix320.kiwi.internal.reactive.observable.TimeoutException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;

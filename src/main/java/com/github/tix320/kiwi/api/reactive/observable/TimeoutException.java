@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.internal.reactive.observable;
+package com.github.tix320.kiwi.api.reactive.observable;
 
 /**
  * @author Tigran Sargsyan on 26-Mar-20.

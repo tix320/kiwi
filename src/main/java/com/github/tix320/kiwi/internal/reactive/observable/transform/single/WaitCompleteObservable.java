@@ -10,7 +10,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.util.None;
-import com.github.tix320.kiwi.internal.reactive.observable.TimeoutException;
+import com.github.tix320.kiwi.api.reactive.observable.TimeoutException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 public final class WaitCompleteObservable extends TransformObservable<None> {
