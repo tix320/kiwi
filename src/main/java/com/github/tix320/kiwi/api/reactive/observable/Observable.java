@@ -1,10 +1,12 @@
 package com.github.tix320.kiwi.api.reactive.observable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -15,6 +17,7 @@ import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
+import com.github.tix320.kiwi.internal.reactive.observable.TimeoutException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;
@@ -76,7 +79,16 @@ public interface Observable<T> {
 	 * Blocks current thread until this observable will be completed.
 	 */
 	default void blockUntilComplete() {
-		await().subscribe(t -> {});
+		blockUntilComplete(Duration.ofMillis(-1));
+	}
+
+	/**
+	 * Blocks current thread for given until this observable will be completed.
+	 *
+	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 */
+	default void blockUntilComplete(Duration timeout) {
+		await(timeout).subscribe(t -> {});
 	}
 
 	/**
@@ -95,16 +107,54 @@ public interface Observable<T> {
 		return itemHolder.get();
 	}
 
+	/**
+	 * Blocks current thread for given timout until this observable will be published one value and return.
+	 *
+	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 */
+	default T get(Duration timeout) {
+		CountDownLatch latch = new CountDownLatch(1);
+
+		AtomicReference<T> itemHolder = new AtomicReference<>();
+		this.toMono().subscribe(item -> {
+			itemHolder.set(item);
+			latch.countDown();
+		});
+
+		long millis = timeout.toMillis();
+		if (millis < 0) {
+			Try.runOrRethrow(latch::await);
+		}
+		else {
+			boolean normally = Try.supplyOrRethrow(() -> latch.await(millis, TimeUnit.MILLISECONDS));
+			if (!normally) {
+				throw new TimeoutException(String.format("The observable not completed in %sms", millis));
+			}
+		}
+		return itemHolder.get();
+	}
+
 
 	// transforming functions --------------------------------------
 
 	/**
-	 * Returns observable, which will be publish single item on this observable completeness.
+	 * Returns observable, which will be block current thread until this observable complete and publish single item.
 	 *
 	 * @return new observable
 	 */
 	default Observable<None> await() {
-		return new WaitCompleteObservable(this);
+		return await(Duration.ofMillis(-1));
+	}
+
+	/**
+	 * Returns observable, which will be block current thread until this observable complete and publish single item.
+	 *
+	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @return new observable
+	 */
+	default Observable<None> await(Duration timeout) {
+		return new WaitCompleteObservable(this, timeout);
 	}
 
 	/**

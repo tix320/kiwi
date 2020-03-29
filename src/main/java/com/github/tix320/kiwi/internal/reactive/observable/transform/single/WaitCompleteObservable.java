@@ -1,6 +1,8 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
@@ -8,14 +10,18 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.util.None;
+import com.github.tix320.kiwi.internal.reactive.observable.TimeoutException;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 public final class WaitCompleteObservable extends TransformObservable<None> {
 
 	private final Observable<?> observable;
 
-	public WaitCompleteObservable(Observable<?> observable) {
+	private final Duration timeout;
+
+	public WaitCompleteObservable(Observable<?> observable, Duration timeout) {
 		this.observable = observable;
+		this.timeout = timeout;
 	}
 
 	@Override
@@ -48,6 +54,15 @@ public final class WaitCompleteObservable extends TransformObservable<None> {
 			}
 		});
 
-		Try.runOrRethrow(latch::await);
+		long millis = timeout.toMillis();
+		if (millis < 0) {
+			Try.runOrRethrow(latch::await);
+		}
+		else {
+			boolean normally = Try.supplyOrRethrow(() -> latch.await(millis, TimeUnit.MILLISECONDS));
+			if (!normally) {
+				throw new TimeoutException(String.format("The observable not completed in %sms", millis));
+			}
+		}
 	}
 }
