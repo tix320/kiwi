@@ -45,7 +45,7 @@ public class SetProperty<T> implements Property<Set<T>>, Set<T> {
 
 	@Override
 	public Set<T> getValue() {
-		return this;
+		return set;
 	}
 
 	@Override

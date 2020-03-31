@@ -40,7 +40,7 @@ public class CollectionProperty<T> implements Property<Collection<T>>, Collectio
 
 	@Override
 	public Collection<T> getValue() {
-		return this;
+		return collection;
 	}
 
 	@Override

@@ -44,7 +44,7 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 
 	@Override
 	public List<T> getValue() {
-		return this;
+		return list;
 	}
 
 	@Override

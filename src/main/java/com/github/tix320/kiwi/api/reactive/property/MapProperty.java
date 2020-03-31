@@ -17,7 +17,6 @@ public class MapProperty<K, V> implements Property<Map<K, V>>, Map<K, V> {
 
 	private final SinglePublisher<Map<K, V>> publisher;
 
-
 	public MapProperty() {
 		this.publisher = Publisher.single();
 	}
@@ -40,7 +39,7 @@ public class MapProperty<K, V> implements Property<Map<K, V>>, Map<K, V> {
 
 	@Override
 	public Map<K, V> getValue() {
-		return this;
+		return map;
 	}
 
 	@Override
