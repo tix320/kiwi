@@ -1,5 +1,5 @@
 module kiwi {
-	requires transitive net.bytebuddy;
+	requires static net.bytebuddy;
 
 	exports com.github.tix320.kiwi.api.util;
 	exports com.github.tix320.kiwi.api.util.collection;
