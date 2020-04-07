@@ -1,9 +1,9 @@
 package com.github.tix320.kiwi.api.util.collection;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 
@@ -14,9 +14,9 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 	private final Map<T2, T1> inverseView;
 
 	public BiConcurrentHashMap() {
-		straight = new HashMap<>();
+		straight = new ConcurrentHashMap<>();
 		straightView = Collections.unmodifiableMap(straight);
-		inverse = new HashMap<>();
+		inverse = new ConcurrentHashMap<>();
 		inverseView = Collections.unmodifiableMap(inverse);
 	}
 
@@ -32,6 +32,9 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 	public synchronized T2 straightRemove(T1 key) {
 		Objects.requireNonNull(key);
 		T2 value = straight.remove(key);
+		if (value == null) {
+			return null;
+		}
 		inverse.remove(value);
 		return value;
 	}
@@ -40,6 +43,9 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 	public synchronized T1 inverseRemove(T2 key) {
 		Objects.requireNonNull(key);
 		T1 value = inverse.remove(key);
+		if (value == null) {
+			return null;
+		}
 		straight.remove(value);
 		return value;
 	}
