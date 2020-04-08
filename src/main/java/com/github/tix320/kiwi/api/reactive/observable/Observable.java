@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
@@ -23,6 +24,7 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToListObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
+import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.WaitCompleteObservable;
 
 /**
@@ -154,6 +156,16 @@ public interface Observable<T> {
 		return itemHolder.get();
 	}
 
+	/**
+	 * Returns observable, which will be produce another item, if this observable not produces in given duration.
+	 *
+	 * @param timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @return new observable
+	 */
+	default MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
+		return new GetOnTimeoutObservable(this, timeout, factory);
+	}
 
 	// transform functions --------------------------------------
 
