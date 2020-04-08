@@ -400,8 +400,8 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	@SafeVarargs
-	static <T> Observable<List<T>> zip(Observable<T>... observables) {
-		List<Observable<T>> list = new ArrayList<>(Arrays.asList(observables));
+	static <T> Observable<List<T>> zip(Observable<? extends T>... observables) {
+		List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
 		return new ZipObservable<>(list);
 	}
 
@@ -415,9 +415,9 @@ public interface Observable<T> {
 	 *
 	 * @return observable
 	 */
-	static <T> Observable<List<T>> zip(Iterable<? extends Observable<T>> observables) {
-		List<Observable<T>> list = new ArrayList<>();
-		for (Observable<T> observable : observables) {
+	static <T> Observable<List<T>> zip(Iterable<? extends Observable<? extends T>> observables) {
+		List<Observable<? extends T>> list = new ArrayList<>();
+		for (Observable<? extends T> observable : observables) {
 			list.add(observable);
 		}
 		return new ZipObservable<>(list);
@@ -435,7 +435,8 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	@SuppressWarnings("all")
-	static <A, B> Observable<Tuple<A, B>> zip(Observable<A> observable1, Observable<B> observable2) {
+	static <A, B> Observable<Tuple<A, B>> zip(Observable<? extends A> observable1,
+											  Observable<? extends B> observable2) {
 		ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
 		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}

@@ -12,9 +12,9 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformOb
 
 public final class ZipObservable<T> extends TransformObservable<List<T>> {
 
-	private final List<Observable<T>> observables;
+	private final List<Observable<? extends T>> observables;
 
-	public ZipObservable(List<Observable<T>> observables) {
+	public ZipObservable(List<Observable<? extends T>> observables) {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
@@ -41,9 +41,9 @@ public final class ZipObservable<T> extends TransformObservable<List<T>> {
 		};
 
 		for (int i = 0; i < observables.size(); i++) {
-			Observable<T> observable = observables.get(i);
+			Observable<? extends T> observable = observables.get(i);
 			Queue<T> queue = queues.get(i);
-			observable.subscribe(new Subscriber<>() {
+			observable.subscribe(new Subscriber<T>() {
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
