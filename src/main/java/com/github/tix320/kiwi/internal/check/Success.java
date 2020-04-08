@@ -2,7 +2,6 @@ package com.github.tix320.kiwi.internal.check;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -120,15 +119,8 @@ public class Success<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception, M> Try<M> recover(Class<X> exceptionType,
-												   Function<? super X, ? extends M> recoverFunction) {
-		@SuppressWarnings("unchecked")
-		Try<M> typedThis = (Try<M>) this;
-		return typedThis;
-	}
-
-	@Override
-	public <X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction) {
+	public <X extends Exception> Try<T> recover(Class<X> exceptionType,
+												Function<? super X, ? extends T> recoverFunction) {
 		return this;
 	}
 
@@ -215,6 +207,11 @@ public class Success<T> implements Try<T> {
 	@Override
 	public Optional<T> get() {
 		return Optional.ofNullable(value);
+	}
+
+	@Override
+	public T forceGet() {
+		return value;
 	}
 
 	@Override

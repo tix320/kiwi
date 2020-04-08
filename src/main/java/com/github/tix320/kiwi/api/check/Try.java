@@ -114,9 +114,7 @@ public interface Try<T> {
 
 	Try<T> whatever(CheckedRunnable runnable);
 
-	<X extends Exception, M> Try<M> recover(Class<X> exceptionType, Function<? super X, ? extends M> recoverFunction);
-
-	<X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction);
+	<X extends Exception> Try<T> recover(Class<X> exceptionType, Function<? super X, ? extends T> recoverFunction);
 
 	<X extends Exception> Optional<T> optionalOrElseThrow(CheckedSupplier<? extends X> exSupplier)
 			throws X;
@@ -143,6 +141,8 @@ public interface Try<T> {
 	Try<T> onSuccess(CheckedRunnable runnable);
 
 	Optional<T> get();
+
+	T forceGet();
 
 	boolean isEmpty();
 

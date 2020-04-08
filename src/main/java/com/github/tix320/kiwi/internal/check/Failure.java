@@ -2,7 +2,6 @@ package com.github.tix320.kiwi.internal.check;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -105,32 +104,13 @@ public final class Failure<T> implements Try<T> {
 	}
 
 	@Override
-	public <X extends Exception, M> Try<M> recover(Class<X> exceptionType,
-												   Function<? super X, ? extends M> recoverFunction) {
+	public <X extends Exception> Try<T> recover(Class<X> exceptionType,
+												Function<? super X, ? extends T> recoverFunction) {
 		if (exceptionType.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
 				X exception = (X) this.exception;
 				return Success.of(recoverFunction.apply(exception));
-			}
-			catch (Exception e) {
-				throw new IllegalStateException("An error occurred in recover function. See cause.", e);
-			}
-		}
-
-		@SuppressWarnings("unchecked")
-		Try<M> typedThis = (Try<M>) this;
-		return typedThis;
-	}
-
-	@Override
-	public <X extends Exception> Try<T> recover(Class<X> exceptionType, Consumer<? super X> recoverFunction) {
-		if (exceptionType.isInstance(exception)) {
-			try {
-				@SuppressWarnings("unchecked")
-				X exception = (X) this.exception;
-				recoverFunction.accept(exception);
-				return Success.empty();
 			}
 			catch (Exception e) {
 				throw new IllegalStateException("An error occurred in recover function. See cause.", e);
@@ -238,6 +218,11 @@ public final class Failure<T> implements Try<T> {
 
 	@Override
 	public Optional<T> get() {
+		throw WrapperException.wrap(exception);
+	}
+
+	@Override
+	public T forceGet() {
 		throw WrapperException.wrap(exception);
 	}
 
