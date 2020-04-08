@@ -19,11 +19,11 @@ import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.single.WaitCompleteObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.JoinObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToListObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
+import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.WaitCompleteObservable;
 
 /**
  * @param <T> type of data.
@@ -31,7 +31,6 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.oper
  * @author Tigran Sargsyan on 21-Feb-19
  */
 public interface Observable<T> {
-
 
 	/**
 	 * Subscribe to observable.
@@ -73,6 +72,28 @@ public interface Observable<T> {
 	 * @param subscriber for subscribing
 	 */
 	void subscribe(Subscriber<? super T> subscriber);
+
+	// await functions --------------------------------------
+
+	/**
+	 * Returns observable, which will be block current thread until this observable complete and publish single item.
+	 *
+	 * @return new observable
+	 */
+	default Observable<None> await() {
+		return await(Duration.ofMillis(-1));
+	}
+
+	/**
+	 * Returns observable, which will be block current thread until this observable complete and publish single item.
+	 *
+	 * @param timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @return new observable
+	 */
+	default Observable<None> await(Duration timeout) {
+		return new WaitCompleteObservable(this, timeout);
+	}
 
 	/**
 	 * Blocks current thread until this observable will be completed.
@@ -134,27 +155,21 @@ public interface Observable<T> {
 	}
 
 
-	// transforming functions --------------------------------------
+	// transform functions --------------------------------------
 
 	/**
-	 * Returns observable, which will be block current thread until this observable complete and publish single item.
+	 * Return observable, which will subscribe to this and transform every object according to given transformer.
+	 *
+	 * @param mapper for transform objects
+	 * @param <R>    type of result object
 	 *
 	 * @return new observable
 	 */
-	default Observable<None> await() {
-		return await(Duration.ofMillis(-1));
+	default <R> TransformObservable<T, R> map(Function<? super T, ? extends R> mapper) {
+		return new MapperObservable<>(this, mapper);
 	}
 
-	/**
-	 * Returns observable, which will be block current thread until this observable complete and publish single item.
-	 *
-	 * @param timeout timeout to wait. Note: ceil to milliseconds.
-	 *
-	 * @return new observable
-	 */
-	default Observable<None> await(Duration timeout) {
-		return new WaitCompleteObservable(this, timeout);
-	}
+	// filtering functions --------------------------------------
 
 	/**
 	 * Return observable, which will subscribe to this and receive n objects, after that unsubscribe.
@@ -203,38 +218,6 @@ public interface Observable<T> {
 	}
 
 	/**
-	 * Equivalent to {@link Observable#take(long)} with value 1
-	 *
-	 * @return new observable {@link MonoObservable}
-	 */
-	default MonoObservable<T> toMono() {
-		return new OnceObservable<>(this);
-	}
-
-	/**
-	 * Return observable, which will subscribe to this and do given action on every consumed object.
-	 *
-	 * @param action to perform over objects
-	 *
-	 * @return new observable
-	 */
-	default Observable<T> peek(Consumer<? super T> action) {
-		return new PeekObservable<>(this, action);
-	}
-
-	/**
-	 * Return observable, which will subscribe to this and transform every object according to given transformer.
-	 *
-	 * @param mapper for transform objects
-	 * @param <R>    type of result object
-	 *
-	 * @return new observable
-	 */
-	default <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
-		return new MapperObservable<>(this, mapper);
-	}
-
-	/**
 	 * Return observable, which will subscribe to this and set filter to objects according to given filter.
 	 *
 	 * @param filter for filtering objects
@@ -244,6 +227,8 @@ public interface Observable<T> {
 	default Observable<T> filter(Predicate<? super T> filter) {
 		return new FilterObservable<>(this, filter);
 	}
+
+	// collect functions --------------------------------------
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -300,6 +285,30 @@ public interface Observable<T> {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
 
+	// other functions --------------------------------------
+
+	/**
+	 * Convert this observable to {@link MonoObservable}
+	 *
+	 * @return new observable
+	 */
+	default MonoObservable<T> toMono() {
+		return new OnceObservable<>(this);
+	}
+
+	/**
+	 * Return observable, which will subscribe to this and do given action on every consumed object.
+	 *
+	 * @param action to perform over objects
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> peek(Consumer<? super T> action) {
+		return new PeekObservable<>(this, action);
+	}
+
+	// factory functions --------------------------------------
+
 	/**
 	 * Return empty observable, which will be immediately completed.
 	 *
@@ -346,6 +355,8 @@ public interface Observable<T> {
 		subject.complete();
 		return subject.asObservable();
 	}
+
+	// multiple observable functions --------------------------------------
 
 	/**
 	 * Return observable, which will be subscribe to given observables and publish objects from each of them.

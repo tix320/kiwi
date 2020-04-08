@@ -9,12 +9,11 @@ import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
  */
-public final class ConcatObservable<T> extends TransformObservable<T> {
+public final class ConcatObservable<T> implements Observable<T> {
 
 	private final List<Observable<? extends T>> observables;
 

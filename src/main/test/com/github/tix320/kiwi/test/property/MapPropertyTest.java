@@ -18,11 +18,13 @@ public class MapPropertyTest {
 	void simpleTest() {
 		MapProperty<Integer, String> property = Property.forMap();
 
-		assertSame(property, property.getValue());
+		assertNull(property.getValue());
 
 		property.setValue(Map.of(3, "foo"));
 
 		assertEquals(Map.of(3, "foo"), property.getValue());
+		assertEquals(property, Map.of(3, "foo"));
+		assertEquals(Map.of(3, "foo"), property);
 	}
 
 	@Test

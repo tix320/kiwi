@@ -36,4 +36,19 @@ public class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>
 	public Observable<BiMap<K, V>> asObservable() {
 		return property.asObservable().map(UnmodifiableBiMap::new);
 	}
+
+	@Override
+	public int hashCode() {
+		return property.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return property.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return property.toString();
+	}
 }

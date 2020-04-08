@@ -34,4 +34,19 @@ public class ReadOnlyMapProperty<K, V> implements ReadOnlyProperty<Map<K, V>> {
 	public Observable<Map<K, V>> asObservable() {
 		return property.asObservable().map(Collections::unmodifiableMap);
 	}
+
+	@Override
+	public int hashCode() {
+		return property.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return property.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return property.toString();
+	}
 }

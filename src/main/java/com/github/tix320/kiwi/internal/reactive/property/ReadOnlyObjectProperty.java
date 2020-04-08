@@ -1,5 +1,6 @@
 package com.github.tix320.kiwi.internal.reactive.property;
 
+
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
@@ -30,5 +31,20 @@ public class ReadOnlyObjectProperty<T> implements ReadOnlyProperty<T> {
 	@Override
 	public Observable<T> asObservable() {
 		return property.asObservable();
+	}
+
+	@Override
+	public int hashCode() {
+		return property.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return property.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return property.toString();
 	}
 }

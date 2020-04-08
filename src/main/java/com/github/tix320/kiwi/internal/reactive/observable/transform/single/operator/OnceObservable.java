@@ -1,12 +1,11 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class OnceObservable<T> extends TransformObservable<T> implements MonoObservable<T> {
+public final class OnceObservable<T> implements MonoObservable<T> {
 
 	private final Observable<T> observable;
 

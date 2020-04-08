@@ -34,4 +34,19 @@ public class ReadOnlyCollectionProperty<T> implements ReadOnlyProperty<Collectio
 	public Observable<Collection<T>> asObservable() {
 		return property.asObservable().map(Collections::unmodifiableCollection);
 	}
+
+	@Override
+	public int hashCode() {
+		return property.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return property.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return property.toString();
+	}
 }

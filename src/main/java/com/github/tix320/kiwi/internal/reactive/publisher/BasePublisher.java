@@ -12,7 +12,6 @@ import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.util.IDGenerator;
 import com.github.tix320.kiwi.internal.reactive.CompletedException;
-import com.github.tix320.kiwi.internal.reactive.observable.BaseObservable;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
@@ -133,7 +132,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		return subscriptions.stream().filter(subscription -> !subscription.completed).collect(Collectors.toList());
 	}
 
-	public final class PublisherObservable extends BaseObservable<T> {
+	public final class PublisherObservable implements Observable<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {

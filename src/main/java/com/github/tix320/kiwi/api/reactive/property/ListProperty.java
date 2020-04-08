@@ -253,6 +253,28 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 		getValue().forEach(action);
 	}
 
+	@Override
+	public int hashCode() {
+		return list.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (!(obj instanceof List)) {
+			return false;
+		}
+
+		return list.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return list.toString();
+	}
+
 	private void republish() {
 		publisher.publish(list);
 	}

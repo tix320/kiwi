@@ -44,6 +44,26 @@ public class ObjectProperty<T> implements Property<T> {
 		return publisher.asObservable();
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		ObjectProperty<?> that = (ObjectProperty<?>) o;
+		return getValue().equals(that.getValue());
+	}
+
+	@Override
+	public int hashCode() {
+		return getValue().hashCode();
+	}
+
+	@Override
+	public String toString() {
+		return "ObjectProperty: " + getValue().toString();
+	}
+
 	private void failIfCompleted() {
 		if (publisher.isCompleted()) {
 			throw new PropertyClosedException("Cannot change property after close");

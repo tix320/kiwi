@@ -207,6 +207,28 @@ public class MapProperty<K, V> implements Property<Map<K, V>>, Map<K, V> {
 		return Collections.unmodifiableSet(map.entrySet());
 	}
 
+	@Override
+	public int hashCode() {
+		return map.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (!(obj instanceof Map)) {
+			return false;
+		}
+
+		return map.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return map.toString();
+	}
+
 	private void republish() {
 		publisher.publish(map);
 	}

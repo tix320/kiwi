@@ -6,9 +6,8 @@ import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
-public class SkipObservable<T> extends TransformObservable<T> {
+public class SkipObservable<T> implements Observable<T> {
 
 	private final Observable<T> observable;
 

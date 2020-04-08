@@ -4,16 +4,12 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
+import com.github.tix320.kiwi.api.reactive.observable.*;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-public abstract class CollectorObservable<S, R> extends TransformObservable<R> {
+public abstract class CollectorObservable<S, R> implements TransformObservable<S, R> {
 
 	private final Observable<S> observable;
 

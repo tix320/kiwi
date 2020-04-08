@@ -34,4 +34,19 @@ public class ReadOnlySetProperty<T> implements ReadOnlyProperty<Set<T>> {
 	public Observable<Set<T>> asObservable() {
 		return property.asObservable().map(Collections::unmodifiableSet);
 	}
+
+	@Override
+	public int hashCode() {
+		return property.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return property.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return property.toString();
+	}
 }

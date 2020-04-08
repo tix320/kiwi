@@ -7,12 +7,11 @@ import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-public final class UntilObservable<T> extends TransformObservable<T> {
+public final class UntilObservable<T> implements Observable<T> {
 
 	private final Observable<T> observable;
 

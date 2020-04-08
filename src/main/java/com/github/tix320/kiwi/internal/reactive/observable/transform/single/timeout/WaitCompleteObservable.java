@@ -1,19 +1,14 @@
-package com.github.tix320.kiwi.internal.reactive.observable.transform.single;
+package com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.github.tix320.kiwi.api.check.Try;
-import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
+import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.api.util.None;
-import com.github.tix320.kiwi.api.reactive.observable.TimeoutException;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.TransformObservable;
 
-public final class WaitCompleteObservable extends TransformObservable<None> {
+public final class WaitCompleteObservable implements Observable<None> {
 
 	private final Observable<?> observable;
 

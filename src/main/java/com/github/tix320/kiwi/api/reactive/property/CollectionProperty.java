@@ -1,9 +1,6 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
@@ -181,6 +178,28 @@ public class CollectionProperty<T> implements Property<Collection<T>>, Collectio
 	@Override
 	public void forEach(Consumer<? super T> action) {
 		collection.forEach(action);
+	}
+
+	@Override
+	public int hashCode() {
+		return collection.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (!(obj instanceof Collection)) {
+			return false;
+		}
+
+		return collection.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return collection.toString();
 	}
 
 	private void republish() {

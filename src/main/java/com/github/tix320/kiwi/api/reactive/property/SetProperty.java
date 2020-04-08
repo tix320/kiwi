@@ -178,6 +178,28 @@ public class SetProperty<T> implements Property<Set<T>>, Set<T> {
 		return set.parallelStream();
 	}
 
+	@Override
+	public int hashCode() {
+		return set.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (!(obj instanceof Set)) {
+			return false;
+		}
+
+		return set.equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return set.toString();
+	}
+
 	private void republish() {
 		publisher.publish(set);
 	}
