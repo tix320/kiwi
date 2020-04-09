@@ -45,18 +45,12 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	@Override
 	public final void complete() {
-		publishLock.lock();
-		try {
-			failIfCompleted();
+		boolean changed = completed.compareAndSet(false, true);
+		if (changed) {
 			for (InternalSubscription subscription : subscriptions) {
 				subscription.cancel(CompletionType.SOURCE_COMPLETED);
 			}
-			completed.set(true);
 		}
-		finally {
-			publishLock.unlock();
-		}
-
 	}
 
 	@Override
@@ -124,7 +118,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private void failIfCompleted() {
 		if (completed.get()) {
-			throw new CompletedException("Publisher is completed, you can not complete again or publish items.");
+			throw new CompletedException("Publisher is completed, you can not publish items.");
 		}
 	}
 

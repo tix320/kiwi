@@ -3,7 +3,6 @@ package com.github.tix320.kiwi.api.reactive.publisher;
 import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.util.None;
-import com.github.tix320.kiwi.internal.reactive.CompletedException;
 
 /**
  * A producer of items (and related control messages) received by
@@ -20,8 +19,6 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 * Publish object.
 	 *
 	 * @param object to publish
-	 *
-	 * @throws CompletedException if already completed
 	 */
 	void publish(T object);
 
@@ -30,15 +27,13 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 *
 	 * @param throwable to publish
 	 *
-	 * @throws CompletedException if already completed
 	 * @see Subscriber#onError(Throwable)
 	 */
 	void publishError(Throwable throwable);
 
 	/**
 	 * Complete this publisher, after that cannot be published objects.
-	 *
-	 * @throws CompletedException if already completed
+	 * Invoking this method more than one time will no effect.
 	 */
 	void complete();
 
