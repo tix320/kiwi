@@ -1,6 +1,5 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,13 +15,20 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 		this.cache = new LinkedList<>();
 	}
 
-	@Override
-	protected void onNewSubscriber(ConditionalConsumer<T> publisherFUnction) {
-		publishFromCache(publisherFUnction);
+	public CachedPublisher(Iterable<T> iterable) {
+		this.cache = new LinkedList<>();
+		for (T value : iterable) {
+			cache.add(value);
+		}
 	}
 
 	@Override
-	protected void prePublish( T object) {
+	protected void onNewSubscriber(ConditionalConsumer<T> publisherFunction) {
+		publishFromCache(publisherFunction);
+	}
+
+	@Override
+	protected void prePublish(T object) {
 		addToCache(object);
 	}
 

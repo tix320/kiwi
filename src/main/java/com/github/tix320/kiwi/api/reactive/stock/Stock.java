@@ -12,6 +12,8 @@ public interface Stock<T> extends ObservableStock<T> {
 
 	ReadOnlyStock<T> toReadOnly();
 
+	// ---------- Factory methods ----------
+
 	static <T> Stock<T> forObject() {
 		return new ObjectStock<>();
 	}

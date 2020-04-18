@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
@@ -349,6 +350,19 @@ public interface Observable<T> {
 		return subject.asObservable().toMono();
 	}
 
+	/**
+	 * Return observable, which will be produce items from given iterable and then immediately completed.
+	 *
+	 * @param iterable to publish
+	 * @param <T>      type of objects
+	 *
+	 * @return observable
+	 */
+	static <T> Observable<T> of(Iterable<T> iterable) {
+		CachedPublisher<T> publisher = new CachedPublisher<>(iterable);
+		publisher.complete();
+		return publisher.asObservable();
+	}
 
 	/**
 	 * Return observable, which will be produce given objects and then immediately completed.
