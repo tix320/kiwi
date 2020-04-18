@@ -24,7 +24,7 @@ public class SkipObservable<T> implements Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong mustSkip = new AtomicLong(count);
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);

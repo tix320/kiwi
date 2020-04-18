@@ -34,7 +34,7 @@ public final class UntilObservable<T> implements Observable<T> {
 				subscription.unsubscribe();
 			}
 		}));
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {

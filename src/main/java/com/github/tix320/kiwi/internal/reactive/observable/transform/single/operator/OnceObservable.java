@@ -15,7 +15,7 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 
 			private volatile boolean completedFromSubscriber = false;
 

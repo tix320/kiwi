@@ -23,7 +23,7 @@ public final class PeekObservable<T> implements Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);

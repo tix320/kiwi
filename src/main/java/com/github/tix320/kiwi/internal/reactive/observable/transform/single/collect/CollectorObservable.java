@@ -20,7 +20,7 @@ public abstract class CollectorObservable<S, R> implements TransformObservable<S
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new LinkedList<>();
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<S>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.onSubscribe(subscription);
