@@ -1,99 +1,82 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
 import java.util.Map;
-import java.util.Objects;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 import com.github.tix320.kiwi.api.util.collection.BiMap;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyBiMapProperty;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public class BiMapProperty<K, V> implements Property<BiMap<K, V>>, BiMap<K, V> {
-
-	private volatile BiMap<K, V> map;
-
-	private final SinglePublisher<BiMap<K, V>> publisher;
+public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> implements BiMap<K, V> {
 
 	public BiMapProperty() {
-		this.publisher = Publisher.single();
+
 	}
 
-	public BiMapProperty(BiMap<K, V> initialValue) {
-		this.map = Objects.requireNonNull(initialValue);
-		this.publisher = Publisher.single(initialValue);
+	public BiMapProperty(BiMap<K, V> value) {
+		super(value);
 	}
 
 	@Override
 	public ReadOnlyProperty<BiMap<K, V>> toReadOnly() {
-		return ReadOnlyBiMapProperty.wrap(this);
-	}
-
-	@Override
-	public void setValue(BiMap<K, V> value) {
-		this.map = Objects.requireNonNull(value);
-		republish();
-	}
-
-	@Override
-	public BiMap<K, V> getValue() {
-		return map;
-	}
-
-	@Override
-	public void close() {
-		publisher.complete();
-	}
-
-	@Override
-	public Observable<BiMap<K, V>> asObservable() {
-		return publisher.asObservable();
+		return new ReadOnlyBiMapProperty(this);
 	}
 
 	@Override
 	public void put(K key, V value) {
-		failIfCompleted();
-		map.put(key, value);
-		republish();
+		checkClosed();
+		getValue().put(key, value);
+		publishChanges();
 	}
 
 	@Override
 	public V straightRemove(K key) {
-		failIfCompleted();
-		V v = map.straightRemove(key);
-		republish();
+		checkClosed();
+		V v = getValue().straightRemove(key);
+		publishChanges();
 		return v;
 	}
 
 	@Override
 	public K inverseRemove(V key) {
-		failIfCompleted();
-		K k = map.inverseRemove(key);
-		republish();
+		checkClosed();
+		K k = getValue().inverseRemove(key);
+		publishChanges();
 		return k;
 	}
 
 	@Override
 	public Map<K, V> straightView() {
-		return map.straightView();
+		return getValue().straightView();
 	}
 
 	@Override
 	public Map<V, K> inverseView() {
-		return map.inverseView();
+		return getValue().inverseView();
 	}
 
-	private void republish() {
-		publisher.publish(map);
+
+	@Override
+	public int hashCode() {
+		return getValue().hashCode();
 	}
 
-	private void failIfCompleted() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
 		}
+		if (!(obj instanceof BiMap)) {
+			return false;
+		}
+
+		return getValue().equals(obj);
+	}
+
+	@Override
+	public String toString() {
+		return getValue().toString();
 	}
 }

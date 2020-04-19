@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.api.reactive.stock;
+package com.github.tix320.kiwi.api.reactive.property;
 
 import java.util.List;
 

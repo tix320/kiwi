@@ -1,186 +1,165 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlySetProperty;
 
 /**
  * @author Tigran Sargsyan on 24-Mar-20.
  */
-public class SetProperty<T> implements Property<Set<T>>, Set<T> {
-
-	private volatile Set<T> set;
-
-	private final SinglePublisher<Set<T>> publisher;
+public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Set<T> {
 
 	public SetProperty() {
-		this.publisher = Publisher.single();
 	}
 
-	public SetProperty(Set<T> initialValue) {
-		this.set = Objects.requireNonNull(initialValue);
-		this.publisher = Publisher.single(initialValue);
+	public SetProperty(Set<T> value) {
+		super(value);
 	}
 
 	@Override
 	public ReadOnlyProperty<Set<T>> toReadOnly() {
-		return ReadOnlySetProperty.wrap(this);
-	}
-
-	@Override
-	public void setValue(Set<T> value) {
-		failIfCompleted();
-		this.set = Objects.requireNonNull(value);
-		republish();
-	}
-
-	@Override
-	public Set<T> getValue() {
-		return set;
-	}
-
-	@Override
-	public void close() {
-		publisher.complete();
-	}
-
-	@Override
-	public Observable<Set<T>> asObservable() {
-		return publisher.asObservable();
+		return new ReadOnlySetProperty(this);
 	}
 
 	@Override
 	public int size() {
-		return set.size();
+		return getValue().size();
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return set.isEmpty();
+		return getValue().isEmpty();
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		return set.contains(o);
+		return getValue().contains(o);
 	}
 
 	@Override
 	public Iterator<T> iterator() {
-		return new UnmodifiableIterator<>(set.iterator());
+		return new UnmodifiableIterator<>(getValue().iterator());
 	}
 
 	@Override
 	public void forEach(Consumer<? super T> action) {
-		set.forEach(action);
+		getValue().forEach(action);
 	}
 
 	@Override
 	public Object[] toArray() {
-		return set.toArray();
+		return getValue().toArray();
 	}
 
 	@Override
 	public <T1> T1[] toArray(T1[] a) {
-		return set.toArray(a);
+		return getValue().toArray(a);
 	}
 
 	@Override
 	public <T1> T1[] toArray(IntFunction<T1[]> generator) {
-		return set.toArray(generator);
+		return getValue().toArray(generator);
 	}
 
 	@Override
 	public boolean add(T t) {
-		boolean added = set.add(t);
+		checkClosed();
+		boolean added = getValue().add(t);
 		if (added) {
-			republish();
+			publishChanges();
 		}
 		return added;
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		boolean removed = set.remove(o);
+		checkClosed();
+		boolean removed = getValue().remove(o);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		return set.containsAll(c);
+		return getValue().containsAll(c);
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends T> c) {
-		boolean added = set.addAll(c);
+		checkClosed();
+		boolean added = getValue().addAll(c);
 		if (added) {
-			republish();
+			publishChanges();
 		}
 		return added;
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		boolean changed = set.retainAll(c);
+		checkClosed();
+		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republish();
+			publishChanges();
 		}
 		return changed;
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		boolean removed = set.removeAll(c);
+		checkClosed();
+		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public boolean removeIf(Predicate<? super T> filter) {
-		boolean removed = set.removeIf(filter);
+		checkClosed();
+		boolean removed = getValue().removeIf(filter);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public void clear() {
-		set.clear();
-		republish();
+		checkClosed();
+		getValue().clear();
+		publishChanges();
 	}
 
 	@Override
 	public Spliterator<T> spliterator() {
-		return set.spliterator();
+		return getValue().spliterator();
 	}
 
 	@Override
 	public Stream<T> stream() {
-		return set.stream();
+		return getValue().stream();
 	}
 
 	@Override
 	public Stream<T> parallelStream() {
-		return set.parallelStream();
+		return getValue().parallelStream();
 	}
 
 	@Override
 	public int hashCode() {
-		return set.hashCode();
+		return getValue().hashCode();
 	}
 
 	@Override
@@ -192,21 +171,11 @@ public class SetProperty<T> implements Property<Set<T>>, Set<T> {
 			return false;
 		}
 
-		return set.equals(obj);
+		return getValue().equals(obj);
 	}
 
 	@Override
 	public String toString() {
-		return set.toString();
-	}
-
-	private void republish() {
-		publisher.publish(set);
-	}
-
-	private void failIfCompleted() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
-		}
+		return getValue().toString();
 	}
 }

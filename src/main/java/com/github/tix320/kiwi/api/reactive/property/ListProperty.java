@@ -7,69 +7,38 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyListProperty;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableListIterator;
+import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyListProperty;
 
-public class ListProperty<T> implements Property<List<T>>, List<T> {
-
-	private volatile List<T> list;
-
-	private final SinglePublisher<List<T>> publisher;
+public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements List<T> {
 
 	public ListProperty() {
-		this.publisher = Publisher.single();
 	}
 
-	public ListProperty(List<T> initialValue) {
-		this.list = Objects.requireNonNull(initialValue);
-		this.publisher = Publisher.single(initialValue);
+	public ListProperty(List<T> value) {
+		super(value);
 	}
 
 	@Override
 	public ReadOnlyProperty<List<T>> toReadOnly() {
-		return ReadOnlyListProperty.wrap(this);
-	}
-
-	@Override
-	public void setValue(List<T> value) {
-		failIfCompleted();
-		this.list = Objects.requireNonNull(value);
-		republish();
-	}
-
-	@Override
-	public List<T> getValue() {
-		return list;
-	}
-
-	@Override
-	public void close() {
-		publisher.complete();
-	}
-
-	@Override
-	public Observable<List<T>> asObservable() {
-		return publisher.asObservable();
+		return new ReadOnlyListProperty(this);
 	}
 
 	@Override
 	public int size() {
-		return list.size();
+		return getValue().size();
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return list.isEmpty();
+		return getValue().isEmpty();
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		return list.contains(o);
+		return getValue().contains(o);
 	}
 
 	@Override
@@ -80,59 +49,59 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 
 	@Override
 	public Object[] toArray() {
-		return list.toArray();
+		return getValue().toArray();
 	}
 
 	@Override
 	public <A> A[] toArray(A[] a) {
-		return list.toArray(a);
+		return getValue().toArray(a);
 	}
 
 	@Override
 	public boolean add(T t) {
-		failIfCompleted();
-		list.add(t);
-		republish();
+		checkClosed();
+		getValue().add(t);
+		publishChanges();
 		return true;
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		failIfCompleted();
-		boolean removed = list.remove(o);
+		checkClosed();
+		boolean removed = getValue().remove(o);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		return list.containsAll(c);
+		return getValue().containsAll(c);
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends T> c) {
-		failIfCompleted();
-		list.addAll(c);
-		republish();
+		checkClosed();
+		getValue().addAll(c);
+		publishChanges();
 		return true;
 	}
 
 	@Override
 	public boolean addAll(int index, Collection<? extends T> c) {
-		failIfCompleted();
-		list.addAll(c);
-		republish();
+		checkClosed();
+		getValue().addAll(c);
+		publishChanges();
 		return true;
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		failIfCompleted();
-		boolean removed = list.removeAll(c);
+		checkClosed();
+		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
@@ -144,71 +113,71 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		failIfCompleted();
-		boolean changed = list.retainAll(c);
+		checkClosed();
+		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republish();
+			publishChanges();
 		}
 		return changed;
 	}
 
 	@Override
 	public void replaceAll(UnaryOperator<T> operator) {
-		failIfCompleted();
-		list.replaceAll(operator);
-		republish();
+		checkClosed();
+		getValue().replaceAll(operator);
+		publishChanges();
 	}
 
 	@Override
 	public void sort(Comparator<? super T> c) {
-		failIfCompleted();
-		list.sort(c);
-		republish();
+		checkClosed();
+		getValue().sort(c);
+		publishChanges();
 	}
 
 	@Override
 	public void clear() {
-		failIfCompleted();
-		list.clear();
-		republish();
+		checkClosed();
+		getValue().clear();
+		publishChanges();
 	}
 
 	@Override
 	public T get(int index) {
-		return list.get(index);
+		return getValue().get(index);
 	}
 
 	@Override
 	public T set(int index, T element) {
-		failIfCompleted();
-		T previousElem = list.set(index, element);
-		republish();
+		checkClosed();
+		T previousElem = getValue().set(index, element);
+		publishChanges();
 		return previousElem;
 	}
 
 	@Override
 	public void add(int index, T element) {
-		failIfCompleted();
-		list.add(index, element);
-		republish();
+		checkClosed();
+		getValue().add(index, element);
+		publishChanges();
 	}
 
 	@Override
 	public T remove(int index) {
-		failIfCompleted();
-		T removed = list.remove(index);
-		republish();
+		checkClosed();
+		T removed = getValue().remove(index);
+		publishChanges();
 		return removed;
 	}
 
 	@Override
 	public int indexOf(Object o) {
-		return list.indexOf(o);
+		return getValue().indexOf(o);
 	}
 
 	@Override
 	public int lastIndexOf(Object o) {
-		return list.lastIndexOf(o);
+		return getValue().lastIndexOf(o);
 	}
 
 	@Override
@@ -230,22 +199,22 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 
 	@Override
 	public Spliterator<T> spliterator() {
-		return list.spliterator();
+		return getValue().spliterator();
 	}
 
 	@Override
 	public <T1> T1[] toArray(IntFunction<T1[]> generator) {
-		return list.toArray(generator);
+		return getValue().toArray(generator);
 	}
 
 	@Override
 	public Stream<T> stream() {
-		return list.stream();
+		return getValue().stream();
 	}
 
 	@Override
 	public Stream<T> parallelStream() {
-		return list.parallelStream();
+		return getValue().parallelStream();
 	}
 
 	@Override
@@ -255,7 +224,7 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 
 	@Override
 	public int hashCode() {
-		return list.hashCode();
+		return getValue().hashCode();
 	}
 
 	@Override
@@ -267,21 +236,11 @@ public class ListProperty<T> implements Property<List<T>>, List<T> {
 			return false;
 		}
 
-		return list.equals(obj);
+		return getValue().equals(obj);
 	}
 
 	@Override
 	public String toString() {
-		return list.toString();
-	}
-
-	private void republish() {
-		publisher.publish(list);
-	}
-
-	private void failIfCompleted() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
-		}
+		return getValue().toString();
 	}
 }

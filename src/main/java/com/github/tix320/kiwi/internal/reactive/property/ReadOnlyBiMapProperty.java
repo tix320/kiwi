@@ -9,22 +9,12 @@ import com.github.tix320.kiwi.api.util.collection.UnmodifiableBiMap;
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>> {
+public final class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>> {
 
 	private final Property<BiMap<K, V>> property;
 
-	private ReadOnlyBiMapProperty(Property<BiMap<K, V>> property) {
+	public ReadOnlyBiMapProperty(Property<BiMap<K, V>> property) {
 		this.property = property;
-	}
-
-	@SuppressWarnings("all")
-	public static <K, V> ReadOnlyProperty<BiMap<K, V>> wrap(Property<BiMap<K, V>> property) {
-		if (property instanceof ReadOnlyBiMapProperty) {
-			return (ReadOnlyBiMapProperty) property;
-		}
-		else {
-			return new ReadOnlyBiMapProperty<>(property);
-		}
 	}
 
 	@Override

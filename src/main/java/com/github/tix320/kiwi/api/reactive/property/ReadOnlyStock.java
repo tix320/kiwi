@@ -1,3 +1,3 @@
-package com.github.tix320.kiwi.api.reactive.stock;
+package com.github.tix320.kiwi.api.reactive.property;
 
 public interface ReadOnlyStock<T> extends ObservableStock<T> {}

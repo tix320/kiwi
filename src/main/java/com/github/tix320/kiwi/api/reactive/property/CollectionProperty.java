@@ -1,152 +1,124 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyCollectionProperty;
 
-public class CollectionProperty<T> implements Property<Collection<T>>, Collection<T> {
-
-	private volatile Collection<T> collection;
-
-	private final SinglePublisher<Collection<T>> publisher;
+public final class CollectionProperty<T> extends BaseLazyProperty<Collection<T>> implements Collection<T> {
 
 	public CollectionProperty() {
-		this.publisher = Publisher.single();
 	}
 
-	public CollectionProperty(Collection<T> initialValue) {
-		this.collection = Objects.requireNonNull(initialValue);
-		this.publisher = Publisher.single(this);
-	}
-
-	@Override
-	public void setValue(Collection<T> value) {
-		failIfCompleted();
-		this.collection = Objects.requireNonNull(value);
-		republish();
-	}
-
-	@Override
-	public Collection<T> getValue() {
-		return collection;
-	}
-
-	@Override
-	public void close() {
-		publisher.complete();
+	public CollectionProperty(Collection<T> value) {
+		super(value);
 	}
 
 	@Override
 	public ReadOnlyProperty<Collection<T>> toReadOnly() {
-		return ReadOnlyCollectionProperty.wrap(this);
+		return new ReadOnlyCollectionProperty(this);
 	}
 
-	@Override
-	public Observable<Collection<T>> asObservable() {
-		return publisher.asObservable();
-	}
 
 	@Override
 	public int size() {
-		return collection.size();
+		return getValue().size();
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return collection.isEmpty();
+		return getValue().isEmpty();
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		return collection.contains(o);
+		return getValue().contains(o);
 	}
 
 	@Override
 	public Iterator<T> iterator() {
-		Iterator<T> iterator = collection.iterator();
+		Iterator<T> iterator = getValue().iterator();
 		return new UnmodifiableIterator<>(iterator);
 	}
 
 	@Override
 	public Object[] toArray() {
-		return collection.toArray();
+		return getValue().toArray();
 	}
 
 	@Override
 	@SuppressWarnings("all")
 	public <A> A[] toArray(A[] a) {
-		return collection.toArray(a);
+		return getValue().toArray(a);
 	}
 
 	@Override
 	public boolean add(T t) {
-		failIfCompleted();
-		boolean added = collection.add(t);
+		checkClosed();
+		boolean added = getValue().add(t);
 		if (added) {
-			republish();
+			publishChanges();
 		}
 		return added;
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		failIfCompleted();
-		boolean removed = collection.remove(o);
+		checkClosed();
+		boolean removed = getValue().remove(o);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		return collection.containsAll(c);
+		return getValue().containsAll(c);
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends T> c) {
-		failIfCompleted();
-		boolean added = collection.addAll(c);
+		checkClosed();
+		boolean added = getValue().addAll(c);
 		if (added) {
-			republish();
+			publishChanges();
 		}
 		return added;
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		failIfCompleted();
-		boolean removed = collection.removeAll(c);
+		checkClosed();
+		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republish();
+			publishChanges();
 		}
 		return removed;
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		failIfCompleted();
-		boolean changed = collection.retainAll(c);
+		checkClosed();
+		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republish();
+			publishChanges();
 		}
 		return changed;
 	}
 
 	@Override
 	public void clear() {
-		failIfCompleted();
-		collection.clear();
-		republish();
+		checkClosed();
+		getValue().clear();
+		publishChanges();
 	}
 
 	@Override
@@ -157,32 +129,32 @@ public class CollectionProperty<T> implements Property<Collection<T>>, Collectio
 	@Override
 	@SuppressWarnings("all")
 	public <T1> T1[] toArray(IntFunction<T1[]> generator) {
-		return collection.toArray(generator);
+		return getValue().toArray(generator);
 	}
 
 	@Override
 	public Spliterator<T> spliterator() {
-		return collection.spliterator();
+		return getValue().spliterator();
 	}
 
 	@Override
 	public Stream<T> stream() {
-		return collection.stream();
+		return getValue().stream();
 	}
 
 	@Override
 	public Stream<T> parallelStream() {
-		return collection.parallelStream();
+		return getValue().parallelStream();
 	}
 
 	@Override
 	public void forEach(Consumer<? super T> action) {
-		collection.forEach(action);
+		getValue().forEach(action);
 	}
 
 	@Override
 	public int hashCode() {
-		return collection.hashCode();
+		return getValue().hashCode();
 	}
 
 	@Override
@@ -194,21 +166,11 @@ public class CollectionProperty<T> implements Property<Collection<T>>, Collectio
 			return false;
 		}
 
-		return collection.equals(obj);
+		return getValue().equals(obj);
 	}
 
 	@Override
 	public String toString() {
-		return collection.toString();
-	}
-
-	private void republish() {
-		publisher.publish(collection);
-	}
-
-	private void failIfCompleted() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
-		}
+		return getValue().toString();
 	}
 }

@@ -7,22 +7,12 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
 
-public class ReadOnlySetProperty<T> implements ReadOnlyProperty<Set<T>> {
+public final class ReadOnlySetProperty<T> implements ReadOnlyProperty<Set<T>> {
 
 	private final Property<Set<T>> property;
 
-	private ReadOnlySetProperty(Property<Set<T>> property) {
+	public ReadOnlySetProperty(Property<Set<T>> property) {
 		this.property = property;
-	}
-
-	@SuppressWarnings("all")
-	public static <T> ReadOnlyProperty<Set<T>> wrap(Property<Set<T>> property) {
-		if (property instanceof ReadOnlySetProperty) {
-			return (ReadOnlySetProperty) property;
-		}
-		else {
-			return new ReadOnlySetProperty<>(property);
-		}
 	}
 
 	@Override

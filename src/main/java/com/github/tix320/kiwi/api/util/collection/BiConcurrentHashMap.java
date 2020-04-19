@@ -59,4 +59,28 @@ public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 	public Map<T2, T1> inverseView() {
 		return inverseView;
 	}
+
+	@Override
+	public int hashCode() {
+		return straight.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (!(obj instanceof BiMap)) {
+			return false;
+		}
+
+		BiMap<?, ?> that = (BiMap<?, ?>) obj;
+
+		return straight.equals(that.straightView());
+	}
+
+	@Override
+	public String toString() {
+		return straight.toString();
+	}
 }

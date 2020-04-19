@@ -6,12 +6,15 @@ import java.util.Map;
 import java.util.Set;
 
 import com.github.tix320.kiwi.api.util.collection.BiMap;
+import com.github.tix320.kiwi.internal.reactive.property.PropertyAtomicContext;
 
-public interface Property<T> extends ObservableProperty<T> {
+public interface Property<T> extends ChangeableProperty, ObservableProperty<T> {
 
 	void setValue(T value);
 
 	void close();
+
+	boolean isClosed();
 
 	ReadOnlyProperty<T> toReadOnly();
 
@@ -63,5 +66,13 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	static <K, V> BiMapProperty<K, V> forBiMap(BiMap<K, V> initialValue) {
 		return new BiMapProperty<>(initialValue);
+	}
+
+	// ---------- Helper methods ----------
+
+	static void inAtomicContext(Runnable runnable) {
+		PropertyAtomicContext.prepareContext();
+		runnable.run();
+		PropertyAtomicContext.destroyContext();
 	}
 }

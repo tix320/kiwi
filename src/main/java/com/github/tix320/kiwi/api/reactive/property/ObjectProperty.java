@@ -1,47 +1,20 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
 import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyObjectProperty;
 
-public class ObjectProperty<T> implements Property<T> {
-
-	private final SinglePublisher<T> publisher;
+public final class ObjectProperty<T> extends BaseLazyProperty<T> {
 
 	public ObjectProperty() {
-		this.publisher = Publisher.single();
 	}
 
-	public ObjectProperty(T initialValue) {
-		this.publisher = Publisher.single(initialValue);
-	}
-
-	@Override
-	public void setValue(T value) {
-		failIfCompleted();
-		publisher.publish(value);
-	}
-
-	@Override
-	public T getValue() {
-		return publisher.getValue();
-	}
-
-	@Override
-	public void close() {
-		publisher.complete();
+	public ObjectProperty(T value) {
+		super(value);
 	}
 
 	@Override
 	public ReadOnlyProperty<T> toReadOnly() {
-		return ReadOnlyObjectProperty.wrap(this);
-	}
-
-	@Override
-	public Observable<T> asObservable() {
-		return publisher.asObservable();
+		return new ReadOnlyObjectProperty<>(this);
 	}
 
 	@Override
@@ -51,6 +24,9 @@ public class ObjectProperty<T> implements Property<T> {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		ObjectProperty<?> that = (ObjectProperty<?>) o;
+		if (getValue() == null) {
+			return that.getValue() == null;
+		}
 		return getValue().equals(that.getValue());
 	}
 
@@ -62,12 +38,6 @@ public class ObjectProperty<T> implements Property<T> {
 	@Override
 	public String toString() {
 		return "ObjectProperty: " + getValue().toString();
-	}
-
-	private void failIfCompleted() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
-		}
 	}
 }
 

@@ -7,22 +7,12 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
 
-public class ReadOnlyMapProperty<K, V> implements ReadOnlyProperty<Map<K, V>> {
+public final class ReadOnlyMapProperty<K, V> implements ReadOnlyProperty<Map<K, V>> {
 
 	private final Property<Map<K, V>> property;
 
-	private ReadOnlyMapProperty(Property<Map<K, V>> property) {
+	public ReadOnlyMapProperty(Property<Map<K, V>> property) {
 		this.property = property;
-	}
-
-	@SuppressWarnings("all")
-	public static <K, V> ReadOnlyProperty<Map<K, V>> wrap(Property<Map<K, V>> property) {
-		if (property instanceof ReadOnlyMapProperty) {
-			return (ReadOnlyMapProperty) property;
-		}
-		else {
-			return new ReadOnlyMapProperty<>(property);
-		}
 	}
 
 	@Override
