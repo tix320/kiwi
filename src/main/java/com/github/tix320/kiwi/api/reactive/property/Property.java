@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.util.collection.BiMap;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyAtomicContext;
@@ -70,14 +71,22 @@ public interface Property<T> extends ChangeableProperty, ObservableProperty<T> {
 
 	// ---------- Helper methods ----------
 
-	static void inAtomicContext(Runnable runnable) {
+	static <T> T inAtomicContext(Supplier<T> runnable) {
 		if (PropertyAtomicContext.inAtomicContext()) {
-			runnable.run();
+			return runnable.get();
 		}
 		else {
 			PropertyAtomicContext.prepareContext();
-			runnable.run();
+			T result = runnable.get();
 			PropertyAtomicContext.destroyContext();
+			return result;
 		}
+	}
+
+	static void inAtomicContext(Runnable runnable) {
+		inAtomicContext(() -> {
+			runnable.run();
+			return null;
+		});
 	}
 }
