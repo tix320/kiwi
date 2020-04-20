@@ -11,7 +11,7 @@ import com.github.tix320.kiwi.api.reactive.property.ChangeableProperty;
  */
 public final class PropertyAtomicContext {
 
-	public static final ThreadLocal<Set<ChangeableProperty>> atomicContext = new ThreadLocal<>();
+	private static final ThreadLocal<Set<ChangeableProperty>> atomicContext = new ThreadLocal<>();
 
 	public static void prepareContext() {
 		atomicContext.set(Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -32,5 +32,9 @@ public final class PropertyAtomicContext {
 			properties.add(property);
 			return true;
 		}
+	}
+
+	public static boolean inAtomicContext() {
+		return atomicContext.get() != null;
 	}
 }

@@ -126,4 +126,24 @@ public class PropertyAtomicContextTest {
 		exceptions.forEach(Throwable::printStackTrace);
 		assertEquals(0, exceptions.size());
 	}
+
+	@Test
+	void nestedContextsTest() {
+		List<Integer> expected = Arrays.asList(3, 5, 6);
+		List<Integer> actual = new ArrayList<>();
+
+		ObjectProperty<Integer> property = Property.forObject();
+		property.asObservable().subscribe(actual::add);
+
+		property.setValue(3);
+
+		Property.inAtomicContext(() -> {
+			property.setValue(4);
+			Property.inAtomicContext(() -> property.setValue(5));
+		});
+
+		property.setValue(6);
+
+		assertEquals(expected, actual);
+	}
 }

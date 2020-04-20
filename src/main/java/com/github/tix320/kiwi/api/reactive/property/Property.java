@@ -71,8 +71,13 @@ public interface Property<T> extends ChangeableProperty, ObservableProperty<T> {
 	// ---------- Helper methods ----------
 
 	static void inAtomicContext(Runnable runnable) {
-		PropertyAtomicContext.prepareContext();
-		runnable.run();
-		PropertyAtomicContext.destroyContext();
+		if (PropertyAtomicContext.inAtomicContext()) {
+			runnable.run();
+		}
+		else {
+			PropertyAtomicContext.prepareContext();
+			runnable.run();
+			PropertyAtomicContext.destroyContext();
+		}
 	}
 }
