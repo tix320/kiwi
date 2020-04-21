@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlySetProperty;
 
 /**
  * @author Tigran Sargsyan on 24-Mar-20.
@@ -27,7 +26,7 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 
 	@Override
 	public ReadOnlyProperty<Set<T>> toReadOnly() {
-		return new ReadOnlySetProperty(this);
+		return new ReadOnlySetProperty<>(this);
 	}
 
 	@Override

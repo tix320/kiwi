@@ -76,10 +76,15 @@ public interface Property<T> extends ChangeableProperty, ObservableProperty<T> {
 			return runnable.get();
 		}
 		else {
-			PropertyAtomicContext.prepareContext();
-			T result = runnable.get();
-			PropertyAtomicContext.destroyContext();
-			return result;
+			try {
+				PropertyAtomicContext.create();
+				T result = runnable.get();
+				PropertyAtomicContext.commitChangesAndDestroy();
+				return result;
+			}
+			finally {
+				PropertyAtomicContext.destroy();
+			}
 		}
 	}
 

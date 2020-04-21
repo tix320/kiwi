@@ -16,7 +16,7 @@ public abstract class BaseLazyProperty<T> extends BaseProperty<T> {
 
 	@Override
 	public final void publishChanges() {
-		if (!PropertyAtomicContext.checkAtomicContext(this)) {
+		if (!PropertyAtomicContext.inAtomicContext(this)) {
 			super.publishChanges();
 		}
 	}

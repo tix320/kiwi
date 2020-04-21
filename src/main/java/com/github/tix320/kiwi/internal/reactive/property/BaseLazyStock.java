@@ -17,20 +17,27 @@ public abstract class BaseLazyStock<T> extends BaseStock<T> {
 	}
 
 	@Override
-	public void publishChanges() {
+	public final void publishChanges() {
+		checkClosed();
 		List<T> values = new ArrayList<>(notPublishedValues);
 		notPublishedValues.clear();
 		values.forEach(super::publish);
 	}
 
 	@Override
-	protected void publish(T value) {
-		if (PropertyAtomicContext.checkAtomicContext(this)) {
+	protected final void publish(T value) {
+		if (PropertyAtomicContext.inAtomicContext(this)) {
 			notPublishedValues.add(value);
 		}
 		else {
 			super.publish(value);
 		}
+	}
+
+	@Override
+	public final void close() {
+		super.close();
+		notPublishedValues.clear();
 	}
 
 	@Override

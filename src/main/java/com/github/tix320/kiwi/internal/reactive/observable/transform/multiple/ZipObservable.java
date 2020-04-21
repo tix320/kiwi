@@ -37,7 +37,25 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 			queues.clear();
 		};
 
+		Subscription subscription = new Subscription() {
+			@Override
+			public boolean isCompleted() {
+				return completed.get();
+			}
+
+			@Override
+			public void unsubscribe() {
+				if (completed.compareAndSet(false, true)) {
+					cleanup.accept(CompletionType.UNSUBSCRIPTION);
+				}
+			}
+		};
+		subscriber.onSubscribe(subscription);
+
 		for (int i = 0; i < observables.size(); i++) {
+			if (completed.get()) {
+				break;
+			}
 			Observable<? extends T> observable = observables.get(i);
 			Queue<T> queue = queues.get(i);
 			observable.subscribe(new Subscriber<T>() {
@@ -96,20 +114,5 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 				}
 			});
 		}
-
-		Subscription subscription = new Subscription() {
-			@Override
-			public boolean isCompleted() {
-				return completed.get();
-			}
-
-			@Override
-			public void unsubscribe() {
-				if (completed.compareAndSet(false, true)) {
-					cleanup.accept(CompletionType.UNSUBSCRIPTION);
-				}
-			}
-		};
-		subscriber.onSubscribe(subscription);
 	}
 }

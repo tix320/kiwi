@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableListIterator;
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyListProperty;
 
 public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements List<T> {
 
@@ -22,8 +21,8 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public ReadOnlyProperty<List<T>> toReadOnly() {
-		return new ReadOnlyListProperty(this);
+	public ReadOnlyListProperty<T> toReadOnly() {
+		return new ReadOnlyListProperty<>(this);
 	}
 
 	@Override

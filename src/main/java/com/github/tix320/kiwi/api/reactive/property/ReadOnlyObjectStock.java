@@ -1,10 +1,8 @@
-package com.github.tix320.kiwi.internal.reactive.property;
+package com.github.tix320.kiwi.api.reactive.property;
 
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.property.ReadOnlyStock;
-import com.github.tix320.kiwi.api.reactive.property.Stock;
 
 public final class ReadOnlyObjectStock<T> implements ReadOnlyStock<T> {
 

@@ -58,12 +58,13 @@ public abstract class BaseProperty<T> implements Property<T> {
 
 	@Override
 	public void publishChanges() {
+		checkClosed();
 		publisher.publish(value);
 	}
 
 	protected final void checkClosed() {
 		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
+			throw new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
 		}
 	}
 }

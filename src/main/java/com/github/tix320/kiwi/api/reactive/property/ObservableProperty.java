@@ -6,11 +6,11 @@ public interface ObservableProperty<T> extends ObservableCandidate<T> {
 
 	T getValue();
 
-	default boolean isEmpty() {
+	default boolean isNull() {
 		return getValue() == null;
 	}
 
-	default boolean isPresent() {
+	default boolean isNonNull() {
 		return getValue() != null;
 	}
 }

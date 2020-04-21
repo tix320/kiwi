@@ -34,7 +34,7 @@ public abstract class BaseStock<T> implements Stock<T> {
 	}
 
 	@Override
-	public final void close() {
+	public void close() {
 		publisher.complete();
 	}
 
@@ -52,12 +52,13 @@ public abstract class BaseStock<T> implements Stock<T> {
 	}
 
 	protected void publish(T value) {
+		checkClosed();
 		publisher.publish(value);
 	}
 
 	protected final void checkClosed() {
 		if (publisher.isCompleted()) {
-			throw new PropertyClosedException("Cannot change property after close");
+			throw new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
 		}
 	}
 }

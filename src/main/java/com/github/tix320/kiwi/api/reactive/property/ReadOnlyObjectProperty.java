@@ -1,9 +1,7 @@
-package com.github.tix320.kiwi.internal.reactive.property;
+package com.github.tix320.kiwi.api.reactive.property;
 
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.property.Property;
-import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
 
 public final class ReadOnlyObjectProperty<T> implements ReadOnlyProperty<T> {
 

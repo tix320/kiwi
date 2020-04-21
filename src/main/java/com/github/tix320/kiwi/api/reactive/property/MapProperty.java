@@ -9,7 +9,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyMapProperty;
 
 public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> implements Map<K, V> {
 
@@ -21,8 +20,8 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 	}
 
 	@Override
-	public ReadOnlyProperty<Map<K, V>> toReadOnly() {
-		return new ReadOnlyMapProperty(this);
+	public ReadOnlyMapProperty<K, V> toReadOnly() {
+		return new ReadOnlyMapProperty<>(this);
 	}
 
 	@Override

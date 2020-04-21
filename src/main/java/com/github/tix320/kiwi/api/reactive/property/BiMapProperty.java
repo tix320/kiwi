@@ -4,7 +4,6 @@ import java.util.Map;
 
 import com.github.tix320.kiwi.api.util.collection.BiMap;
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyBiMapProperty;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
@@ -20,8 +19,8 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 	}
 
 	@Override
-	public ReadOnlyProperty<BiMap<K, V>> toReadOnly() {
-		return new ReadOnlyBiMapProperty(this);
+	public ReadOnlyBiMapProperty<K, V> toReadOnly() {
+		return new ReadOnlyBiMapProperty<>(this);
 	}
 
 	@Override

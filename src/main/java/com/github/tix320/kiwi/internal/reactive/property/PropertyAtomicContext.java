@@ -13,17 +13,28 @@ public final class PropertyAtomicContext {
 
 	private static final ThreadLocal<Set<ChangeableProperty>> atomicContext = new ThreadLocal<>();
 
-	public static void prepareContext() {
+	public static void create() {
 		atomicContext.set(Collections.newSetFromMap(new IdentityHashMap<>()));
 	}
 
-	public static void destroyContext() {
-		Set<ChangeableProperty> properties = atomicContext.get();
+	public static void destroy() {
 		atomicContext.remove();
-		properties.forEach(ChangeableProperty::publishChanges);
 	}
 
-	public static boolean checkAtomicContext(ChangeableProperty property) {
+	public static void commitChangesAndDestroy() {
+		Set<ChangeableProperty> properties = atomicContext.get();
+		atomicContext.remove();
+		for (ChangeableProperty property : properties) {
+			try {
+				property.publishChanges();
+			}
+			catch (PropertyClosedException e) {
+				System.err.println("PROPERTY WARNING: Atomic Context Destroy - " + e.getMessage());
+			}
+		}
+	}
+
+	public static boolean inAtomicContext(ChangeableProperty property) {
 		Set<ChangeableProperty> properties = atomicContext.get();
 		if (properties == null) {
 			return false;

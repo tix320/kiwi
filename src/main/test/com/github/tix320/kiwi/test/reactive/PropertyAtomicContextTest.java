@@ -1,8 +1,6 @@
 package com.github.tix320.kiwi.test.reactive;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
@@ -42,8 +40,8 @@ public class PropertyAtomicContextTest {
 
 	@Test
 	public void doublePropertyTest() {
-		List<Integer> expected = Arrays.asList(3, 4, 5, 7, 8, 9);
-		List<Integer> actual = new ArrayList<>();
+		Set<Integer> expected = Set.of(3, 4, 5, 7, 8, 9);
+		Set<Integer> actual = new HashSet<>();
 
 		ObjectProperty<Integer> property1 = Property.forObject();
 		ObjectProperty<Integer> property2 = Property.forObject();

@@ -1,7 +1,6 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
-import com.github.tix320.kiwi.internal.reactive.property.ReadOnlyObjectProperty;
 
 public final class ObjectProperty<T> extends BaseLazyProperty<T> {
 
@@ -13,7 +12,7 @@ public final class ObjectProperty<T> extends BaseLazyProperty<T> {
 	}
 
 	@Override
-	public ReadOnlyProperty<T> toReadOnly() {
+	public ReadOnlyObjectProperty<T> toReadOnly() {
 		return new ReadOnlyObjectProperty<>(this);
 	}
 
