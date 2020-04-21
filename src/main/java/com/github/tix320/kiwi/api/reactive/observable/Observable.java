@@ -19,6 +19,7 @@ import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
+import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineLatestObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.JoinObservable;
@@ -476,5 +477,24 @@ public interface Observable<T> {
 											  Observable<? extends B> observable2) {
 		ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
 		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
+	}
+
+	/**
+	 * Return observable, which will be subscribe to given observables.
+	 * It will be wait for every publish from given observables and combine latest items of every observable as tuple and publish.
+	 *
+	 * @param observable1 to subscribe
+	 * @param observable2 to subscribe
+	 * @param <A>         type of first object
+	 * @param <B>         type of second object
+	 *
+	 * @return observable
+	 */
+	@SuppressWarnings("all")
+	static <A, B> Observable<Tuple<A, B>> combineLatest(Observable<? extends A> observable1,
+														Observable<? extends B> observable2) {
+		CombineLatestObservable<List<?>> combineLatestObservable = new CombineLatestObservable<>(
+				(List) List.of(observable1, observable2));
+		return combineLatestObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
 }
