@@ -60,8 +60,8 @@ public final class CombineLatestObservable<T> implements TransformObservable<T, 
 			observable.subscribe(new Subscriber<T>() {
 
 				@Override
-				public void onSubscribe(Subscription subscription) {
-					subscriptions.add(subscription);
+				public boolean onSubscribe(Subscription subscription) {
+					return subscriptions.add(subscription);
 				}
 
 				@Override

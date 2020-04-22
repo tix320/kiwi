@@ -10,7 +10,7 @@ import com.github.tix320.kiwi.internal.reactive.observable.StaticSubscriber;
  */
 public class SubscriberBuilder<T> {
 
-	private Consumer<Subscription> onSubscribe;
+	private ConditionalConsumer<Subscription> onSubscribe;
 
 	private ConditionalConsumer<? super T> onPublish;
 
@@ -21,9 +21,18 @@ public class SubscriberBuilder<T> {
 	SubscriberBuilder() {
 	}
 
-	public SubscriberBuilder<T> onSubscribe(Consumer<Subscription> onSubscribe) {
+	public SubscriberBuilder<T> onSubscribe(ConditionalConsumer<Subscription> onSubscribe) {
 		Objects.requireNonNull(onSubscribe);
 		this.onSubscribe = onSubscribe;
+		return this;
+	}
+
+	public SubscriberBuilder<T> onSubscribe(Consumer<Subscription> onSubscribe) {
+		Objects.requireNonNull(onSubscribe);
+		this.onSubscribe = object -> {
+			onSubscribe.accept(object);
+			return true;
+		};
 		return this;
 	}
 

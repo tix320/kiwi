@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
@@ -166,7 +167,7 @@ public interface Observable<T> {
 	 * @return new observable
 	 */
 	default MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
-		return new GetOnTimeoutObservable(this, timeout, factory);
+		return new GetOnTimeoutObservable<>(this, timeout, factory);
 	}
 
 	// transform functions --------------------------------------
@@ -345,10 +346,9 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> MonoObservable<T> of(T value) {
-		BufferPublisher<T> subject = new BufferPublisher<>(1);
-		subject.publish(value);
-		subject.complete();
-		return subject.asObservable().toMono();
+		MonoPublisher<T> publish = new MonoPublisher<>();
+		publish.publish(value);
+		return publish.asObservable();
 	}
 
 	/**
@@ -375,12 +375,12 @@ public interface Observable<T> {
 	 */
 	@SafeVarargs
 	static <T> Observable<T> of(T... values) {
-		BufferPublisher<T> subject = new BufferPublisher<>(values.length);
+		BufferPublisher<T> publisher = new BufferPublisher<>(values.length);
 		for (T value : values) {
-			subject.publish(value);
+			publisher.publish(value);
 		}
-		subject.complete();
-		return subject.asObservable();
+		publisher.complete();
+		return publisher.asObservable();
 	}
 
 	// multiple observable functions --------------------------------------

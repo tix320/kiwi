@@ -24,28 +24,20 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 
 	@Override
 	protected void onNewSubscriber(ConditionalConsumer<T> publisherFunction) {
-		publishFromCache(publisherFunction);
-	}
-
-	@Override
-	protected void prePublish(T object) {
-		addToCache(object);
-	}
-
-	public List<T> getCache() {
-		return Collections.unmodifiableList(cache);
-	}
-
-	private void addToCache(T object) {
-		cache.add(object);
-	}
-
-	private void publishFromCache(ConditionalConsumer<T> publisherFUnction) {
 		for (T object : cache) {
-			boolean needMore = publisherFUnction.accept(object);
+			boolean needMore = publisherFunction.accept(object);
 			if (!needMore) {
 				break;
 			}
 		}
+	}
+
+	@Override
+	protected void prePublish(T object) {
+		cache.add(object);
+	}
+
+	public List<T> getCache() {
+		return Collections.unmodifiableList(cache);
 	}
 }

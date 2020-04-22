@@ -28,8 +28,8 @@ public final class TakeWhileObservable<T> implements Observable<T> {
 			private volatile boolean completedByPredicate = false;
 
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+			public boolean onSubscribe(Subscription subscription) {
+				return subscriber.onSubscribe(subscription);
 			}
 
 			@Override

@@ -37,13 +37,11 @@ public final class UntilObservable<T> implements Observable<T> {
 		observable.subscribe(new Subscriber<T>() {
 
 			@Override
-			public void onSubscribe(Subscription subscription) {
+			public boolean onSubscribe(Subscription subscription) {
 				subscriptionHolder.set(subscription);
 				subscriber.onSubscribe(
 						subscription); // TODO in case of user unsubscription, until subscription not deleted
-				if (untilCompleted.get()) {
-					subscription.unsubscribe();
-				}
+				return !untilCompleted.get();
 			}
 
 			@Override

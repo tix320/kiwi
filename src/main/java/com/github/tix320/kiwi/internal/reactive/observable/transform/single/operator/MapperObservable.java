@@ -22,8 +22,8 @@ public final class MapperObservable<S, R> implements TransformObservable<S, R> {
 	public void subscribe(Subscriber<? super R> subscriber) {
 		observable.subscribe(new Subscriber<S>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+			public boolean onSubscribe(Subscription subscription) {
+				return subscriber.onSubscribe(subscription);
 			}
 
 			@Override

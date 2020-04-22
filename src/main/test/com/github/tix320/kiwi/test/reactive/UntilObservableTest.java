@@ -28,8 +28,9 @@ public class UntilObservableTest {
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
+			public boolean onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
+				return true;
 			}
 
 			@Override
@@ -67,9 +68,10 @@ public class UntilObservableTest {
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
+			public boolean onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
+				return true;
 			}
 
 			@Override
@@ -106,9 +108,10 @@ public class UntilObservableTest {
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
+			public boolean onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
+				return true;
 			}
 
 			@Override
@@ -131,9 +134,8 @@ public class UntilObservableTest {
 
 		untilPublisher.complete();
 
-		assertEquals(3, called.size());
+		assertEquals(2, called.size());
 		assertEquals("onSubscribe", called.get(0));
-		assertEquals("onPublish", called.get(1));
-		assertEquals("onComplete", called.get(2));
+		assertEquals("onComplete", called.get(1));
 	}
 }

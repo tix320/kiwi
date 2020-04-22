@@ -7,11 +7,14 @@ public interface Subscriber<T> {
 	/**
 	 * This method invoked first after subscribe. Typically it will be saved for future controlling subscription.
 	 * Please avoid doing any operation in this method other than saving the subscription.
-	 * Otherwise this can lead to an undefined behaviour, until to deadlock.
+	 * Otherwise this can lead to an undefined behaviour in publisher and subscribers.
+	 * Subscription will be registered only after this method call, i.e. if it will be failed, subscription will not be registered.
 	 *
 	 * @param subscription a new subscription
+	 *
+	 * @return true if need register, false otherwise
 	 */
-	void onSubscribe(Subscription subscription);
+	boolean onSubscribe(Subscription subscription);
 
 	/**
 	 * Consume regular item.

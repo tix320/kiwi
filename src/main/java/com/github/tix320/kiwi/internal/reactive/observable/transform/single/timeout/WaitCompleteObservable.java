@@ -25,8 +25,8 @@ public final class WaitCompleteObservable implements Observable<None> {
 
 		observable.subscribe(new Subscriber<Object>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+			public boolean onSubscribe(Subscription subscription) {
+				return subscriber.onSubscribe(subscription);
 			}
 
 			@Override

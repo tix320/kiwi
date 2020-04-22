@@ -32,8 +32,8 @@ public final class CountingObservable<T> implements Observable<T> {
 			private volatile boolean completedFromSubscriber = false;
 
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(new Subscription() {
+			public boolean onSubscribe(Subscription subscription) {
+				return subscriber.onSubscribe(new Subscription() {
 					@Override
 					public boolean isCompleted() {
 						return subscription.isCompleted();

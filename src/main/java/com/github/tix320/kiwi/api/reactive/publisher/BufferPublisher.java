@@ -1,9 +1,8 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
@@ -13,42 +12,37 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
  */
 public final class BufferPublisher<T> extends BasePublisher<T> {
 
-	private final Deque<T> buffer;
+	private final List<T> buffer;
 
 	private final int bufferCapacity;
 
 	public BufferPublisher(int bufferCapacity) {
-		buffer = new ConcurrentLinkedDeque<>();
-		this.bufferCapacity = Math.max(bufferCapacity, 0);
+		if (bufferCapacity < 0) {
+			throw new IllegalArgumentException("Buffer size must be >=0");
+		}
+		buffer = new CopyOnWriteArrayList<>();
+		this.bufferCapacity = bufferCapacity;
 	}
 
 	@Override
 	protected void onNewSubscriber(ConditionalConsumer<T> publisherFunction) {
-		publishFromBuffer(publisherFunction);
-	}
-
-	@Override
-	protected void prePublish(T object) {
-		addToBuffer(object);
-	}
-
-	public List<T> getBuffer() {
-		return new ArrayList<>(buffer);
-	}
-
-	private void addToBuffer(T object) {
-		if (buffer.size() == bufferCapacity) {
-			buffer.removeFirst();
-		}
-		buffer.addLast(object);
-	}
-
-	private void publishFromBuffer(ConditionalConsumer<T> publisherFunction) {
 		for (T object : buffer) {
 			boolean needMore = publisherFunction.accept(object);
 			if (!needMore) {
 				break;
 			}
 		}
+	}
+
+	@Override
+	protected void prePublish(T object) {
+		if (buffer.size() == bufferCapacity) {
+			buffer.remove(0);
+		}
+		buffer.add(object);
+	}
+
+	public List<T> getBuffer() {
+		return new ArrayList<>(buffer);
 	}
 }

@@ -13,7 +13,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscription;
  */
 public class StaticSubscriber<T> implements Subscriber<T> {
 
-	private final Consumer<Subscription> onSubscribe;
+	private final ConditionalConsumer<Subscription> onSubscribe;
 
 	private final ConditionalConsumer<? super T> onPublish;
 
@@ -21,9 +21,9 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 
 	private final Consumer<CompletionType> onComplete;
 
-	public StaticSubscriber(Consumer<Subscription> onSubscribe, ConditionalConsumer<? super T> onPublish,
+	public StaticSubscriber(ConditionalConsumer<Subscription> onSubscribe, ConditionalConsumer<? super T> onPublish,
 							ConditionalConsumer<Throwable> onError, Consumer<CompletionType> onComplete) {
-		this.onSubscribe = Objects.requireNonNullElse(onSubscribe, subscription -> { });
+		this.onSubscribe = Objects.requireNonNullElse(onSubscribe, subscription -> true);
 		this.onPublish = Objects.requireNonNullElse(onPublish, subscription -> true);
 		this.onError = Objects.requireNonNullElse(onError,
 				throwable -> {throw new UnhandledObservableException(throwable);});
@@ -31,8 +31,8 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 	}
 
 	@Override
-	public void onSubscribe(Subscription subscription) {
-		onSubscribe.accept(subscription);
+	public boolean onSubscribe(Subscription subscription) {
+		return onSubscribe.accept(subscription);
 	}
 
 	@Override

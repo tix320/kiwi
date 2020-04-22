@@ -1,12 +1,11 @@
 package com.github.tix320.kiwi.internal.reactive.publisher;
 
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
@@ -22,14 +21,14 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private final AtomicBoolean completed;
 
-	private final Collection<InternalSubscription> subscriptions;
+	private final CopyOnWriteArrayList<InternalSubscription> subscriptions;
 
 	private final Lock publishLock;
 
 	protected BasePublisher() {
 		this.subscriberIdGenerator = new IDGenerator(1);
 		this.completed = new AtomicBoolean(false);
-		this.subscriptions = new ConcurrentLinkedQueue<>();
+		this.subscriptions = new CopyOnWriteArrayList<>();
 		this.publishLock = new ReentrantLock();
 	}
 
@@ -74,26 +73,30 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	private void publishObject(Object object, boolean isNormal) {
-		Collection<InternalSubscription> subscriptions;
+		Iterator<InternalSubscription> subscriptionIterator;
 		publishLock.lock();
 		try {
 			failIfCompleted();
-
-			subscriptions = getSubscriptionsCopy();
 			if (isNormal) {
 				prePublish((T) object);
 			}
+			/* this iterator is based on array snapshot, due the CopyOnWriteArrayList implementation
+			 and why we are creating in lock? because Publisher specification requires to publish on that subscribers, which exists in moment of publish
+			therefore if creating outside the lock, array may be changed
+			*/
+			subscriptionIterator = subscriptions.iterator();
 		}
 		finally {
 			publishLock.unlock();
 		}
 
-		for (InternalSubscription subscription : subscriptions) {
+		while (subscriptionIterator.hasNext()) {
+			InternalSubscription subscription = subscriptionIterator.next();
 			try {
 				publishObjectToOneSubscriber(subscription, object, isNormal);
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
 			}
 		}
 
@@ -122,21 +125,29 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 	}
 
-	private Collection<InternalSubscription> getSubscriptionsCopy() {
-		return subscriptions.stream().filter(subscription -> !subscription.completed).collect(Collectors.toList());
-	}
-
 	public final class PublisherObservable implements Observable<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
 			InternalSubscription subscription;
-			publishLock.lock();
 			AtomicBoolean needMoreHolder = new AtomicBoolean(true);
+			subscription = new InternalSubscription(subscriber);
+			boolean needRegister = subscription.onSubscribe(subscription);
+			if (!needRegister) {
+				subscription.subscriptionLock.lock();
+				try {
+					subscription.completed = true;
+					subscription.onComplete(CompletionType.UNSUBSCRIPTION);
+				}
+				finally {
+					subscription.subscriptionLock.unlock();
+				}
+				return;
+			}
+			subscriptions.add(subscription);
+
+			publishLock.lock();
 			try {
-				subscription = new InternalSubscription(subscriber);
-				subscriptions.add(subscription);
-				subscription.onSubscribe(subscription);
 
 				BasePublisher.this.onNewSubscriber(object -> {
 					boolean needMore = subscription.onPublish(object);
@@ -181,7 +192,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		}
 
 		@Override
-		public void onSubscribe(Subscription subscription) {
+		public boolean onSubscribe(Subscription subscription) {
 			subscriptionLock.lock();
 			try {
 				if (onSubscribeCalled) {
@@ -193,7 +204,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				subscriptionLock.unlock();
 			}
 
-			subscriber.onSubscribe(subscription);
+			return subscriber.onSubscribe(subscription);
 		}
 
 		@Override

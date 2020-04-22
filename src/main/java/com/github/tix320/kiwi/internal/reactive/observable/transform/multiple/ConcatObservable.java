@@ -50,8 +50,8 @@ public final class ConcatObservable<T> implements Observable<T> {
 
 		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriptions.add(subscription);
+			public boolean onSubscribe(Subscription subscription) {
+				return subscriptions.add(subscription);
 			}
 
 			@Override
