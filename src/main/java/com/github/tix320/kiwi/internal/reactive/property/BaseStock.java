@@ -11,7 +11,7 @@ import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseStock<T> implements Stock<T> {
+public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 
 	private final CachedPublisher<T> publisher;
 

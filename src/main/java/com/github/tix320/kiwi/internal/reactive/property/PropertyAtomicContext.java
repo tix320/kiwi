@@ -4,14 +4,12 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
 
-import com.github.tix320.kiwi.api.reactive.property.ChangeableProperty;
-
 /**
  * @author Tigran Sargsyan on 20-Apr-20.
  */
 public final class PropertyAtomicContext {
 
-	private static final ThreadLocal<Set<ChangeableProperty>> atomicContext = new ThreadLocal<>();
+	private static final ThreadLocal<Set<RepublishProperty>> atomicContext = new ThreadLocal<>();
 
 	public static void create() {
 		atomicContext.set(Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -22,9 +20,9 @@ public final class PropertyAtomicContext {
 	}
 
 	public static void commitChangesAndDestroy() {
-		Set<ChangeableProperty> properties = atomicContext.get();
+		Set<RepublishProperty> properties = atomicContext.get();
 		atomicContext.remove();
-		for (ChangeableProperty property : properties) {
+		for (RepublishProperty property : properties) {
 			try {
 				property.publishChanges();
 			}
@@ -34,8 +32,8 @@ public final class PropertyAtomicContext {
 		}
 	}
 
-	public static boolean inAtomicContext(ChangeableProperty property) {
-		Set<ChangeableProperty> properties = atomicContext.get();
+	public static boolean inAtomicContext(RepublishProperty property) {
+		Set<RepublishProperty> properties = atomicContext.get();
 		if (properties == null) {
 			return false;
 		}

@@ -11,7 +11,7 @@ import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseProperty<T> implements Property<T> {
+public abstract class BaseProperty<T> implements Property<T>, RepublishProperty {
 
 	private volatile T value;
 

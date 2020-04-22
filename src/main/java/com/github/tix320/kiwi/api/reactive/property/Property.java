@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 import com.github.tix320.kiwi.api.util.collection.BiMap;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyAtomicContext;
 
-public interface Property<T> extends ChangeableProperty, ObservableProperty<T> {
+public interface Property<T> extends ObservableProperty<T> {
 
 	void setValue(T value);
 
