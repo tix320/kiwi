@@ -300,6 +300,19 @@ public interface Observable<T> {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
 
+	// error handling --------------------------------------
+
+	/**
+	 * Return observable, which will subscribe to this and do given action on every consumed error.
+	 *
+	 * @param action to perform over errors
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> catchError(Consumer<Throwable> action) {
+		return new HandleErrorObservable<>(this, action);
+	}
+
 	// other functions --------------------------------------
 
 	/**
