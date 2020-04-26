@@ -23,7 +23,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private final CopyOnWriteArrayList<InternalSubscription> subscriptions;
 
-	private final Lock publishLock;
+	protected final Lock publishLock;
 
 	protected BasePublisher() {
 		this.subscriberIdGenerator = new IDGenerator(1);

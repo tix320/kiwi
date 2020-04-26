@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -43,6 +43,6 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 	}
 
 	public List<T> getBuffer() {
-		return new ArrayList<>(buffer);
+		return Collections.unmodifiableList(buffer);
 	}
 }

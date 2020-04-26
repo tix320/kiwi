@@ -1,6 +1,5 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -38,6 +37,12 @@ public final class CachedPublisher<T> extends BasePublisher<T> {
 	}
 
 	public List<T> getCache() {
-		return Collections.unmodifiableList(cache);
+		publishLock.lock();
+		try {
+			return List.copyOf(cache);
+		}
+		finally {
+			publishLock.unlock();
+		}
 	}
 }

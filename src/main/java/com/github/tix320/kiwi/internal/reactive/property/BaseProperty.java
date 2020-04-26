@@ -23,7 +23,7 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 
 	public BaseProperty(T value) {
 		this.value = Objects.requireNonNull(value);
-		this.publisher = Publisher.single();
+		this.publisher = Publisher.single(value);
 	}
 
 	@Override
