@@ -313,6 +313,17 @@ public interface Observable<T> {
 		return new HandleErrorObservable<>(this, action);
 	}
 
+	/**
+	 * Return observable, which will subscribe to this and transform every error to regualr item according to given transformer.
+	 *
+	 * @param mapper for transform objects
+	 *
+	 * @return new observable
+	 */
+	default Observable<T> mapErrorToItem(Function<Throwable, T> mapper) {
+		return new ErrorToItemObservable<>(this, mapper);
+	}
+
 	// other functions --------------------------------------
 
 	/**
