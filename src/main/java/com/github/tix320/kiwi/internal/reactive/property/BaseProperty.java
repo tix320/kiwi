@@ -27,14 +27,14 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 	}
 
 	@Override
-	public final void setValue(T value) {
+	public synchronized final void setValue(T value) {
 		checkClosed();
 		this.value = Objects.requireNonNull(value);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public final void close() {
+	public synchronized final void close() {
 		publisher.complete();
 	}
 
@@ -57,7 +57,7 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 	}
 
 	@Override
-	public void publishChanges() {
+	public synchronized void republishState() {
 		checkClosed();
 		publisher.publish(value);
 	}

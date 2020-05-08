@@ -35,77 +35,77 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 	}
 
 	@Override
-	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+	public synchronized void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
 		checkClosed();
 		getValue().replaceAll(function);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public V putIfAbsent(K key, V value) {
+	public synchronized V putIfAbsent(K key, V value) {
 		checkClosed();
 		V v = getValue().putIfAbsent(key, value);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public boolean remove(Object key, Object value) {
+	public synchronized boolean remove(Object key, Object value) {
 		checkClosed();
 		boolean removed = getValue().remove(key, value);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
 
 	@Override
-	public boolean replace(K key, V oldValue, V newValue) {
+	public synchronized boolean replace(K key, V oldValue, V newValue) {
 		checkClosed();
 		boolean replaced = getValue().replace(key, oldValue, newValue);
 		if (replaced) {
-			publishChanges();
+			republishState();
 		}
 		return replaced;
 	}
 
 	@Override
-	public V replace(K key, V value) {
+	public synchronized V replace(K key, V value) {
 		checkClosed();
 		V v = getValue().replace(key, value);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+	public synchronized V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfAbsent(key, mappingFunction);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public synchronized V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfPresent(key, remappingFunction);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public synchronized V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().compute(key, remappingFunction);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+	public synchronized V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().merge(key, value, remappingFunction);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
@@ -135,33 +135,33 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public synchronized V put(K key, V value) {
 		checkClosed();
 		V v = getValue().put(key, value);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public V remove(Object key) {
+	public synchronized V remove(Object key) {
 		checkClosed();
 		V v = getValue().remove(key);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m) {
+	public synchronized void putAll(Map<? extends K, ? extends V> m) {
 		checkClosed();
 		getValue().putAll(m);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public void clear() {
+	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		publishChanges();
+		republishState();
 	}
 
 	@Override

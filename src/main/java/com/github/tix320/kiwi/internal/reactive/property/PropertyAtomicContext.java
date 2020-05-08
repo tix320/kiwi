@@ -24,7 +24,7 @@ public final class PropertyAtomicContext {
 		atomicContext.remove();
 		for (RepublishProperty property : properties) {
 			try {
-				property.publishChanges();
+				property.republishState();
 			}
 			catch (PropertyClosedException e) {
 				System.err.println("PROPERTY WARNING: Atomic Context Destroy - " + e.getMessage());

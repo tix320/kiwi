@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TakeWhileObservableTest {
 
 	@Test
-	public void simpleTest() {
+	public void simpleTest() throws InterruptedException {
 		List<Integer> expected = List.of(3, 4, 5);
 		List<Integer> actual = Observable.of(3, 4, 5, 7).takeWhile(integer -> integer < 6).toList().get();
 		assertEquals(expected, actual);

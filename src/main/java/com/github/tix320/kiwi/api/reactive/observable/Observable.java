@@ -7,18 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
-import com.github.tix320.kiwi.api.util.None;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineLatestObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
@@ -28,7 +27,6 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
-import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.WaitCompleteObservable;
 
 /**
  * @param <T> type of data.
@@ -81,82 +79,103 @@ public interface Observable<T> {
 	// await functions --------------------------------------
 
 	/**
-	 * Returns observable, which will be block current thread until this observable complete and publish single item.
-	 *
-	 * @return new observable
-	 */
-	default Observable<None> await() {
-		return await(Duration.ofMillis(-1));
-	}
-
-	/**
-	 * Returns observable, which will be block current thread until this observable complete and publish single item.
-	 *
-	 * @param timeout to wait. Note: ceil to milliseconds.
-	 *
-	 * @return new observable
-	 */
-	default Observable<None> await(Duration timeout) {
-		return new WaitCompleteObservable(this, timeout);
-	}
-
-	/**
 	 * Blocks current thread until this observable will be completed.
+	 *
+	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #await(Duration)} (Duration)}} instead.
 	 */
-	default void blockUntilComplete() {
-		blockUntilComplete(Duration.ofMillis(-1));
+	@Deprecated
+	default void await() throws InterruptedException {
+		await(Duration.ofMillis(-1));
 	}
 
 	/**
 	 * Blocks current thread for given until this observable will be completed.
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @throws TimeoutException when observable not completed in given time.
 	 */
-	default void blockUntilComplete(Duration timeout) {
-		await(timeout).subscribe(t -> {});
+	default void await(Duration timeout) throws InterruptedException {
+		CountDownLatch latch = new CountDownLatch(1);
+		AtomicBoolean isTimout = new AtomicBoolean(false);
+
+		long millis = timeout.toMillis();
+
+		Observable.this.subscribe(Subscriber.builder().onComplete(completionType -> {
+			boolean changed = isTimout.compareAndSet(false, true);
+			if (!changed) {
+				System.err.println(String.format("The observable was completed after timout of %sms", millis));
+			}
+			latch.countDown();
+		}));
+
+		if (millis < 0) {
+			latch.await();
+		}
+		else {
+			boolean normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			if (!normally) {
+				boolean changed = isTimout.compareAndSet(false, true);
+				if (changed) {
+					throw new TimeoutException(String.format("The observable not completed in %sms", millis));
+				}
+			}
+		}
 	}
 
 	/**
 	 * Blocks current thread until this observable will be published one value and return.
+	 *
+	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #get(Duration)}} instead.
 	 */
-	default T get() {
-		CountDownLatch latch = new CountDownLatch(1);
-
-		AtomicReference<T> itemHolder = new AtomicReference<>();
-		this.toMono().subscribe(item -> {
-			itemHolder.set(item);
-			latch.countDown();
-		});
-
-		Try.runOrRethrow(latch::await);
-		return itemHolder.get();
+	@Deprecated
+	default T get() throws InterruptedException {
+		return get(Duration.ofSeconds(-1));
 	}
 
 	/**
 	 * Blocks current thread for given timout until this observable will be published one value and return.
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @throws TimeoutException when observable not completed in given time.
 	 */
-	default T get(Duration timeout) {
+	@SuppressWarnings("all")
+	default T get(Duration timeout) throws InterruptedException {
 		CountDownLatch latch = new CountDownLatch(1);
 
-		AtomicReference<T> itemHolder = new AtomicReference<>();
-		this.toMono().subscribe(item -> {
-			itemHolder.set(item);
+		long millis = timeout.toMillis();
+
+		AtomicReference<Object> itemHolder = new AtomicReference<>();
+		this.conditionalSubscribe(item -> {
+			boolean changed = itemHolder.compareAndSet(null, item);
+			if (!changed) {
+				System.err.println(String.format("The observable was published item after timout of %sms", millis));
+			}
 			latch.countDown();
+
+			return false;
 		});
 
-		long millis = timeout.toMillis();
 		if (millis < 0) {
-			Try.runOrRethrow(latch::await);
+			latch.await();
+			return (T) itemHolder.get();
 		}
 		else {
-			boolean normally = Try.supplyOrRethrow(() -> latch.await(millis, TimeUnit.MILLISECONDS));
-			if (!normally) {
-				throw new TimeoutException(String.format("The observable not completed in %sms", millis));
+			boolean normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			if (normally) {
+				return (T) itemHolder.get();
+			}
+			else {
+				boolean changed = itemHolder.compareAndSet(null, new Object());
+				if (changed) {
+					throw new TimeoutException(String.format("The observable not published item in %sms", millis));
+				}
+				else {
+					return (T) itemHolder.get();
+				}
 			}
 		}
-		return itemHolder.get();
 	}
 
 	/**

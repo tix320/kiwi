@@ -24,25 +24,25 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 	}
 
 	@Override
-	public void put(K key, V value) {
+	public synchronized void put(K key, V value) {
 		checkClosed();
 		getValue().put(key, value);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public V straightRemove(K key) {
+	public synchronized V straightRemove(K key) {
 		checkClosed();
 		V v = getValue().straightRemove(key);
-		publishChanges();
+		republishState();
 		return v;
 	}
 
 	@Override
-	public K inverseRemove(V key) {
+	public synchronized K inverseRemove(V key) {
 		checkClosed();
 		K k = getValue().inverseRemove(key);
-		publishChanges();
+		republishState();
 		return k;
 	}
 

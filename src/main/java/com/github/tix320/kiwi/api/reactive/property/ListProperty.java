@@ -57,19 +57,19 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public boolean add(T t) {
+	public synchronized boolean add(T t) {
 		checkClosed();
 		getValue().add(t);
-		publishChanges();
+		republishState();
 		return true;
 	}
 
 	@Override
-	public boolean remove(Object o) {
+	public synchronized boolean remove(Object o) {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
@@ -80,27 +80,27 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends T> c) {
+	public synchronized boolean addAll(Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
-		publishChanges();
+		republishState();
 		return true;
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends T> c) {
+	public synchronized boolean addAll(int index, Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
-		publishChanges();
+		republishState();
 		return true;
 	}
 
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public synchronized boolean removeAll(Collection<?> c) {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
@@ -111,34 +111,34 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public boolean retainAll(Collection<?> c) {
+	public synchronized boolean retainAll(Collection<?> c) {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			publishChanges();
+			republishState();
 		}
 		return changed;
 	}
 
 	@Override
-	public void replaceAll(UnaryOperator<T> operator) {
+	public synchronized void replaceAll(UnaryOperator<T> operator) {
 		checkClosed();
 		getValue().replaceAll(operator);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public void sort(Comparator<? super T> c) {
+	public synchronized void sort(Comparator<? super T> c) {
 		checkClosed();
 		getValue().sort(c);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public void clear() {
+	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		publishChanges();
+		republishState();
 	}
 
 	@Override
@@ -147,25 +147,25 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public T set(int index, T element) {
+	public synchronized T set(int index, T element) {
 		checkClosed();
 		T previousElem = getValue().set(index, element);
-		publishChanges();
+		republishState();
 		return previousElem;
 	}
 
 	@Override
-	public void add(int index, T element) {
+	public synchronized void add(int index, T element) {
 		checkClosed();
 		getValue().add(index, element);
-		publishChanges();
+		republishState();
 	}
 
 	@Override
-	public T remove(int index) {
+	public synchronized T remove(int index) {
 		checkClosed();
 		T removed = getValue().remove(index);
-		publishChanges();
+		republishState();
 		return removed;
 	}
 

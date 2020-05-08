@@ -5,5 +5,5 @@ package com.github.tix320.kiwi.internal.reactive.property;
  */
 public interface RepublishProperty {
 
-	void publishChanges();
+	void republishState();
 }

@@ -1,6 +1,5 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
@@ -9,6 +8,7 @@ import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 public final class SimplePublisher<T> extends BasePublisher<T> {
 
 	@Override
-	protected void onNewSubscriber(ConditionalConsumer<T> publisherFunction) {
+	protected boolean onNewSubscriber(InternalSubscription subscription) {
+		return true;
 	}
 }

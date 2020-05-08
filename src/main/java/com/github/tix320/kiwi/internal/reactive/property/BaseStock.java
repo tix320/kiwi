@@ -20,13 +20,13 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 	}
 
 	@Override
-	public final void add(T value) {
+	public synchronized final void add(T value) {
 		checkClosed();
 		publish(value);
 	}
 
 	@Override
-	public final void addAll(Iterable<T> values) {
+	public synchronized final void addAll(Iterable<T> values) {
 		checkClosed();
 		for (T value : values) {
 			publish(value);
@@ -34,7 +34,7 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 	}
 
 	@Override
-	public void close() {
+	public synchronized void close() {
 		publisher.complete();
 	}
 
@@ -51,7 +51,7 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 		return publisher.asObservable();
 	}
 
-	protected void publish(T value) {
+	protected synchronized void publish(T value) {
 		checkClosed();
 		publisher.publish(value);
 	}

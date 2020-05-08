@@ -8,13 +8,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
+import com.github.tix320.kiwi.api.util.Threads;
 
 /**
  * @author Tigran Sargsyan on 08-Apr-20.
  */
 public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 
-	private static ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
+	private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(
+			Threads::daemon);
 
 	private final Observable<? extends T> observable;
 

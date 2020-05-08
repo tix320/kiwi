@@ -4,10 +4,11 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import com.github.tix320.kiwi.api.reactive.observable.*;
+import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
+import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
+import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.util.IDGenerator;
 import com.github.tix320.kiwi.internal.reactive.CompletedException;
@@ -19,17 +20,17 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private final IDGenerator subscriberIdGenerator;
 
-	private final AtomicBoolean completed;
+	protected final AtomicBoolean completed;
 
-	private final CopyOnWriteArrayList<InternalSubscription> subscriptions;
+	protected final CopyOnWriteArrayList<InternalSubscription> subscriptions;
 
-	protected final Lock publishLock;
+	protected final ImprovedReentrantLock publishLock;
 
 	protected BasePublisher() {
 		this.subscriberIdGenerator = new IDGenerator(1);
 		this.completed = new AtomicBoolean(false);
 		this.subscriptions = new CopyOnWriteArrayList<>();
-		this.publishLock = new ReentrantLock();
+		this.publishLock = new ImprovedReentrantLock();
 	}
 
 	@Override
@@ -44,12 +45,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	@Override
 	public final void complete() {
-		boolean changed = completed.compareAndSet(false, true);
-		if (changed) {
-			for (InternalSubscription subscription : subscriptions) {
-				subscription.cancel(CompletionType.SOURCE_COMPLETED);
-			}
-		}
+		completeInternal();
 	}
 
 	@Override
@@ -62,29 +58,24 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		return new PublisherObservable();
 	}
 
-	protected abstract void onNewSubscriber(ConditionalConsumer<T> publisherFunction);
+	protected abstract boolean onNewSubscriber(InternalSubscription subscription);
 
-	protected void prePublish(T object) {
-
-	}
-
-	protected void postPublish() {
+	protected void prePublish(Object object, boolean isNormal) {
 
 	}
 
-	private void publishObject(Object object, boolean isNormal) {
-		Iterator<InternalSubscription> subscriptionIterator;
+	protected void publishObject(Object object, boolean isNormal) {
+		/* this iterator is based on array snapshot, due the CopyOnWriteArrayList implementation
+			 and why we are creating it outside the lock? because Publisher specification requires to publish on that subscribers, which exists in moment of publish
+			therefore in case to wait until lock free, array may be changed
+			*/
+		Iterator<InternalSubscription> subscriptionIterator = subscriptions.iterator();
+
 		publishLock.lock();
 		try {
-			failIfCompleted();
-			if (isNormal) {
-				prePublish((T) object);
-			}
-			/* this iterator is based on array snapshot, due the CopyOnWriteArrayList implementation
-			 and why we are creating in lock? because Publisher specification requires to publish on that subscribers, which exists in moment of publish
-			therefore if creating outside the lock, array may be changed
-			*/
-			subscriptionIterator = subscriptions.iterator();
+			checkCompleted();
+
+			prePublish(object, isNormal);
 		}
 		finally {
 			publishLock.unlock();
@@ -99,27 +90,28 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
 			}
 		}
-
-		publishLock.lock();
-		try {
-
-			if (isNormal) {
-				postPublish();
-			}
-		}
-		finally {
-			publishLock.unlock();
-		}
 	}
 
-	private void publishObjectToOneSubscriber(InternalSubscription subscription, Object object, boolean isNormal) {
+	protected void publishObjectToOneSubscriber(InternalSubscription subscription, Object object, boolean isNormal) {
+		if (subscription.isCompleted()) {
+			return;
+		}
 		boolean needMore = isNormal ? subscription.onPublish((T) object) : subscription.onError((Throwable) object);
 		if (!needMore) {
 			subscription.cancel(CompletionType.UNSUBSCRIPTION);
 		}
 	}
 
-	private void failIfCompleted() {
+	protected void completeInternal() {
+		boolean changed = completed.compareAndSet(false, true);
+		if (changed) {
+			for (InternalSubscription subscription : subscriptions) {
+				subscription.cancel(CompletionType.SOURCE_COMPLETED);
+			}
+		}
+	}
+
+	protected void checkCompleted() {
 		if (completed.get()) {
 			throw new CompletedException("Publisher is completed, you can not publish items.");
 		}
@@ -130,78 +122,45 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
 			InternalSubscription subscription;
-			AtomicBoolean needMoreHolder = new AtomicBoolean(true);
 			subscription = new InternalSubscription(subscriber);
 			boolean needRegister = subscription.onSubscribe(subscription);
 			if (!needRegister) {
-				subscription.subscriptionLock.lock();
-				try {
-					subscription.completed = true;
-					subscription.onComplete(CompletionType.UNSUBSCRIPTION);
-				}
-				finally {
-					subscription.subscriptionLock.unlock();
-				}
+				subscription.onComplete(CompletionType.UNSUBSCRIPTION);
 				return;
 			}
+
+			boolean needMore = BasePublisher.this.onNewSubscriber(subscription);
+
 			subscriptions.add(subscription);
 
-			publishLock.lock();
-			try {
-
-				BasePublisher.this.onNewSubscriber(object -> {
-					boolean needMore = subscription.onPublish(object);
-					needMoreHolder.set(needMore);
-					return needMore;
-				});
-			}
-			finally {
-				publishLock.unlock();
-			}
-
-			if (completed.get()) {
-				subscription.cancel(CompletionType.SOURCE_COMPLETED);
-			}
-
-			else if (!needMoreHolder.get()) {
+			if (!needMore) {
 				subscription.cancel(CompletionType.UNSUBSCRIPTION);
+			}
+			else if (completed.get()) {
+				subscription.cancel(CompletionType.SOURCE_COMPLETED);
 			}
 		}
 	}
 
-	private final class InternalSubscription implements Subscriber<T>, Subscription {
+	protected final class InternalSubscription implements Subscriber<T>, Subscription {
 
 		private final long id;
 		private final Subscriber<? super T> subscriber;
 
-		private final Lock subscriptionLock;
-
-		public volatile boolean completed;
-
-		// for validation, antiBug
-		private volatile boolean onSubscribeCalled;
-		private volatile boolean onCompleteCalled;
+		private final AtomicBoolean onSubscribeCalled;
+		private final AtomicBoolean onCompleteCalled;
 
 		private InternalSubscription(Subscriber<? super T> subscriber) {
 			this.subscriber = subscriber;
 			this.id = subscriberIdGenerator.next();
-			this.subscriptionLock = new ReentrantLock();
-			this.onSubscribeCalled = false;
-			this.onCompleteCalled = false;
-			this.completed = false;
+			this.onSubscribeCalled = new AtomicBoolean(false);
+			this.onCompleteCalled = new AtomicBoolean(false);
 		}
 
 		@Override
 		public boolean onSubscribe(Subscription subscription) {
-			subscriptionLock.lock();
-			try {
-				if (onSubscribeCalled) {
-					throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
-				}
-				onSubscribeCalled = true;
-			}
-			finally {
-				subscriptionLock.unlock();
+			if (!onSubscribeCalled.compareAndSet(false, true)) {
+				throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
 			}
 
 			return subscriber.onSubscribe(subscription);
@@ -209,20 +168,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public boolean onPublish(T item) {
-			subscriptionLock.lock();
-			try {
-				if (completed) {
-					return false;
-				}
-				if (!onSubscribeCalled) {
-					throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
-				}
-				if (onCompleteCalled) {
-					throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
-				}
+			if (!onSubscribeCalled.get()) {
+				throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
 			}
-			finally {
-				subscriptionLock.unlock();
+			if (onCompleteCalled.get()) {
+				throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
 			}
 
 			return subscriber.onPublish(item);
@@ -230,20 +180,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public boolean onError(Throwable throwable) {
-			subscriptionLock.lock();
-			try {
-				if (completed) {
-					return false;
-				}
-				if (!onSubscribeCalled) {
-					throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
-				}
-				if (onCompleteCalled) {
-					throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
-				}
+			if (!onSubscribeCalled.get()) {
+				throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
 			}
-			finally {
-				subscriptionLock.unlock();
+			if (onCompleteCalled.get()) {
+				throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
 			}
 
 			return subscriber.onError(throwable);
@@ -251,18 +192,12 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public void onComplete(CompletionType completionType) {
-			subscriptionLock.lock();
-			try {
-				if (!onSubscribeCalled) {
-					throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
-				}
-				if (onCompleteCalled) {
-					throw new SubscriptionIllegalStateException("OnComplete must be called only once");
-				}
-				onCompleteCalled = true;
+			if (!onSubscribeCalled.get()) {
+				throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
 			}
-			finally {
-				subscriptionLock.unlock();
+
+			if (!onCompleteCalled.compareAndSet(false, true)) {
+				throw new SubscriptionIllegalStateException("OnComplete must be called only once");
 			}
 
 			subscriber.onComplete(completionType);
@@ -270,20 +205,13 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public boolean isCompleted() {
-			return completed;
+			return onCompleteCalled.get();
 		}
 
 		public void cancel(CompletionType completionType) {
-			subscriptionLock.lock();
-			try {
-				completed = true;
-				boolean removed = subscriptions.remove(this);
-				if (removed) {
-					onComplete(completionType);
-				}
-			}
-			finally {
-				subscriptionLock.unlock();
+			boolean removed = subscriptions.remove(this);
+			if (removed) {
+				onComplete(completionType);
 			}
 		}
 

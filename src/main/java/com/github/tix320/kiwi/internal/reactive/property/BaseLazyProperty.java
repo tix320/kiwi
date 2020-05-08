@@ -15,9 +15,9 @@ public abstract class BaseLazyProperty<T> extends BaseProperty<T> {
 	}
 
 	@Override
-	public final void publishChanges() {
+	public synchronized final void republishState() {
 		if (!PropertyAtomicContext.inAtomicContext(this)) {
-			super.publishChanges();
+			super.republishState();
 		}
 	}
 

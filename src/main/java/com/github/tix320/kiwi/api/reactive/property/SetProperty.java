@@ -70,21 +70,21 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 	}
 
 	@Override
-	public boolean add(T t) {
+	public synchronized boolean add(T t) {
 		checkClosed();
 		boolean added = getValue().add(t);
 		if (added) {
-			publishChanges();
+			republishState();
 		}
 		return added;
 	}
 
 	@Override
-	public boolean remove(Object o) {
+	public synchronized boolean remove(Object o) {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
@@ -95,31 +95,31 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends T> c) {
+	public synchronized boolean addAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean added = getValue().addAll(c);
 		if (added) {
-			publishChanges();
+			republishState();
 		}
 		return added;
 	}
 
 	@Override
-	public boolean retainAll(Collection<?> c) {
+	public synchronized boolean retainAll(Collection<?> c) {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			publishChanges();
+			republishState();
 		}
 		return changed;
 	}
 
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public synchronized boolean removeAll(Collection<?> c) {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
@@ -129,16 +129,16 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		checkClosed();
 		boolean removed = getValue().removeIf(filter);
 		if (removed) {
-			publishChanges();
+			republishState();
 		}
 		return removed;
 	}
 
 	@Override
-	public void clear() {
+	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		publishChanges();
+		republishState();
 	}
 
 	@Override

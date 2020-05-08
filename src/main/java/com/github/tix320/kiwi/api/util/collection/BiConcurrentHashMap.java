@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
+public final class BiConcurrentHashMap<T1, T2> implements BiMap<T1, T2> {
 
 	private final Map<T1, T2> straight;
 	private final Map<T1, T2> straightView;

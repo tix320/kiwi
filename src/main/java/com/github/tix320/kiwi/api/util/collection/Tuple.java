@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.api.util.collection;
 
 import java.util.Objects;
 
-public class Tuple<T1, T2> {
+public final class Tuple<T1, T2> {
 
 	private final T1 first;
 	private final T2 second;

@@ -17,7 +17,7 @@ public abstract class BaseLazyStock<T> extends BaseStock<T> {
 	}
 
 	@Override
-	public final void publishChanges() {
+	public synchronized final void republishState() {
 		checkClosed();
 		List<T> values = new ArrayList<>(notPublishedValues);
 		notPublishedValues.clear();
@@ -25,7 +25,7 @@ public abstract class BaseLazyStock<T> extends BaseStock<T> {
 	}
 
 	@Override
-	protected final void publish(T value) {
+	protected synchronized final void publish(T value) {
 		if (PropertyAtomicContext.inAtomicContext(this)) {
 			notPublishedValues.add(value);
 		}
@@ -35,7 +35,7 @@ public abstract class BaseLazyStock<T> extends BaseStock<T> {
 	}
 
 	@Override
-	public final void close() {
+	public synchronized final void close() {
 		super.close();
 		notPublishedValues.clear();
 	}

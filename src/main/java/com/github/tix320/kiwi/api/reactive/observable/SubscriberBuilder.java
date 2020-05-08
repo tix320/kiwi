@@ -8,7 +8,7 @@ import com.github.tix320.kiwi.internal.reactive.observable.StaticSubscriber;
 /**
  * @author Tigran Sargsyan on 23-Mar-20.
  */
-public class SubscriberBuilder<T> {
+public final class SubscriberBuilder<T> {
 
 	private ConditionalConsumer<Subscription> onSubscribe;
 

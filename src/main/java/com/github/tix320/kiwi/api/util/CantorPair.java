@@ -3,7 +3,7 @@ package com.github.tix320.kiwi.api.util;
 /**
  * @author Tigran Sargsyan on 28-Mar-20.
  */
-public class CantorPair {
+public final class CantorPair {
 
 	private final long first;
 

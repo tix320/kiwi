@@ -209,7 +209,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.take(2).map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
+			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
 		});
 
 		assertEquals(expected, actual);
@@ -239,7 +239,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.take(2).map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
+			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
 		});
 
 		assertEquals(expected, actual);
@@ -270,7 +270,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.map(integer -> integer * 2).peek(actual::add).await().subscribe(none -> {});
+			observable.map(integer -> integer * 2).peek(actual::add).await();
 		});
 
 		assertEquals(expected, actual);
@@ -301,7 +301,7 @@ class ObservableTest {
 		});
 
 		assertTimeout(Duration.ofSeconds(5), () -> {
-			observable.map(actual::add).blockUntilComplete();
+			observable.map(actual::add).await();
 		});
 
 		assertEquals(expected, actual);
@@ -338,7 +338,7 @@ class ObservableTest {
 			Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
 				actual.add(integerIntegerTuple.first());
 				actual.add(integerIntegerTuple.second());
-			}).blockUntilComplete();
+			}).await();
 		});
 
 		assertEquals(expected, actual);
@@ -411,7 +411,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void getTest() {
+	void getTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
@@ -426,7 +426,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void getWithBufferedTest() {
+	void getWithBufferedTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.buffered(1);
 		Observable<Integer> observable = publisher.asObservable();
 

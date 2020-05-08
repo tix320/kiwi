@@ -1,10 +1,8 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.github.tix320.kiwi.api.reactive.observable.ConditionalConsumer;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
@@ -20,29 +18,46 @@ public final class BufferPublisher<T> extends BasePublisher<T> {
 		if (bufferCapacity < 0) {
 			throw new IllegalArgumentException("Buffer size must be >=0");
 		}
-		buffer = new CopyOnWriteArrayList<>();
+		buffer = new LinkedList<>();
 		this.bufferCapacity = bufferCapacity;
 	}
 
 	@Override
-	protected void onNewSubscriber(ConditionalConsumer<T> publisherFunction) {
-		for (T object : buffer) {
-			boolean needMore = publisherFunction.accept(object);
+	protected boolean onNewSubscriber(InternalSubscription subscription) {
+		List<T> bufferCopy;
+		publishLock.lock();
+		try {
+			bufferCopy = List.copyOf(buffer);
+		}
+		finally {
+			publishLock.unlock();
+		}
+		for (T object : bufferCopy) {
+			boolean needMore = subscription.onPublish(object);
 			if (!needMore) {
-				break;
+				return false;
 			}
 		}
+		return true;
 	}
 
 	@Override
-	protected void prePublish(T object) {
-		if (buffer.size() == bufferCapacity) {
-			buffer.remove(0);
+	protected void prePublish(Object object, boolean isNormal) {
+		if (isNormal) {
+			if (buffer.size() == bufferCapacity) {
+				buffer.remove(0);
+			}
+			buffer.add((T) object);
 		}
-		buffer.add(object);
 	}
 
 	public List<T> getBuffer() {
-		return Collections.unmodifiableList(buffer);
+		publishLock.lock();
+		try {
+			return List.copyOf(buffer);
+		}
+		finally {
+			publishLock.unlock();
+		}
 	}
 }

@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public class UnmodifiableBiMap<T1, T2> implements BiMap<T1, T2> {
+public final class UnmodifiableBiMap<T1, T2> implements BiMap<T1, T2> {
 
 	private final BiMap<T1, T2> map;
 
