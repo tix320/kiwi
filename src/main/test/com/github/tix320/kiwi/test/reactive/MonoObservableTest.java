@@ -42,4 +42,22 @@ public class MonoObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
+	@Test
+	public void exceptionOnPublishTest(){
+		List<Integer> expected = Collections.singletonList(3);
+		List<Integer> actual = new ArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.simple();
+		MonoObservable<Integer> observable = publisher.asObservable().toMono();
+		observable.subscribe(integer -> {
+			actual.add(3);
+			throw new IllegalStateException();
+		});
+
+		publisher.publish(3);
+		publisher.publish(4);
+
+		assertEquals(expected, actual);
+	}
 }
