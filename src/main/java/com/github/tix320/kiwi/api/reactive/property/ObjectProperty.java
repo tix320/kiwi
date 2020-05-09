@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.api.reactive.property;
 
 import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
 
-public final class ObjectProperty<T> extends BaseLazyProperty<T> {
+public class ObjectProperty<T> extends BaseLazyProperty<T> {
 
 	public ObjectProperty() {
 	}

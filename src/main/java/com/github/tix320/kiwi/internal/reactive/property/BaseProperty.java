@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.internal.reactive.property;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.Property;
@@ -13,24 +14,33 @@ import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
  */
 public abstract class BaseProperty<T> implements Property<T>, RepublishProperty {
 
-	private volatile T value;
+	private final AtomicReference<T> value;
 
 	private final SinglePublisher<T> publisher;
 
 	public BaseProperty() {
 		this.publisher = Publisher.single();
+		this.value = new AtomicReference<>();
 	}
 
 	public BaseProperty(T value) {
-		this.value = Objects.requireNonNull(value);
+		this.value = new AtomicReference<>(Objects.requireNonNull(value));
 		this.publisher = Publisher.single(value);
 	}
 
 	@Override
 	public synchronized final void setValue(T value) {
 		checkClosed();
-		this.value = Objects.requireNonNull(value);
+		this.value.set(Objects.requireNonNull(value));
 		republishState();
+	}
+
+	@Override
+	public synchronized final boolean compareAndSetValue(T expectedValue, T value) {
+		checkClosed();
+		boolean changed = this.value.compareAndSet(expectedValue, Objects.requireNonNull(value));
+		republishState();
+		return changed;
 	}
 
 	@Override
@@ -48,7 +58,7 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 
 	@Override
 	public final T getValue() {
-		return value;
+		return value.get();
 	}
 
 	@Override
@@ -59,7 +69,7 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 	@Override
 	public synchronized void republishState() {
 		checkClosed();
-		publisher.publish(value);
+		publisher.publish(value.get());
 	}
 
 	protected final void checkClosed() {

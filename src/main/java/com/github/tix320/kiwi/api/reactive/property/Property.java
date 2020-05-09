@@ -13,6 +13,11 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	void setValue(T value);
 
+	/**
+	 * NOTE: Now this is working via synchronization, will be upgraded in future.
+	 */
+	boolean compareAndSetValue(T expectedValue, T value);
+
 	void close();
 
 	boolean isClosed();
@@ -27,6 +32,10 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	static <T> ObjectProperty<T> forObject(T initialValue) {
 		return new ObjectProperty<>(initialValue);
+	}
+
+	static <T extends Enum<T>> StateProperty<T> forState(T initialValue) {
+		return new StateProperty<>(initialValue);
 	}
 
 	static <T> ListProperty<T> forList() {
