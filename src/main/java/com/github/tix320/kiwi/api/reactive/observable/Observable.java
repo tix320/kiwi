@@ -140,39 +140,43 @@ public interface Observable<T> {
 	 *
 	 * @throws TimeoutException when observable not completed in given time.
 	 */
-	@SuppressWarnings("all")
 	default T get(Duration timeout) throws InterruptedException {
+		AtomicReference<T> itemHolder = new AtomicReference<>();
+		waitAndApply(timeout, itemHolder::set);
+		return itemHolder.get();
+	}
+
+	/**
+	 * Blocks current thread for given timout until this observable will be published one value and apply given consumer to that item.
+	 *
+	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
+	 * @throws TimeoutException when observable not completed in given time.
+	 */
+	default void waitAndApply(Duration timeout, Consumer<T> consumer) throws InterruptedException {
 		CountDownLatch latch = new CountDownLatch(1);
 
 		long millis = timeout.toMillis();
 
-		AtomicReference<Object> itemHolder = new AtomicReference<>();
-		this.conditionalSubscribe(item -> {
-			boolean changed = itemHolder.compareAndSet(null, item);
+		AtomicBoolean isTimout = new AtomicBoolean(false);
+		this.toMono().subscribe(item -> {
+			boolean changed = isTimout.compareAndSet(false, true);
 			if (!changed) {
-				System.err.println(String.format("The observable was published item after timout of %sms", millis));
+				System.err.println(String.format("The observable was completed after timout of %sms", millis));
 			}
+			consumer.accept(item);
 			latch.countDown();
-
-			return false;
 		});
 
 		if (millis < 0) {
 			latch.await();
-			return (T) itemHolder.get();
 		}
 		else {
 			boolean normally = latch.await(millis, TimeUnit.MILLISECONDS);
-			if (normally) {
-				return (T) itemHolder.get();
-			}
-			else {
-				boolean changed = itemHolder.compareAndSet(null, new Object());
+			if (!normally) {
+				boolean changed = isTimout.compareAndSet(false, true);
 				if (changed) {
-					throw new TimeoutException(String.format("The observable not published item in %sms", millis));
-				}
-				else {
-					return (T) itemHolder.get();
+					throw new TimeoutException(String.format("The observable not completed in %sms", millis));
 				}
 			}
 		}
