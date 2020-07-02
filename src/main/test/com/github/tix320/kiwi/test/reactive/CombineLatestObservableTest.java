@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class CombineLatestObservableTest {
 
 	@Test
-	public void simpleTest() {
+	public void simpleTest() throws InterruptedException {
 		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4), new Tuple<>(3, 4));
 		List<Tuple<Integer, Integer>> actual = new ArrayList<>();
 
@@ -29,15 +29,19 @@ public class CombineLatestObservableTest {
 		publisher1.publish(1);
 		publisher2.publish(2);
 
+		Thread.sleep(100);
+
 		publisher2.publish(4);
 		publisher1.publish(3);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void oneCompleteTest() {
-		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4));
+	public void oneCompleteTest() throws InterruptedException {
+		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4), new Tuple<>(3, 4));
 		List<Tuple<Integer, Integer>> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher1 = Publisher.simple();
@@ -49,9 +53,14 @@ public class CombineLatestObservableTest {
 		publisher1.publish(1);
 		publisher2.publish(2);
 
+		Thread.sleep(100);
+
 		publisher2.publish(4);
 		publisher2.complete();
+
 		publisher1.publish(3);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 class ObservableTest {
 
 	@Test
-	void emptyTest() {
+	void emptyTest() throws InterruptedException {
 		Observable<Integer> empty = Observable.empty();
 
 		empty.subscribe(integer -> {
@@ -39,6 +40,9 @@ class ObservableTest {
 
 		AtomicReference<Map<Integer, Integer>> actual = new AtomicReference<>(null);
 		empty.toMap(integer -> integer, integer -> integer).subscribe(actual::set);
+
+		Thread.sleep(100);
+
 		assertEquals(Map.of(), actual.get());
 	}
 
@@ -107,7 +111,7 @@ class ObservableTest {
 	}
 
 	@Test
-	void concatOnCompleteTest() {
+	void concatOnCompleteTest() throws InterruptedException {
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Observable<Integer> observable1 = Observable.of(10);
@@ -128,33 +132,38 @@ class ObservableTest {
 
 		publisher.complete();
 
+		Thread.sleep(100);
+
 		assertEquals("10,20,25,50", actual.get());
 	}
 
 	@Test
 	void mapTest() {
+		List<String> expected1 = List.of("10lol","20lol","25lol");
+		List<String> expected2 = List.of("20wtf");
 
-		List<String> expected = Arrays.asList("10lol", "20lol", "20wtf", "25lol");
-		List<String> actual = new ArrayList<>();
+		List<String> actual1 = new CopyOnWriteArrayList<>();
+		List<String> actual2 = new CopyOnWriteArrayList<>();
 
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Observable<Integer> observable = publisher.asObservable();
 
 		observable.map(integer -> integer + "lol").conditionalSubscribe(item -> {
-			actual.add(item);
+			actual1.add(item);
 			return !item.equals("25lol");
 		});
 
 		publisher.publish(10);
-		observable.map(integer -> integer + "wtf").toMono().subscribe(actual::add);
+		observable.map(integer -> integer + "wtf").toMono().subscribe(actual2::add);
 
 		publisher.publish(20);
 		publisher.publish(25);
 
 		publisher.publish(50);
 
-		assertEquals(expected, actual);
+		assertEquals(expected1, actual1);
+		assertEquals(expected2, actual2);
 	}
 
 	@Test
@@ -345,72 +354,6 @@ class ObservableTest {
 	}
 
 	@Test
-	void errorTest() {
-		List<Integer> expected = Arrays.asList(1, 2, 15, 3);
-		List<Integer> actual = new ArrayList<>();
-
-		Publisher<Integer> publisher = Publisher.simple();
-		Observable<Integer> observable = publisher.asObservable();
-
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onError(throwable -> {
-			assertEquals("foo", throwable.getMessage());
-			actual.add(15);
-		}));
-
-		publisher.publish(1);
-		publisher.publish(2);
-
-		publisher.publishError(new RuntimeException("foo"));
-		publisher.publish(3);
-
-		assertEquals(expected, actual);
-	}
-
-	@Test
-	void errorTestWithParticular() {
-		List<Integer> expected = Arrays.asList(1, 2, 15);
-		List<Integer> actual = new ArrayList<>();
-
-		Publisher<Integer> publisher = Publisher.simple();
-		Observable<Integer> observable = publisher.asObservable();
-
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onErrorConditional(throwable -> {
-			assertEquals("foo", throwable.getMessage());
-			actual.add(15);
-			return false;
-		}));
-
-		publisher.publish(1);
-		publisher.publish(2);
-
-		publisher.publishError(new RuntimeException("foo"));
-		publisher.publish(3);
-
-		assertEquals(expected, actual);
-	}
-
-	@Test
-	void errorTestWithThrowing() {
-		List<Integer> expected = Arrays.asList(1, 2, 3);
-		List<Integer> actual = new ArrayList<>();
-
-		Publisher<Integer> publisher = Publisher.simple();
-		Observable<Integer> observable = publisher.asObservable();
-
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onError(throwable -> {
-			throw WrapperException.wrap(throwable);
-		}));
-
-		publisher.publish(1);
-		publisher.publish(2);
-
-		publisher.publishError(new RuntimeException("foo"));
-		publisher.publish(3);
-
-		assertEquals(expected, actual);
-	}
-
-	@Test
 	void getTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
@@ -441,9 +384,9 @@ class ObservableTest {
 	}
 
 	@Test
-	void onCompleteOnUnsubscribe() {
+	void onCompleteOnUnsubscribe() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(1, 2, 15);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = new CopyOnWriteArrayList<>();
 
 		Publisher<Integer> publisher = Publisher.simple();
 
@@ -458,6 +401,8 @@ class ObservableTest {
 		publisher.publish(2);
 
 		publisher.publish(3);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

@@ -75,12 +75,6 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				subscriber.onError(throwable);
-				return true;
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
 				if (completedFromSubscriber) {
 					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);

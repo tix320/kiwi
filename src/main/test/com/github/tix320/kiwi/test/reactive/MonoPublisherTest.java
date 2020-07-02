@@ -3,12 +3,11 @@ package com.github.tix320.kiwi.test.reactive;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
-import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class MonoPublisherTest {
 
@@ -36,5 +35,22 @@ public class MonoPublisherTest {
 			called.set(true);
 		});
 		assertTrue(called.get());
+	}
+
+	@Test
+	void emptyContentTest() {
+		MonoPublisher<String> mono = new MonoPublisher<>();
+
+		assertTrue(mono.getContent().isEmpty());
+	}
+
+	@Test
+	void valueContentTest() {
+		MonoPublisher<String> mono = new MonoPublisher<>();
+		mono.publish("foo");
+
+		assertTrue(mono.getContent().isPresent());
+		String content = mono.getContent().get();
+		assertEquals("foo", content);
 	}
 }

@@ -32,11 +32,6 @@ public final class MapperObservable<S, R> implements TransformObservable<S, R> {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				return subscriber.onError(throwable);
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
 				subscriber.onComplete(completionType);
 			}

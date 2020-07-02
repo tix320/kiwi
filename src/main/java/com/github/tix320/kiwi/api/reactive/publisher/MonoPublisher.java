@@ -1,73 +1,65 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
-import java.util.Iterator;
 import java.util.Objects;
+import java.util.Optional;
 
-import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
+import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
-import com.github.tix320.kiwi.internal.reactive.publisher.SubscriberException;
 
-public final class MonoPublisher<T> extends BasePublisher<T> {
-
-	private volatile T value;
+/**
+ * Mono publisher to publish exactly one object, after which the publisher will be closed.
+ * The subscribers will receive that object after subscription immediately.
+ */
+public final class MonoPublisher<T> extends BasePublisher<T, T> {
 
 	@Override
-	protected boolean onNewSubscriber(InternalSubscription subscription) {
-		if (value != null) {
-			return subscription.onPublish(value);
+	public void publish(T object) {
+		Objects.requireNonNull(object);
+
+		State currentState;
+		do {
+			currentState = this.state.get();
+			checkCompleted(currentState);
+
+		} while (!this.state.compareAndSet(currentState, currentState.changeCustomState(object).complete()));
+
+		InternalSubscription<T>[] subscriptions = currentState.getSubscriptions();
+
+		for (InternalSubscription<T> subscription : subscriptions) {
+			subscription.publishItem(object);
+			subscription.complete();
 		}
-		return true;
 	}
 
 	@Override
-	protected void prePublish(Object object, boolean isNormal) {
-		if (isNormal) {
-			value = Objects.requireNonNull((T) object);
-		}
-	}
+	protected void subscribe(InternalSubscription<T> subscription) {
+		State currentState;
+		do {
+			currentState = this.state.get();
 
-	@Override
-	protected void publishObject(Object object, boolean isNormal) {
-		/* this iterator is based on array snapshot, due the CopyOnWriteArrayList implementation
-			 and why we are creating it outside the lock? because Publisher specification requires to publish on that subscribers, which exists in moment of publish
-			therefore in case to wait until lock free, array may be changed
-			*/
-		Iterator<InternalSubscription> subscriptionIterator = subscriptions.iterator();
+			T data = currentState.getCustomState();
 
-		publishLock.lock();
-		try {
-			checkCompleted();
-			completed.set(true);
-
-			prePublish(object, isNormal);
-		}
-		finally {
-			publishLock.unlock();
-		}
-
-		while (subscriptionIterator.hasNext()) {
-			InternalSubscription subscription = subscriptionIterator.next();
-			try {
-				publishObjectToOneSubscriber(subscription, object, isNormal);
+			if (data != null) {
+				subscription.publishItem(data);
+				subscription.complete();
+				return;
 			}
-			catch (Exception e) {
-				new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
+			else if (currentState.isCompleted()) {
+				subscription.complete();
+				return;
 			}
-		}
 
-		for (InternalSubscription subscription : subscriptions) {
-			subscription.cancel(CompletionType.SOURCE_COMPLETED);
-		}
+		} while (!this.state.compareAndSet(currentState, currentState.addSubscription(subscription)));
 	}
 
 	@Override
 	public MonoObservable<T> asObservable() {
-		PublisherObservable publisherObservable = new PublisherObservable();
-		return publisherObservable::subscribe;
+		Observable<T> observable = super.asObservable();
+		return observable::subscribe;
 	}
 
-	public T getValue() {
-		return value;
+	public Optional<T> getContent() {
+		return Optional.ofNullable(this.state.get().getCustomState());
 	}
 }

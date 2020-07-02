@@ -6,7 +6,7 @@ import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.internal.reactive.publisher.SubscriberException;
+import com.github.tix320.kiwi.internal.reactive.publisher.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -60,16 +60,11 @@ public final class CountingObservable<T> implements Observable<T> {
 							subscriber.onPublish(item);
 						}
 						catch (Exception e) {
-							new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
+							ExceptionUtils.applyToUncaughtExceptionHandler(e);
 						}
 					}
 					return false;
 				}
-			}
-
-			@Override
-			public boolean onError(Throwable throwable) {
-				return subscriber.onError(throwable);
 			}
 
 			@Override

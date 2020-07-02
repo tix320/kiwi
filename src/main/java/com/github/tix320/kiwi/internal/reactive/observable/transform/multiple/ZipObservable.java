@@ -15,7 +15,7 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
-		this.observables = observables;
+		this.observables = List.copyOf(observables);
 	}
 
 	@Override
@@ -30,11 +30,13 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
 
 		Consumer<CompletionType> cleanup = (completionType) -> {
-			completed.set(true);
-			subscriptions.forEach(Subscription::unsubscribe);
-			subscriber.onComplete(completionType);
-			queues.forEach(Collection::clear);
-			queues.clear();
+			boolean changed = completed.compareAndSet(false, true);
+			if (changed) {
+				subscriptions.forEach(Subscription::unsubscribe);
+				subscriber.onComplete(completionType);
+				queues.forEach(Collection::clear);
+				queues.clear();
+			}
 		};
 
 		Subscription subscription = new Subscription() {
@@ -60,24 +62,31 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 			Queue<T> queue = queues.get(i);
 			observable.subscribe(new Subscriber<T>() {
 
+				private volatile Subscription subscription;
+
 				@Override
 				public boolean onSubscribe(Subscription subscription) {
+					this.subscription = subscription;
 					return subscriptions.add(subscription);
 				}
 
 				@Override
 				public boolean onPublish(T item) {
-					queue.add(item);
-					for (Queue<T> q : queues) {
-						if (q.isEmpty()) {
-							return true;
+					List<T> combinedObjects;
+					synchronized (this) {
+						queue.add(item);
+						for (Queue<T> q : queues) {
+							if (q.isEmpty()) {
+								return true;
+							}
+						}
+
+						combinedObjects = new ArrayList<>(queues.size());
+						for (Queue<T> q : queues) {
+							combinedObjects.add(q.poll());
 						}
 					}
 
-					List<T> combinedObjects = new ArrayList<>(queues.size());
-					for (Queue<T> q : queues) {
-						combinedObjects.add(q.poll());
-					}
 					boolean needMore = subscriber.onPublish(combinedObjects);
 
 					if (!needMore) {
@@ -85,31 +94,44 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 						return false;
 					}
 
-					if (atLeastOneObservableCompleted.get()) {
-						for (int j = 0; j < queues.size(); j++) {
-							Queue<T> q = queues.get(j);
-							Subscription subscription = subscriptions.get(j);
-							if (subscription.isCompleted() && q.isEmpty()) {
-								cleanup.accept(CompletionType.SOURCE_COMPLETED);
-								break;
+					boolean needComplete = false;
+
+					synchronized (this) {
+						if (atLeastOneObservableCompleted.get()) {
+							for (int j = 0; j < queues.size(); j++) {
+								Queue<T> q = queues.get(j);
+								Subscription subscription = subscriptions.get(j);
+								if (subscription.isCompleted() && q.isEmpty()) {
+									needComplete = true;
+									break;
+								}
 							}
 						}
+					}
+
+					if (needComplete) {
+						synchronized (this) {
+							subscriptions.remove(subscription);
+						}
+						cleanup.accept(CompletionType.SOURCE_COMPLETED);
+						return false;
 					}
 
 					return true;
 				}
 
 				@Override
-				public boolean onError(Throwable throwable) {
-					return subscriber.onError(throwable);
-				}
-
-				@Override
 				public void onComplete(CompletionType completionType) {
-					if (completionType == CompletionType.SOURCE_COMPLETED) {
-						if (atLeastOneObservableCompleted.compareAndSet(false, true) && queue.isEmpty()) {
-							cleanup.accept(CompletionType.SOURCE_COMPLETED);
+					boolean needComplete = false;
+					synchronized (this) {
+						if (completionType == CompletionType.SOURCE_COMPLETED) {
+							if (atLeastOneObservableCompleted.compareAndSet(false, true) && queue.isEmpty()) {
+								needComplete = true;
+							}
 						}
+					}
+					if (needComplete) {
+						cleanup.accept(CompletionType.SOURCE_COMPLETED);
 					}
 				}
 			});

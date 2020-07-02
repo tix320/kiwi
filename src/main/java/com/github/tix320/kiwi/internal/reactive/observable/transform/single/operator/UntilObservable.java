@@ -1,6 +1,5 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
@@ -24,12 +23,16 @@ public final class UntilObservable<T> implements Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		final AtomicBoolean untilCompleted = new AtomicBoolean(false);
+		AtomicReference<State> state = new AtomicReference<>(new State(null, false));
 
 		until.subscribe(Subscriber.builder().onComplete((completionType) -> {
-			untilCompleted.set(true);
-			Subscription subscription = subscriptionHolder.get();
+			State currentState;
+			do {
+				currentState = state.get();
+
+			} while (!state.compareAndSet(currentState, new State(currentState.getSubscription(), true)));
+
+			Subscription subscription = currentState.getSubscription();
 			if (subscription != null) {
 				subscription.unsubscribe();
 			}
@@ -38,15 +41,29 @@ public final class UntilObservable<T> implements Observable<T> {
 
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
-				subscriptionHolder.set(subscription);
-				subscriber.onSubscribe(
+				boolean needRegister = subscriber.onSubscribe(
 						subscription); // TODO in case of user unsubscription, until subscription not deleted
-				return !untilCompleted.get();
+
+				if (!needRegister) {
+					return false;
+				}
+
+				State currentState;
+				do {
+					currentState = state.get();
+
+					if (currentState.isUntilCompleted()) {
+						return false;
+					}
+
+				} while (!state.compareAndSet(currentState, new State(subscription, false)));
+
+				return true;
 			}
 
 			@Override
 			public boolean onPublish(T item) {
-				if (untilCompleted.get()) {
+				if (state.get().isUntilCompleted()) {
 					return false;
 				}
 
@@ -54,17 +71,8 @@ public final class UntilObservable<T> implements Observable<T> {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				if (untilCompleted.get()) {
-					return false;
-				}
-
-				return subscriber.onError(throwable);
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
-				if (untilCompleted.get()) {
+				if (state.get().isUntilCompleted()) {
 					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
 				}
 				else {
@@ -72,5 +80,23 @@ public final class UntilObservable<T> implements Observable<T> {
 				}
 			}
 		});
+	}
+
+	private static final class State {
+		private final Subscription subscription;
+		private final boolean untilCompleted;
+
+		public State(Subscription subscription, boolean untilCompleted) {
+			this.subscription = subscription;
+			this.untilCompleted = untilCompleted;
+		}
+
+		public Subscription getSubscription() {
+			return subscription;
+		}
+
+		public boolean isUntilCompleted() {
+			return untilCompleted;
+		}
 	}
 }

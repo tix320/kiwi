@@ -3,19 +3,16 @@ package com.github.tix320.kiwi.api.reactive.property;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.function.Consumer;
-import java.util.function.IntFunction;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
 
 /**
  * @author Tigran Sargsyan on 24-Mar-20.
  */
-public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Set<T> {
+public final class SetProperty<T> extends BaseProperty<Set<T>> {
 
 	public SetProperty() {
 	}
@@ -30,46 +27,45 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 	}
 
 	@Override
-	public int size() {
+	public synchronized void setValue(Set<T> value) {
+		super.setValue(value);
+	}
+
+	@Override
+	public synchronized boolean compareAndSetValue(Set<T> expectedValue, Set<T> value) {
+		return super.compareAndSetValue(expectedValue, value);
+	}
+
+	@Override
+	public synchronized void close() {
+		super.close();
+	}
+
+	@Override
+	public synchronized void republishState() {
+		super.republishState();
+	}
+
+	public synchronized int size() {
 		return getValue().size();
 	}
 
-	@Override
-	public boolean isEmpty() {
+	public synchronized boolean isEmpty() {
 		return getValue().isEmpty();
 	}
 
-	@Override
-	public boolean contains(Object o) {
+	public synchronized boolean contains(Object o) {
 		return getValue().contains(o);
 	}
 
-	@Override
-	public Iterator<T> iterator() {
+	public synchronized Iterator<T> iterator() {
 		return new UnmodifiableIterator<>(getValue().iterator());
 	}
 
-	@Override
-	public void forEach(Consumer<? super T> action) {
+	public synchronized void forEach(Consumer<? super T> action) {
 		getValue().forEach(action);
 	}
 
-	@Override
-	public Object[] toArray() {
-		return getValue().toArray();
-	}
-
-	@Override
-	public <T1> T1[] toArray(T1[] a) {
-		return getValue().toArray(a);
-	}
-
-	@Override
-	public <T1> T1[] toArray(IntFunction<T1[]> generator) {
-		return getValue().toArray(generator);
-	}
-
-	@Override
 	public synchronized boolean add(T t) {
 		checkClosed();
 		boolean added = getValue().add(t);
@@ -79,8 +75,7 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		return added;
 	}
 
-	@Override
-	public synchronized boolean remove(Object o) {
+	public synchronized boolean remove(T o) {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
@@ -89,12 +84,10 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		return removed;
 	}
 
-	@Override
-	public boolean containsAll(Collection<?> c) {
+	public synchronized boolean containsAll(Collection<? extends T> c) {
 		return getValue().containsAll(c);
 	}
 
-	@Override
 	public synchronized boolean addAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean added = getValue().addAll(c);
@@ -104,8 +97,7 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		return added;
 	}
 
-	@Override
-	public synchronized boolean retainAll(Collection<?> c) {
+	public synchronized boolean retainAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
@@ -114,8 +106,7 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		return changed;
 	}
 
-	@Override
-	public synchronized boolean removeAll(Collection<?> c) {
+	public synchronized boolean removeAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
@@ -124,45 +115,23 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 		return removed;
 	}
 
-	@Override
-	public boolean removeIf(Predicate<? super T> filter) {
-		checkClosed();
-		boolean removed = getValue().removeIf(filter);
-		if (removed) {
-			republishState();
-		}
-		return removed;
-	}
-
-	@Override
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
 		republishState();
 	}
 
-	@Override
-	public Spliterator<T> spliterator() {
-		return getValue().spliterator();
-	}
-
-	@Override
 	public Stream<T> stream() {
 		return getValue().stream();
 	}
 
 	@Override
-	public Stream<T> parallelStream() {
-		return getValue().parallelStream();
-	}
-
-	@Override
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return getValue().hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public synchronized boolean equals(Object obj) {
 		if (obj == this) {
 			return true;
 		}
@@ -174,7 +143,7 @@ public final class SetProperty<T> extends BaseLazyProperty<Set<T>> implements Se
 	}
 
 	@Override
-	public String toString() {
+	public synchronized String toString() {
 		return getValue().toString();
 	}
 }

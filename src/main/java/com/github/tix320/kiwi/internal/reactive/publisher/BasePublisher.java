@@ -1,56 +1,54 @@
 package com.github.tix320.kiwi.internal.reactive.publisher;
 
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.util.IDGenerator;
-import com.github.tix320.kiwi.internal.reactive.CompletedException;
+import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-public abstract class BasePublisher<T> implements Publisher<T> {
+public abstract class BasePublisher<T, S> implements Publisher<T> {
 
-	private final IDGenerator subscriberIdGenerator;
+	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
+			new SynchronousQueue<>());
 
-	protected final AtomicBoolean completed;
+	protected final AtomicReference<State> state;
 
-	protected final CopyOnWriteArrayList<InternalSubscription> subscriptions;
-
-	protected final ImprovedReentrantLock publishLock;
-
+	@SuppressWarnings("unchecked")
 	protected BasePublisher() {
-		this.subscriberIdGenerator = new IDGenerator(1);
-		this.completed = new AtomicBoolean(false);
-		this.subscriptions = new CopyOnWriteArrayList<>();
-		this.publishLock = new ImprovedReentrantLock();
-	}
-
-	@Override
-	public final void publish(T object) {
-		publishObject(object, true);
-	}
-
-	@Override
-	public final void publishError(Throwable throwable) {
-		publishObject(throwable, false);
+		this.state = new AtomicReference<>(new State(null, false, new InternalSubscription[0]));
 	}
 
 	@Override
 	public final void complete() {
-		completeInternal();
+		State currentState;
+		do {
+			currentState = this.state.get();
+			if (currentState.isCompleted()) {
+				return;
+			}
+		} while (!this.state.compareAndSet(currentState, currentState.complete()));
+
+		for (InternalSubscription<T> subscription : currentState.getSubscriptions()) {
+			subscription.complete();
+		}
 	}
 
 	@Override
 	public final boolean isCompleted() {
-		return completed.get();
+		return state.get().isCompleted();
 	}
 
 	@Override
@@ -58,182 +56,472 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		return new PublisherObservable();
 	}
 
-	protected abstract boolean onNewSubscriber(InternalSubscription subscription);
+	/**
+	 * This method called on same thread of subscriber, avoid concurrency side effects.
+	 */
+	protected abstract void subscribe(InternalSubscription<T> subscription);
 
-	protected void prePublish(Object object, boolean isNormal) {
-
+	protected final void checkCompleted(State state) {
+		if (state.isCompleted()) {
+			throw createCompletedException();
+		}
 	}
 
-	protected void publishObject(Object object, boolean isNormal) {
-		/* this iterator is based on array snapshot, due the CopyOnWriteArrayList implementation
-			 and why we are creating it outside the lock? because Publisher specification requires to publish on that subscribers, which exists in moment of publish
-			therefore in case to wait until lock free, array may be changed
-			*/
-		Iterator<InternalSubscription> subscriptionIterator = subscriptions.iterator();
+	private PublisherCompletedException createCompletedException() {
+		return new PublisherCompletedException("Publisher is completed, you can not publish items.");
+	}
 
-		publishLock.lock();
-		try {
-			checkCompleted();
-
-			prePublish(object, isNormal);
-		}
-		finally {
-			publishLock.unlock();
-		}
-
-		while (subscriptionIterator.hasNext()) {
-			InternalSubscription subscription = subscriptionIterator.next();
+	protected static void runAsync(Runnable runnable) {
+		EXECUTOR.submit(() -> {
 			try {
-				publishObjectToOneSubscriber(subscription, object, isNormal);
+				runnable.run();
 			}
-			catch (Exception e) {
-				new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
+			catch (Throwable e) {
+				e.printStackTrace();
 			}
-		}
+		});
 	}
 
-	protected void publishObjectToOneSubscriber(InternalSubscription subscription, Object object, boolean isNormal) {
-		if (subscription.isCompleted()) {
-			return;
-		}
-		boolean needMore = isNormal ? subscription.onPublish((T) object) : subscription.onError((Throwable) object);
-		if (!needMore) {
-			subscription.cancel(CompletionType.UNSUBSCRIPTION);
-		}
-	}
-
-	protected void completeInternal() {
-		boolean changed = completed.compareAndSet(false, true);
-		if (changed) {
-			for (InternalSubscription subscription : subscriptions) {
-				subscription.cancel(CompletionType.SOURCE_COMPLETED);
-			}
-		}
-	}
-
-	protected void checkCompleted() {
-		if (completed.get()) {
-			throw new CompletedException("Publisher is completed, you can not publish items.");
-		}
-	}
-
-	public final class PublisherObservable implements Observable<T> {
+	private final class PublisherObservable implements Observable<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
-			InternalSubscription subscription;
-			subscription = new InternalSubscription(subscriber);
-			boolean needRegister = subscription.onSubscribe(subscription);
+			InternalSubscription<T> subscription = new InternalSubscription<>(subscriber);
+			boolean needRegister = subscriber.onSubscribe(subscription);
 			if (!needRegister) {
-				subscription.onComplete(CompletionType.UNSUBSCRIPTION);
+				subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
 				return;
 			}
 
-			boolean needMore = BasePublisher.this.onNewSubscriber(subscription);
-
-			subscriptions.add(subscription);
-
-			if (!needMore) {
-				subscription.cancel(CompletionType.UNSUBSCRIPTION);
-			}
-			else if (completed.get()) {
-				subscription.cancel(CompletionType.SOURCE_COMPLETED);
-			}
+			BasePublisher.this.subscribe(subscription);
 		}
 	}
 
-	protected final class InternalSubscription implements Subscriber<T>, Subscription {
+	protected final class InternalSubscription<I> implements Subscription {
 
-		private final long id;
-		private final Subscriber<? super T> subscriber;
+		private final Subscriber<? super I> realSubscriber;
 
-		private final AtomicBoolean onSubscribeCalled;
-		private final AtomicBoolean onCompleteCalled;
+		private final AtomicReference<SubscriptionState> state;
 
-		private InternalSubscription(Subscriber<? super T> subscriber) {
-			this.subscriber = subscriber;
-			this.id = subscriberIdGenerator.next();
-			this.onSubscribeCalled = new AtomicBoolean(false);
-			this.onCompleteCalled = new AtomicBoolean(false);
+		private InternalSubscription(Subscriber<? super I> realSubscriber) {
+			this.realSubscriber = realSubscriber;
+			SubscriptionState initialState = new SubscriptionState(false, false, new Thread[0], null, null);
+			this.state = new AtomicReference<>(initialState);
 		}
 
-		@Override
-		public boolean onSubscribe(Subscription subscription) {
-			if (!onSubscribeCalled.compareAndSet(false, true)) {
-				throw new SubscriptionIllegalStateException("OnSubscribe must be called only once");
-			}
-
-			return subscriber.onSubscribe(subscription);
+		@SuppressWarnings("unchecked")
+		public void publishItem(I item) {
+			publishItems((I[]) new Object[]{item});
 		}
 
-		@Override
-		public boolean onPublish(T item) {
-			if (!onSubscribeCalled.get()) {
-				throw new SubscriptionIllegalStateException("OnPublish must be called only after onSubscribe");
-			}
-			if (onCompleteCalled.get()) {
-				throw new SubscriptionIllegalStateException("OnPublish must not be called after onComplete");
-			}
+		public void publishItems(I[] items) {
+			Thread callerThread = Thread.currentThread();
+			AtomicBoolean callerWait = new AtomicBoolean(true);
 
-			return subscriber.onPublish(item);
+			Runnable wakeupCaller = () -> {
+				callerWait.set(false);
+				LockSupport.unpark(callerThread);
+			};
+
+			runAsync(() -> {
+				SubscriptionState currentSubscriptionState;
+
+				boolean needWait = false;
+
+				do {
+					currentSubscriptionState = state.get();
+
+					if (currentSubscriptionState.isOnCompleteCalled()) {
+						wakeupCaller.run();
+						remove();
+						return;
+					}
+
+					if (currentSubscriptionState.isPublishLocked()
+						|| currentSubscriptionState.getWaitingPublishers().length != 0) {
+						needWait = true;
+						break;
+					}
+
+				} while (!state.compareAndSet(currentSubscriptionState, currentSubscriptionState.lockPublish()));
+
+				if (needWait) {
+					SubscriptionState crrState;
+					SubscriptionState wtf;
+					do {
+						crrState = state.get();
+						if (crrState.isOnCompleteCalled()) {
+							remove();
+							wakeupCaller.run();
+							return;
+						}
+						wtf = crrState.addWaitingPublisher();
+					} while (!state.compareAndSet(crrState, wtf));
+
+					wakeupCaller.run();
+
+					while (true) {
+						currentSubscriptionState = state.get();
+
+						if (currentSubscriptionState.isDropWaiter()) {
+							return;
+						}
+
+						if (currentSubscriptionState.isPublishLocked()
+							|| currentSubscriptionState.getWaitingPublishers()[0] != Thread.currentThread()) {
+							LockSupport.park();
+							//noinspection ResultOfMethodCallIgnored
+							Thread.interrupted();
+							continue;
+						}
+
+						boolean changed = state.compareAndSet(currentSubscriptionState,
+								currentSubscriptionState.lockPublishAndRemoveFromWaiters());
+						if (changed) {
+							break;
+						}
+					}
+				}
+				else {
+					wakeupCaller.run();
+				}
+
+				boolean needMore = true;
+				for (I item : items) {
+					try {
+						needMore = realSubscriber.onPublish(item);
+					}
+					catch (Throwable e) {
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
+					}
+
+					if (!needMore) {
+						break;
+					}
+				}
+
+				if (needMore) {
+					SubscriptionState subscriptionState = state.updateAndGet(SubscriptionState::unlockPublish);
+
+					if (subscriptionState.getWaitingPublishers().length != 0) {
+						Thread firstWaiter = subscriptionState.getWaitingPublishers()[0];
+						LockSupport.unpark(firstWaiter);
+					}
+					else if (subscriptionState.isOnCompleteCalled()) {
+						LockSupport.unpark(subscriptionState.getCompleter());
+					}
+				}
+				else {
+					remove();
+
+					SubscriptionState subscriptionState;
+
+					Thread currentThread = Thread.currentThread();
+					do {
+						subscriptionState = state.get();
+
+					} while (!state.compareAndSet(subscriptionState,
+							new SubscriptionState(true, true, new Thread[0], null, currentThread)));
+
+					for (Thread waitingPublisher : subscriptionState.getWaitingPublishers()) {
+						LockSupport.unpark(waitingPublisher);
+					}
+
+					if (!subscriptionState.isOnCompleteCalled()) {
+						try {
+							realSubscriber.onComplete(CompletionType.UNSUBSCRIPTION);
+						}
+						catch (Throwable t) {
+							ExceptionUtils.applyToUncaughtExceptionHandler(t);
+						}
+					}
+				}
+			});
+
+			while (callerWait.get()) {
+				LockSupport.park();
+				//noinspection ResultOfMethodCallIgnored
+				Thread.interrupted();
+			}
 		}
 
-		@Override
-		public boolean onError(Throwable throwable) {
-			if (!onSubscribeCalled.get()) {
-				throw new SubscriptionIllegalStateException("OnError must be called only after onSubscribe");
-			}
-			if (onCompleteCalled.get()) {
-				throw new SubscriptionIllegalStateException("OnError must not be called after onComplete");
-			}
+		public void complete() {
+			Thread callerThread = Thread.currentThread();
+			AtomicBoolean callerWait = new AtomicBoolean(true);
 
-			return subscriber.onError(throwable);
-		}
+			Runnable wakeupCaller = () -> {
+				callerWait.set(false);
+				LockSupport.unpark(callerThread);
+			};
 
-		@Override
-		public void onComplete(CompletionType completionType) {
-			if (!onSubscribeCalled.get()) {
-				throw new SubscriptionIllegalStateException("OnComplete must be called only after onSubscribe");
+			runAsync(() -> {
+				SubscriptionState currentState;
+				Thread currentThread = Thread.currentThread();
+				do {
+					currentState = state.get();
+
+					if (currentState.isOnCompleteCalled()) {
+						wakeupCaller.run();
+						return;
+					}
+				} while (!state.compareAndSet(currentState,
+						new SubscriptionState(true, false, currentState.getWaitingPublishers(),
+								currentState.getCurrentPublisher(), currentThread)));
+
+				wakeupCaller.run();
+
+				while (true) {
+					currentState = state.get();
+					if (currentState.isPublishLocked() || currentState.getWaitingPublishers().length != 0) {
+						LockSupport.park();
+						//noinspection ResultOfMethodCallIgnored
+						Thread.interrupted();
+					}
+					else {
+						break;
+					}
+				}
+
+				try {
+					realSubscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+				}
+				catch (Throwable t) {
+					ExceptionUtils.applyToUncaughtExceptionHandler(t);
+				}
+			});
+
+			while (callerWait.get()) {
+				LockSupport.park();
+				//noinspection ResultOfMethodCallIgnored
+				Thread.interrupted();
 			}
-
-			if (!onCompleteCalled.compareAndSet(false, true)) {
-				throw new SubscriptionIllegalStateException("OnComplete must be called only once");
-			}
-
-			subscriber.onComplete(completionType);
 		}
 
 		@Override
 		public boolean isCompleted() {
-			return onCompleteCalled.get();
-		}
-
-		public void cancel(CompletionType completionType) {
-			boolean removed = subscriptions.remove(this);
-			if (removed) {
-				onComplete(completionType);
-			}
+			return state.get().isOnCompleteCalled();
 		}
 
 		@Override
 		public void unsubscribe() {
-			cancel(CompletionType.UNSUBSCRIPTION);
+			boolean removed = remove();
+			if (!removed) {
+				return;
+			}
+
+			Thread callerThread = Thread.currentThread();
+			AtomicBoolean callerWait = new AtomicBoolean(true);
+
+			Runnable wakeupCaller = () -> {
+				callerWait.set(false);
+				LockSupport.unpark(callerThread);
+			};
+
+			runAsync(() -> {
+				SubscriptionState currentState;
+
+				Thread currentThread = Thread.currentThread();
+				do {
+					currentState = state.get();
+
+					if (currentState.isOnCompleteCalled()) {
+						wakeupCaller.run();
+						return;
+					}
+				} while (!state.compareAndSet(currentState,
+						new SubscriptionState(true, false, currentState.getWaitingPublishers(),
+								currentState.getCurrentPublisher(), currentThread)));
+
+				wakeupCaller.run();
+
+				SubscriptionState currState;
+				while (true) {
+					currState = state.get();
+					if (currState.isPublishLocked() || currState.getWaitingPublishers().length != 0) {
+						LockSupport.park();
+						//noinspection ResultOfMethodCallIgnored
+						Thread.interrupted();
+					}
+					else {
+						break;
+					}
+				}
+
+				try {
+					realSubscriber.onComplete(CompletionType.UNSUBSCRIPTION);
+				}
+				catch (Throwable t) {
+					ExceptionUtils.applyToUncaughtExceptionHandler(t);
+				}
+			});
+
+			while (callerWait.get()) {
+				LockSupport.park();
+				//noinspection ResultOfMethodCallIgnored
+				Thread.interrupted();
+			}
 		}
 
-		@Override
-		public boolean equals(Object o) {
-			if (this == o)
-				return true;
-			if (o == null || getClass() != o.getClass())
-				return false;
+		public boolean remove() {
+			State currentState;
+			State newState;
+			do {
+				currentState = BasePublisher.this.state.get();
+				if (currentState.isCompleted()) {
+					return false;
+				}
+
+				newState = currentState.removeSubscription(this);
+
+				if (newState == currentState) {
+					return false;
+				}
+
+			} while (!BasePublisher.this.state.compareAndSet(currentState, newState));
+
+			return true;
+		}
+
+		public final class SubscriptionState {
+			private final boolean onCompleteCalled;
+			private final boolean dropWaiter;
+			private final Thread[] waitingPublishers;
+			private final Thread currentPublisher;
+			private final Thread completer;
+
+			private SubscriptionState(boolean onCompleteCalled, boolean dropWaiter, Thread[] waitingPublishers,
+									  Thread currentPublisher, Thread completer) {
+				this.onCompleteCalled = onCompleteCalled;
+				this.dropWaiter = dropWaiter;
+				this.waitingPublishers = waitingPublishers;
+				this.currentPublisher = currentPublisher;
+				this.completer = completer;
+			}
+
+			public boolean isOnCompleteCalled() {
+				return onCompleteCalled;
+			}
+
+			public boolean isDropWaiter() {
+				return dropWaiter;
+			}
+
+			public Thread[] getWaitingPublishers() {
+				return waitingPublishers;
+			}
+
+			public Thread getCompleter() {
+				return completer;
+			}
+
+			public Thread getCurrentPublisher() {
+				return currentPublisher;
+			}
+
+			public SubscriptionState addWaitingPublisher() {
+				Thread[] newArray = ArrayUtils.addItem(this.waitingPublishers, Thread.currentThread(), Thread[]::new);
+				return new SubscriptionState(this.onCompleteCalled, dropWaiter, newArray, currentPublisher,
+						this.completer);
+			}
+
+			public SubscriptionState lockPublish() {
+				return new SubscriptionState(this.onCompleteCalled, dropWaiter, this.waitingPublishers,
+						Thread.currentThread(), this.completer);
+			}
+
+			public SubscriptionState lockPublishAndRemoveFromWaiters() {
+				Thread[] waitingPublishers = this.waitingPublishers;
+				Thread currentThread = Thread.currentThread();
+				Thread firstWaiter = waitingPublishers[0];
+
+				if (currentThread != firstWaiter) {
+					throw new IllegalStateException();
+				}
+
+				Thread[] newArray = ArrayUtils.removeIndex(waitingPublishers, 0, Thread[]::new);
+
+				return new SubscriptionState(onCompleteCalled, dropWaiter, newArray, currentThread, completer);
+			}
+
+			public SubscriptionState unlockPublish() {
+				return new SubscriptionState(this.onCompleteCalled, dropWaiter, this.waitingPublishers, null,
+						this.completer);
+			}
+
+			public boolean isPublishLocked() {
+				return currentPublisher != null;
+			}
+
+			@Override
+			public String toString() {
+				return "SubscriptionState{"
+					   + ", onCompleteCalled="
+					   + onCompleteCalled
+					   + ", publishers="
+					   + Arrays.toString(waitingPublishers)
+					   + '}';
+			}
+		}
+	}
+
+	protected final class State {
+
+		private final S customState;
+
+		private final boolean completed;
+
+		private final InternalSubscription<T>[] subscriptions;
+
+		public State(S customState, boolean completed, InternalSubscription<T>[] subscriptions) {
+			this.customState = customState;
+			this.completed = completed;
+			this.subscriptions = subscriptions;
+		}
+
+		public State changeCustomState(S obj) {
+			return new State(obj, this.completed, subscriptions);
+		}
+
+		@SuppressWarnings("unchecked")
+		public State complete() {
+			return new State(this.customState, true, new InternalSubscription[0]);
+		}
+
+		public State addSubscription(InternalSubscription<?> subscription) {
+			if (completed) {
+				throw new IllegalStateException();
+			}
+			InternalSubscription<T>[] subscriptions = this.subscriptions;
 			@SuppressWarnings("unchecked")
-			InternalSubscription that = (InternalSubscription) o;
-			return id == that.id;
+			InternalSubscription<T>[] newArray = (InternalSubscription<T>[]) ArrayUtils.addItem(subscriptions,
+					subscription, InternalSubscription[]::new);
+			return new State(this.customState, this.completed, newArray);
 		}
 
-		@Override
-		public int hashCode() {
-			return Objects.hash(id);
+		public State removeSubscription(InternalSubscription<?> subscription) {
+			InternalSubscription<T>[] subscriptions = this.subscriptions;
+			@SuppressWarnings("unchecked")
+			InternalSubscription<T>[] newArray = (InternalSubscription<T>[]) ArrayUtils.removeItem(subscriptions,
+					subscription, InternalSubscription[]::new);
+
+			if (subscriptions == newArray) {
+				return this;
+			}
+			else {
+				return new State(this.customState, this.completed, newArray);
+			}
+		}
+
+		public S getCustomState() {
+			return customState;
+		}
+
+		public InternalSubscription<T>[] getSubscriptions() {
+			return subscriptions;
+		}
+
+		public boolean isCompleted() {
+			return completed;
 		}
 	}
 }

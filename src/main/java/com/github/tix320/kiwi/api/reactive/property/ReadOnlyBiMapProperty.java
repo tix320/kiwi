@@ -9,7 +9,7 @@ import com.github.tix320.kiwi.api.util.collection.UnmodifiableBiMap;
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public final class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>>, BiMap<K, V> {
+public final class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>> {
 
 	private final BiMapProperty<K, V> property;
 
@@ -42,27 +42,10 @@ public final class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap
 		return property.toString();
 	}
 
-	@Override
-	public void put(K key, V value) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public V straightRemove(K key) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public K inverseRemove(V key) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public Map<K, V> straightView() {
 		return property.straightView();
 	}
 
-	@Override
 	public Map<V, K> inverseView() {
 		return property.inverseView();
 	}

@@ -14,10 +14,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import com.github.tix320.kiwi.api.reactive.publisher.BufferPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineLatestObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
@@ -27,6 +23,10 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
+import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
 
 /**
  * @param <T> type of data.
@@ -323,38 +323,17 @@ public interface Observable<T> {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
 
-	// error handling --------------------------------------
-
-	/**
-	 * Return observable, which will subscribe to this and do given action on every consumed error.
-	 *
-	 * @param action to perform over errors
-	 *
-	 * @return new observable
-	 */
-	default Observable<T> catchError(Consumer<Throwable> action) {
-		return new HandleErrorObservable<>(this, action);
-	}
-
-	/**
-	 * Return observable, which will subscribe to this and transform every error to regualr item according to given transformer.
-	 *
-	 * @param mapper for transform objects
-	 *
-	 * @return new observable
-	 */
-	default Observable<T> mapErrorToItem(Function<Throwable, T> mapper) {
-		return new ErrorToItemObservable<>(this, mapper);
-	}
-
 	// other functions --------------------------------------
 
 	/**
-	 * Convert this observable to {@link MonoObservable}
+	 * Convert this observable to {@link MonoObservable} or return @this if it is already mono.
 	 *
 	 * @return new observable
 	 */
 	default MonoObservable<T> toMono() {
+		if (this instanceof MonoObservable) {
+			return (MonoObservable<T>) this;
+		}
 		return new OnceObservable<>(this);
 	}
 
@@ -393,9 +372,10 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> MonoObservable<T> of(T value) {
-		MonoPublisher<T> publish = new MonoPublisher<>();
-		publish.publish(value);
-		return publish.asObservable();
+		MonoPublisher<T> monoPublisher = new MonoPublisher<>();
+		monoPublisher.publish(value);
+		Observable<T> observable = monoPublisher.asObservable();
+		return observable::subscribe;
 	}
 
 	/**
@@ -422,10 +402,7 @@ public interface Observable<T> {
 	 */
 	@SafeVarargs
 	static <T> Observable<T> of(T... values) {
-		BufferPublisher<T> publisher = new BufferPublisher<>(values.length);
-		for (T value : values) {
-			publisher.publish(value);
-		}
+		CachedPublisher<T> publisher = new CachedPublisher<>(Arrays.asList(values));
 		publisher.complete();
 		return publisher.asObservable();
 	}
@@ -442,7 +419,7 @@ public interface Observable<T> {
 	 */
 	@SafeVarargs
 	static <T> Observable<T> concat(Observable<? extends T>... observables) {
-		List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
+		List<Observable<? extends T>> list = Arrays.asList(observables);
 		return new ConcatObservable<>(list);
 	}
 

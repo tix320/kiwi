@@ -1,17 +1,17 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.IntFunction;
-import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
-import com.github.tix320.kiwi.api.util.collection.UnmodifiableListIterator;
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
 
-public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements List<T> {
+public final class ListProperty<T> extends BaseProperty<List<T>> {
 
 	public ListProperty() {
 	}
@@ -26,37 +26,42 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public int size() {
+	public synchronized void setValue(List<T> value) {
+		super.setValue(value);
+	}
+
+	@Override
+	public synchronized boolean compareAndSetValue(List<T> expectedValue, List<T> value) {
+		return super.compareAndSetValue(expectedValue, value);
+	}
+
+	@Override
+	public synchronized void close() {
+		super.close();
+	}
+
+	@Override
+	public synchronized void republishState() {
+		super.republishState();
+	}
+
+	public synchronized int size() {
 		return getValue().size();
 	}
 
-	@Override
-	public boolean isEmpty() {
+	public synchronized boolean isEmpty() {
 		return getValue().isEmpty();
 	}
 
-	@Override
-	public boolean contains(Object o) {
+	public synchronized boolean contains(T o) {
 		return getValue().contains(o);
 	}
 
-	@Override
-	public Iterator<T> iterator() {
+	public synchronized Iterator<T> iterator() {
 		Iterator<T> iterator = getValue().iterator();
 		return new UnmodifiableIterator<>(iterator);
 	}
 
-	@Override
-	public Object[] toArray() {
-		return getValue().toArray();
-	}
-
-	@Override
-	public <A> A[] toArray(A[] a) {
-		return getValue().toArray(a);
-	}
-
-	@Override
 	public synchronized boolean add(T t) {
 		checkClosed();
 		getValue().add(t);
@@ -64,8 +69,7 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return true;
 	}
 
-	@Override
-	public synchronized boolean remove(Object o) {
+	public synchronized boolean remove(T o) {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
@@ -74,12 +78,10 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return removed;
 	}
 
-	@Override
-	public boolean containsAll(Collection<?> c) {
+	public synchronized boolean containsAll(Collection<? extends T> c) {
 		return getValue().containsAll(c);
 	}
 
-	@Override
 	public synchronized boolean addAll(Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
@@ -87,7 +89,6 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return true;
 	}
 
-	@Override
 	public synchronized boolean addAll(int index, Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
@@ -95,8 +96,7 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return true;
 	}
 
-	@Override
-	public synchronized boolean removeAll(Collection<?> c) {
+	public synchronized boolean removeAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
@@ -105,13 +105,7 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return removed;
 	}
 
-	@Override
-	public boolean removeIf(Predicate<? super T> filter) {
-		throw new UnsupportedOperationException("ListProperty `removeIf()` not allowed");
-	}
-
-	@Override
-	public synchronized boolean retainAll(Collection<?> c) {
+	public synchronized boolean retainAll(Collection<? extends T> c) {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
@@ -120,33 +114,28 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return changed;
 	}
 
-	@Override
 	public synchronized void replaceAll(UnaryOperator<T> operator) {
 		checkClosed();
 		getValue().replaceAll(operator);
 		republishState();
 	}
 
-	@Override
 	public synchronized void sort(Comparator<? super T> c) {
 		checkClosed();
 		getValue().sort(c);
 		republishState();
 	}
 
-	@Override
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
 		republishState();
 	}
 
-	@Override
-	public T get(int index) {
+	public synchronized T get(int index) {
 		return getValue().get(index);
 	}
 
-	@Override
 	public synchronized T set(int index, T element) {
 		checkClosed();
 		T previousElem = getValue().set(index, element);
@@ -154,14 +143,12 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return previousElem;
 	}
 
-	@Override
 	public synchronized void add(int index, T element) {
 		checkClosed();
 		getValue().add(index, element);
 		republishState();
 	}
 
-	@Override
 	public synchronized T remove(int index) {
 		checkClosed();
 		T removed = getValue().remove(index);
@@ -169,65 +156,29 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 		return removed;
 	}
 
-	@Override
-	public int indexOf(Object o) {
+	public synchronized int indexOf(T o) {
 		return getValue().indexOf(o);
 	}
 
-	@Override
-	public int lastIndexOf(Object o) {
+	public synchronized int lastIndexOf(T o) {
 		return getValue().lastIndexOf(o);
 	}
 
-	@Override
-	public ListIterator<T> listIterator() {
-		ListIterator<T> listIterator = getValue().listIterator();
-		return new UnmodifiableListIterator<>(listIterator);
-	}
-
-	@Override
-	public ListIterator<T> listIterator(int index) {
-		ListIterator<T> listIterator = getValue().listIterator(index);
-		return new UnmodifiableListIterator<>(listIterator);
-	}
-
-	@Override
-	public List<T> subList(int fromIndex, int toIndex) {
-		throw new UnsupportedOperationException("ListProperty `subList()` not allowed");
-	}
-
-	@Override
-	public Spliterator<T> spliterator() {
-		return getValue().spliterator();
-	}
-
-	@Override
-	public <T1> T1[] toArray(IntFunction<T1[]> generator) {
-		return getValue().toArray(generator);
-	}
-
-	@Override
-	public Stream<T> stream() {
+	public synchronized Stream<T> stream() {
 		return getValue().stream();
 	}
 
-	@Override
-	public Stream<T> parallelStream() {
-		return getValue().parallelStream();
-	}
-
-	@Override
-	public void forEach(Consumer<? super T> action) {
+	public synchronized void forEach(Consumer<? super T> action) {
 		getValue().forEach(action);
 	}
 
 	@Override
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return getValue().hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public synchronized boolean equals(Object obj) {
 		if (obj == this) {
 			return true;
 		}
@@ -239,7 +190,7 @@ public final class ListProperty<T> extends BaseLazyProperty<List<T>> implements 
 	}
 
 	@Override
-	public String toString() {
+	public synchronized String toString() {
 		return getValue().toString();
 	}
 }

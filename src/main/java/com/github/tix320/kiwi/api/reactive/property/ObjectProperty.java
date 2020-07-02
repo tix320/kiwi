@@ -1,8 +1,8 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
 
-public class ObjectProperty<T> extends BaseLazyProperty<T> {
+public class ObjectProperty<T> extends BaseProperty<T> {
 
 	public ObjectProperty() {
 	}
@@ -23,10 +23,12 @@ public class ObjectProperty<T> extends BaseLazyProperty<T> {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		ObjectProperty<?> that = (ObjectProperty<?>) o;
-		if (getValue() == null) {
-			return that.getValue() == null;
+		T value = getValue();
+		Object thatValue = that.getValue();
+		if (value == null) {
+			return thatValue == null;
 		}
-		return getValue().equals(that.getValue());
+		return value.equals(thatValue);
 	}
 
 	@Override

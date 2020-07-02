@@ -14,8 +14,6 @@ public final class SubscriberBuilder<T> {
 
 	private ConditionalConsumer<? super T> onPublish;
 
-	private ConditionalConsumer<Throwable> onError;
-
 	private Consumer<CompletionType> onComplete;
 
 	SubscriberBuilder() {
@@ -51,21 +49,6 @@ public final class SubscriberBuilder<T> {
 		return this;
 	}
 
-	public SubscriberBuilder<T> onError(Consumer<Throwable> onError) {
-		Objects.requireNonNull(onError);
-		this.onError = object -> {
-			onError.accept(object);
-			return true;
-		};
-		return this;
-	}
-
-	public SubscriberBuilder<T> onErrorConditional(ConditionalConsumer<Throwable> onError) {
-		Objects.requireNonNull(onError);
-		this.onError = onError;
-		return this;
-	}
-
 	public SubscriberBuilder<T> onComplete(Consumer<CompletionType> onComplete) {
 		Objects.requireNonNull(onComplete);
 		this.onComplete = onComplete;
@@ -73,6 +56,6 @@ public final class SubscriberBuilder<T> {
 	}
 
 	public Subscriber<T> build() {
-		return new StaticSubscriber<>(onSubscribe, onPublish, onError, onComplete);
+		return new StaticSubscriber<>(onSubscribe, onPublish, onComplete);
 	}
 }

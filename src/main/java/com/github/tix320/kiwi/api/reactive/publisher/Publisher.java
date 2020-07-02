@@ -1,13 +1,11 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
 import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.util.None;
 
 /**
- * A producer of items (and related control messages) received by
- * Subscribers.  Each current subscriber receives the same
- * items (via method {@link #publish}).
+ * A producer of items (and related control messages) received by subscribers.
+ * Each current subscriber receives the same items (via method {@link #publish}).
  * Is not recommended to publish null values, because of implementation may do not support null values.
  * Use null case instance of your class, or class {@link None} if possible.
  *
@@ -19,17 +17,10 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 * Publish object.
 	 *
 	 * @param object to publish
+	 *
+	 * @throws PublisherCompletedException if publisher already completed
 	 */
 	void publish(T object);
-
-	/**
-	 * Publish error to subscribers.
-	 *
-	 * @param throwable to publish
-	 *
-	 * @see Subscriber#onError(Throwable)
-	 */
-	void publishError(Throwable throwable);
 
 	/**
 	 * Complete this publisher, after that cannot be published objects.
@@ -54,18 +45,6 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 */
 	static <T> SimplePublisher<T> simple() {
 		return new SimplePublisher<>();
-	}
-
-	/**
-	 * Create mono publisher for publishing exactly one object.
-	 * The subscribers will receive that object after subscription immediately.
-	 *
-	 * @param <T> type of objects.
-	 *
-	 * @return created publisher.
-	 */
-	static <T> MonoPublisher<T> mono() {
-		return new MonoPublisher<>();
 	}
 
 	/**
@@ -94,23 +73,30 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	}
 
 	/**
-	 * Create buffered subject for publishing objects.
-	 * Any publishing for this publisher will be buffered according to given size,
-	 * and subscribers may subscribe and receive objects even after publishing, which will be in buffer in that time.
+	 * Create mono publisher {@link MonoPublisher} for publishing exactly one object.
+	 *
+	 * @param <T> type of objects.
+	 *
+	 * @return created publisher.
+	 */
+	static <T> MonoPublisher<T> mono() {
+		return new MonoPublisher<>();
+	}
+
+	/**
+	 * Create buffered publisher {@link BufferedPublisher} with given limit.
 	 *
 	 * @param bufferSize for subject buffer
 	 * @param <T>        type of objects.
 	 *
 	 * @return created publisher.
 	 */
-	static <T> BufferPublisher<T> buffered(int bufferSize) {
-		return new BufferPublisher<>(bufferSize);
+	static <T> BufferedPublisher<T> buffered(int bufferSize) {
+		return new BufferedPublisher<>(bufferSize);
 	}
 
 	/**
-	 * Create cached subject for publishing objects.
-	 * Any publishing for this publisher will be cached,
-	 * and subscribers may subscribe and receive objects even after publishing, which will be in cache in that time.
+	 * Create buffered publisher {@link CachedPublisher} without limit.
 	 *
 	 * @param <T> type of objects.
 	 *

@@ -3,20 +3,23 @@ package com.github.tix320.kiwi.api.reactive.property;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
 
-public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> implements Map<K, V> {
+public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 
 	public MapProperty() {
 	}
 
 	public MapProperty(Map<K, V> value) {
-		super(value);
+		super(new ConcurrentHashMap<>(value));
 	}
 
 	@Override
@@ -25,23 +28,39 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 	}
 
 	@Override
-	public V getOrDefault(Object key, V defaultValue) {
+	public synchronized void setValue(Map<K, V> value) {
+		super.setValue(new ConcurrentHashMap<>(value));
+	}
+
+	@Override
+	public synchronized boolean compareAndSetValue(Map<K, V> expectedValue, Map<K, V> value) {
+		return super.compareAndSetValue(expectedValue, new ConcurrentHashMap<>(value));
+	}
+
+	@Override
+	public synchronized void close() {
+		super.close();
+	}
+
+	@Override
+	public synchronized void republishState() {
+		super.republishState();
+	}
+
+	public synchronized V getOrDefault(K key, V defaultValue) {
 		return getValue().getOrDefault(key, defaultValue);
 	}
 
-	@Override
-	public void forEach(BiConsumer<? super K, ? super V> action) {
+	public synchronized void forEach(BiConsumer<? super K, ? super V> action) {
 		getValue().forEach(action);
 	}
 
-	@Override
 	public synchronized void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
 		checkClosed();
 		getValue().replaceAll(function);
 		republishState();
 	}
 
-	@Override
 	public synchronized V putIfAbsent(K key, V value) {
 		checkClosed();
 		V v = getValue().putIfAbsent(key, value);
@@ -49,8 +68,7 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
-	public synchronized boolean remove(Object key, Object value) {
+	public synchronized boolean remove(K key, V value) {
 		checkClosed();
 		boolean removed = getValue().remove(key, value);
 		if (removed) {
@@ -59,7 +77,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return removed;
 	}
 
-	@Override
 	public synchronized boolean replace(K key, V oldValue, V newValue) {
 		checkClosed();
 		boolean replaced = getValue().replace(key, oldValue, newValue);
@@ -69,7 +86,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return replaced;
 	}
 
-	@Override
 	public synchronized V replace(K key, V value) {
 		checkClosed();
 		V v = getValue().replace(key, value);
@@ -77,7 +93,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfAbsent(key, mappingFunction);
@@ -85,7 +100,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfPresent(key, remappingFunction);
@@ -93,7 +107,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().compute(key, remappingFunction);
@@ -101,7 +114,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().merge(key, value, remappingFunction);
@@ -109,32 +121,26 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
-	public int size() {
+	public synchronized int size() {
 		return getValue().size();
 	}
 
-	@Override
-	public boolean isEmpty() {
+	public synchronized boolean isEmpty() {
 		return getValue().isEmpty();
 	}
 
-	@Override
-	public boolean containsKey(Object key) {
+	public synchronized boolean containsKey(K key) {
 		return getValue().containsKey(key);
 	}
 
-	@Override
-	public boolean containsValue(Object value) {
+	public synchronized boolean containsValue(V value) {
 		return getValue().containsValue(value);
 	}
 
-	@Override
-	public V get(Object key) {
+	public synchronized V get(K key) {
 		return getValue().get(key);
 	}
 
-	@Override
 	public synchronized V put(K key, V value) {
 		checkClosed();
 		V v = getValue().put(key, value);
@@ -142,7 +148,6 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized V remove(Object key) {
 		checkClosed();
 		V v = getValue().remove(key);
@@ -150,42 +155,37 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 		return v;
 	}
 
-	@Override
 	public synchronized void putAll(Map<? extends K, ? extends V> m) {
 		checkClosed();
 		getValue().putAll(m);
 		republishState();
 	}
 
-	@Override
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
 		republishState();
 	}
 
-	@Override
-	public Set<K> keySet() {
+	public synchronized Set<K> keySet() {
 		return Collections.unmodifiableSet(getValue().keySet());
 	}
 
-	@Override
-	public Collection<V> values() {
+	public synchronized Collection<V> values() {
 		return Collections.unmodifiableCollection(getValue().values());
 	}
 
-	@Override
-	public Set<Entry<K, V>> entrySet() {
+	public synchronized Set<Entry<K, V>> entrySet() {
 		return Collections.unmodifiableSet(getValue().entrySet());
 	}
 
 	@Override
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return getValue().hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public synchronized boolean equals(Object obj) {
 		if (obj == this) {
 			return true;
 		}
@@ -197,7 +197,7 @@ public final class MapProperty<K, V> extends BaseLazyProperty<Map<K, V>> impleme
 	}
 
 	@Override
-	public String toString() {
+	public synchronized String toString() {
 		return getValue().toString();
 	}
 }

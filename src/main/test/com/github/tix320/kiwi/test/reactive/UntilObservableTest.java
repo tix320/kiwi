@@ -40,12 +40,6 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				called.add("onError");
-				return false;
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
@@ -81,12 +75,6 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				called.add("onError");
-				return false;
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
@@ -99,7 +87,7 @@ public class UntilObservableTest {
 	}
 
 	@Test
-	void takeUntilObservableTest() {
+	void takeUntilObservableTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();
@@ -121,18 +109,14 @@ public class UntilObservableTest {
 			}
 
 			@Override
-			public boolean onError(Throwable throwable) {
-				called.add("onError");
-				return false;
-			}
-
-			@Override
 			public void onComplete(CompletionType completionType) {
 				called.add("onComplete");
 			}
 		});
 
 		untilPublisher.complete();
+
+		Thread.sleep(100);
 
 		assertEquals(2, called.size());
 		assertEquals("onSubscribe", called.get(0));

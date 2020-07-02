@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
-import com.github.tix320.kiwi.internal.reactive.publisher.SubscriberException;
+import com.github.tix320.kiwi.internal.reactive.publisher.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -42,15 +42,10 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 					subscriber.onPublish(item);
 				}
 				catch (Exception e) {
-					new SubscriberException("An error while publishing to subscriber", e).printStackTrace();
+					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
 				return false;
-			}
-
-			@Override
-			public boolean onError(Throwable throwable) {
-				return subscriber.onError(throwable);
 			}
 
 			@Override

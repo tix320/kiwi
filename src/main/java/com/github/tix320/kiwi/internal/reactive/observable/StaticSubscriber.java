@@ -17,16 +17,12 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 
 	private final ConditionalConsumer<? super T> onPublish;
 
-	private final ConditionalConsumer<Throwable> onError;
-
 	private final Consumer<CompletionType> onComplete;
 
 	public StaticSubscriber(ConditionalConsumer<Subscription> onSubscribe, ConditionalConsumer<? super T> onPublish,
-							ConditionalConsumer<Throwable> onError, Consumer<CompletionType> onComplete) {
+							Consumer<CompletionType> onComplete) {
 		this.onSubscribe = Objects.requireNonNullElse(onSubscribe, subscription -> true);
 		this.onPublish = Objects.requireNonNullElse(onPublish, subscription -> true);
-		this.onError = Objects.requireNonNullElse(onError,
-				throwable -> {throw new UnhandledObservableException(throwable);});
 		this.onComplete = Objects.requireNonNullElse(onComplete, (c) -> {});
 	}
 
@@ -38,11 +34,6 @@ public class StaticSubscriber<T> implements Subscriber<T> {
 	@Override
 	public boolean onPublish(T item) {
 		return onPublish.accept(item);
-	}
-
-	@Override
-	public boolean onError(Throwable throwable) {
-		return onError.accept(throwable);
 	}
 
 	@Override

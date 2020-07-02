@@ -8,6 +8,7 @@ import java.util.List;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +58,7 @@ public class ZipObservableTest {
 		List<List<Integer>> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher1 = Publisher.simple();
-		Publisher<Integer> publisher2 = Publisher.single(4);
+		Publisher<Integer> publisher2 = new SinglePublisher<>(4);
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
 				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
@@ -77,13 +78,13 @@ public class ZipObservableTest {
 	}
 
 	@Test
-	void zipCompleteObservableWhichHasItemInQueueTest() {
+	void zipCompleteObservableWhichHasItemInQueueTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(6, 4), Arrays.asList(9, 7), Arrays.asList(10, 20),
 				Collections.singletonList(25));
 		List<List<Integer>> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher1 = Publisher.simple();
-		Publisher<Integer> publisher2 = Publisher.single(4);
+		Publisher<Integer> publisher2 = new SinglePublisher<>(4);
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
 				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
@@ -100,6 +101,8 @@ public class ZipObservableTest {
 		publisher2.complete();
 
 		publisher1.publish(10);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

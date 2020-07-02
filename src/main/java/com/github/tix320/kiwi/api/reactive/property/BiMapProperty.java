@@ -3,15 +3,14 @@ package com.github.tix320.kiwi.api.reactive.property;
 import java.util.Map;
 
 import com.github.tix320.kiwi.api.util.collection.BiMap;
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyProperty;
+import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> implements BiMap<K, V> {
+public final class BiMapProperty<K, V> extends BaseProperty<BiMap<K, V>> {
 
 	public BiMapProperty() {
-
 	}
 
 	public BiMapProperty(BiMap<K, V> value) {
@@ -24,13 +23,31 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 	}
 
 	@Override
+	public synchronized void setValue(BiMap<K, V> value) {
+		super.setValue(value);
+	}
+
+	@Override
+	public synchronized boolean compareAndSetValue(BiMap<K, V> expectedValue, BiMap<K, V> value) {
+		return super.compareAndSetValue(expectedValue, value);
+	}
+
+	@Override
+	public synchronized void close() {
+		super.close();
+	}
+
+	@Override
+	public synchronized void republishState() {
+		super.republishState();
+	}
+
 	public synchronized void put(K key, V value) {
 		checkClosed();
 		getValue().put(key, value);
 		republishState();
 	}
 
-	@Override
 	public synchronized V straightRemove(K key) {
 		checkClosed();
 		V v = getValue().straightRemove(key);
@@ -38,7 +55,6 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 		return v;
 	}
 
-	@Override
 	public synchronized K inverseRemove(V key) {
 		checkClosed();
 		K k = getValue().inverseRemove(key);
@@ -46,24 +62,22 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 		return k;
 	}
 
-	@Override
 	public Map<K, V> straightView() {
 		return getValue().straightView();
 	}
 
-	@Override
 	public Map<V, K> inverseView() {
 		return getValue().inverseView();
 	}
 
 
 	@Override
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return getValue().hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public synchronized boolean equals(Object obj) {
 		if (obj == this) {
 			return true;
 		}
@@ -75,7 +89,7 @@ public final class BiMapProperty<K, V> extends BaseLazyProperty<BiMap<K, V>> imp
 	}
 
 	@Override
-	public String toString() {
+	public synchronized String toString() {
 		return getValue().toString();
 	}
 }

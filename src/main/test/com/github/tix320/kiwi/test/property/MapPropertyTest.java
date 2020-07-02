@@ -23,8 +23,7 @@ public class MapPropertyTest {
 		property.setValue(Map.of(3, "foo"));
 
 		assertEquals(Map.of(3, "foo"), property.getValue());
-		assertEquals(property, Map.of(3, "foo"));
-		assertEquals(Map.of(3, "foo"), property);
+		assertEquals(property.getValue(), Map.of(3, "foo"));
 	}
 
 	@Test

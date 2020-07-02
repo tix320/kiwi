@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TransformersTest {
 
 	@Test
-	void decoratorOnCompleteTest() {
+	void decoratorOnCompleteTest() throws InterruptedException {
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Observable.of(10)
@@ -22,13 +22,18 @@ class TransformersTest {
 				.join(integer -> integer + "", ",", "(", ")")
 				.subscribe(actual::set);
 
+		Thread.sleep(100);
+
 		assertEquals("(15)", actual.get());
 	}
 
 	@Test
-	void filterTest() {
+	void filterTest() throws InterruptedException {
 		AtomicReference<List<Integer>> actual = new AtomicReference<>();
 		Observable.of(1, 2, 3, 4, 5).filter(integer -> integer > 2).toList().subscribe(actual::set);
+
+		Thread.sleep(100);
+
 		assertEquals(List.of(3, 4, 5), actual.get());
 	}
 }

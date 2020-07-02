@@ -6,7 +6,6 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyStock;
 import com.github.tix320.kiwi.api.reactive.property.Stock;
 import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
@@ -16,7 +15,7 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 	private final CachedPublisher<T> publisher;
 
 	public BaseStock() {
-		this.publisher = Publisher.cached();
+		this.publisher = new CachedPublisher<>();
 	}
 
 	@Override
@@ -43,7 +42,7 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 
 	@Override
 	public final List<T> list() {
-		return publisher.getCache();
+		return publisher.getBuffer();
 	}
 
 	@Override

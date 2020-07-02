@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
 import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 
 /**
@@ -14,42 +14,37 @@ import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
  */
 public abstract class BaseProperty<T> implements Property<T>, RepublishProperty {
 
-	private final AtomicReference<T> value;
-
 	private final SinglePublisher<T> publisher;
 
+	private final AtomicReference<State> state;
+
 	public BaseProperty() {
-		this.publisher = Publisher.single();
-		this.value = new AtomicReference<>();
+		this.publisher = new SinglePublisher<>();
+		this.state = new AtomicReference<>(new State(null));
 	}
 
 	public BaseProperty(T value) {
-		this.value = new AtomicReference<>(Objects.requireNonNull(value));
-		this.publisher = Publisher.single(value);
+		this.publisher = new SinglePublisher<>(Objects.requireNonNull(value));
+		this.state = new AtomicReference<>(new State(null));
 	}
 
 	@Override
-	public synchronized final void setValue(T value) {
-		checkClosed();
-		this.value.set(Objects.requireNonNull(value));
-		republishState();
+	public void setValue(T value) {
+		publishValue(value);
 	}
 
 	@Override
-	public synchronized final boolean compareAndSetValue(T expectedValue, T value) {
-		checkClosed();
-		boolean changed = this.value.compareAndSet(expectedValue, Objects.requireNonNull(value));
-		republishState();
-		return changed;
+	public boolean compareAndSetValue(T expectedValue, T value) {
+		return CASPublishValue(expectedValue, value);
 	}
 
 	@Override
-	public synchronized final void close() {
+	public void close() {
 		publisher.complete();
 	}
 
 	@Override
-	public boolean isClosed() {
+	public final boolean isClosed() {
 		return publisher.isCompleted();
 	}
 
@@ -58,7 +53,7 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 
 	@Override
 	public final T getValue() {
-		return value.get();
+		return publisher.getValue();
 	}
 
 	@Override
@@ -67,14 +62,53 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 	}
 
 	@Override
-	public synchronized void republishState() {
-		checkClosed();
-		publisher.publish(value.get());
+	public void republishState() {
+		if (!PropertyAtomicContext.inAtomicContext(this)) {
+			publishValue(publisher.getValue());
+		}
+	}
+
+	protected void doAtomic(Runnable runnable){
+
+	}
+
+	private void publishValue(T value) {
+		try {
+			publisher.publish(value);
+		}
+		catch (PublisherCompletedException e) {
+			throw createClosedException();
+		}
+	}
+
+	private boolean CASPublishValue(T expected, T newValue) {
+		try {
+			return publisher.CASPublish(expected, newValue);
+		}
+		catch (PublisherCompletedException e) {
+			throw createClosedException();
+		}
 	}
 
 	protected final void checkClosed() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
+		if (isClosed()) {
+			throw createClosedException();
+		}
+	}
+
+	private PropertyClosedException createClosedException() {
+		return new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
+	}
+
+	private static final class State {
+		private final Thread changer;
+
+		public State(Thread changer) {
+			this.changer = changer;
+		}
+
+		public Thread getChanger() {
+			return changer;
 		}
 	}
 }

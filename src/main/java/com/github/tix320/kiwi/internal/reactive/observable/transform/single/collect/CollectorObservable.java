@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.single.col
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
@@ -19,7 +20,7 @@ public abstract class CollectorObservable<S, R> implements TransformObservable<S
 
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
-		Queue<S> objects = new LinkedList<>();
+		Queue<S> objects = new ConcurrentLinkedQueue<>();
 		observable.subscribe(new Subscriber<S>() {
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
@@ -30,11 +31,6 @@ public abstract class CollectorObservable<S, R> implements TransformObservable<S
 			public boolean onPublish(S item) {
 				objects.add(item);
 				return true;
-			}
-
-			@Override
-			public boolean onError(Throwable throwable) {
-				return subscriber.onError(throwable);
 			}
 
 			@Override

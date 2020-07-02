@@ -13,9 +13,6 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	void setValue(T value);
 
-	/**
-	 * NOTE: Now this is working via synchronization, will be upgraded in future.
-	 */
 	boolean compareAndSetValue(T expectedValue, T value);
 
 	void close();

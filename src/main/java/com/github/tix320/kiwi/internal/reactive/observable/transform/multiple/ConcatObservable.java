@@ -2,8 +2,7 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -21,68 +20,121 @@ public final class ConcatObservable<T> implements Observable<T> {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
-		this.observables = observables;
+		this.observables = List.copyOf(observables);
 	}
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
+		int observablesCount = observables.size();
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
-		AtomicBoolean unsubscribed = new AtomicBoolean(false);
+		// AtomicBoolean unsubscribed = new AtomicBoolean(false);
 
-		Subscription generalSubscription = new Subscription() {
+		AtomicReference<State> state = new AtomicReference<>(new State(false, 0));
+
+		Subscription subscription = new Subscription() {
 			@Override
 			public boolean isCompleted() {
-				return unsubscribed.get();
+				State currentState = state.get();
+				return currentState.isUnsubscribed() || currentState.getCompletedCount() == observablesCount;
 			}
 
 			@Override
 			public void unsubscribe() {
-				unsubscribed.set(true);
+				State currentState;
+				do {
+					currentState = state.get();
+
+					if (currentState.isUnsubscribed()) {
+						return;
+					}
+
+				} while (!state.compareAndSet(currentState, new State(true, currentState.getCompletedCount())));
+
 				for (Subscription subscription : subscriptions) {
 					subscription.unsubscribe();
 				}
+				subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
 			}
 		};
 
-		subscriber.onSubscribe(generalSubscription);
-
-		AtomicInteger completedCount = new AtomicInteger(0);
+		subscriber.onSubscribe(subscription);
 
 		Subscriber<? super T> generalSubscriber = new Subscriber<>() {
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
-				return subscriptions.add(subscription);
+				State currentState = state.get();
+				if (currentState.isUnsubscribed()) {
+					return false;
+				}
+				subscriptions.add(subscription);
+				return true;
 			}
 
 			@Override
 			public boolean onPublish(T item) {
-				return subscriber.onPublish(item);
-			}
+				synchronized (this) {
+					if (state.get().isUnsubscribed()) {
+						return false;
+					}
 
-			@Override
-			public boolean onError(Throwable throwable) {
-				return subscriber.onError(throwable);
+					boolean needMore = subscriber.onPublish(item);
+
+					if (needMore) {
+						return true;
+					}
+					else {
+						State currentState;
+						State newState;
+						do {
+							currentState = state.get();
+
+							newState = new State(true, currentState.getCompletedCount());
+						} while (!state.compareAndSet(currentState, newState));
+						return false;
+					}
+				}
+
 			}
 
 			@Override
 			public void onComplete(CompletionType completionType) {
-				if (completionType == CompletionType.UNSUBSCRIPTION) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				}
-				else {
-					int count = completedCount.incrementAndGet();
-					if (count == observables.size()) {
-						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+				State currentState;
+				State newState;
+				do {
+					currentState = state.get();
+					if (currentState.isUnsubscribed()) {
+						return;
 					}
+
+					newState = new State(false, currentState.getCompletedCount() + 1);
+				} while (!state.compareAndSet(currentState, newState));
+
+				if (newState.getCompletedCount() == observablesCount) {
+					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
 				}
 			}
 		};
 
 		for (Observable<? extends T> observable : observables) {
-			if (unsubscribed.get()) {
-				break;
-			}
 			observable.subscribe(generalSubscriber);
+		}
+	}
+
+	private static final class State {
+		private final boolean unsubscribed;
+		private final int completedCount;
+
+		private State(boolean unsubscribed, int completedCount) {
+			this.unsubscribed = unsubscribed;
+			this.completedCount = completedCount;
+		}
+
+		public boolean isUnsubscribed() {
+			return unsubscribed;
+		}
+
+		public int getCompletedCount() {
+			return completedCount;
 		}
 	}
 }
