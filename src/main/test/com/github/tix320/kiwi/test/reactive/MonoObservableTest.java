@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class MonoObservableTest {
 
 	@Test
-	public void toMonoTest() {
+	public void toMonoTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(3);
 		List<Integer> actual = new ArrayList<>();
 
@@ -26,6 +26,8 @@ public class MonoObservableTest {
 
 		publisher.publish(3);
 		publisher.publish(4);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
@@ -37,7 +39,8 @@ public class MonoObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(actual::add).onComplete((completionType) -> actual.add(7)));
+		observable.subscribe(
+				Subscriber.<Integer>builder().onPublish(actual::add).onComplete((completionType) -> actual.add(7)));
 
 		publisher.publish(3);
 
@@ -47,9 +50,9 @@ public class MonoObservableTest {
 	}
 
 	@Test
-	public void exceptionOnPublishTest(){
+	public void exceptionOnPublishTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(3);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
@@ -60,6 +63,8 @@ public class MonoObservableTest {
 
 		publisher.publish(3);
 		publisher.publish(4);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

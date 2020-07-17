@@ -16,10 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GetOnTimoutObservableTest {
 
 	@Test
-	void publishBeforeTimoutTest()
-			throws InterruptedException {
+	void publishBeforeTimoutTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(1);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher = Publisher.simple();
 
@@ -30,14 +29,15 @@ public class GetOnTimoutObservableTest {
 		publisher.publish(1);
 		publisher.publish(2);
 
+		Thread.sleep(100);
+
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void publishAfterTimoutTest()
-			throws InterruptedException {
+	void publishAfterTimoutTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(5);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher = Publisher.simple();
 
@@ -47,6 +47,8 @@ public class GetOnTimoutObservableTest {
 
 		publisher.publish(1);
 		publisher.publish(2);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

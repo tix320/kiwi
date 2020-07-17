@@ -37,15 +37,6 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		super.close();
 	}
 
-	@Override
-	public synchronized void republishState() {
-		super.republishState();
-	}
-
-	public synchronized int size() {
-		return getValue().size();
-	}
-
 	public synchronized boolean isEmpty() {
 		return getValue().isEmpty();
 	}
@@ -63,7 +54,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		checkClosed();
 		boolean added = getValue().add(t);
 		if (added) {
-			republishState();
+			republish();
 		}
 		return added;
 	}
@@ -72,7 +63,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -81,7 +72,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		checkClosed();
 		boolean added = getValue().addAll(c);
 		if (added) {
-			republishState();
+			republish();
 		}
 		return added;
 	}
@@ -90,7 +81,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -99,7 +90,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republishState();
+			republish();
 		}
 		return changed;
 	}
@@ -107,7 +98,7 @@ public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		republishState();
+		republish();
 	}
 
 	public synchronized Stream<T> stream() {

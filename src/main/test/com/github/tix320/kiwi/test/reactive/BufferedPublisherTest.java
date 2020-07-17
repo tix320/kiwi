@@ -51,7 +51,9 @@ class BufferedPublisherTest {
 		publisher.publish("12");
 		publisher.publish("13");
 
-		observable.toMono().subscribe(s -> actual4.add("d" + s));
+		observable.toMono().subscribe(s -> {
+			actual4.add("d" + s);
+		});
 
 		publisher.publish("14");
 		publisher.publish("15");
@@ -62,6 +64,45 @@ class BufferedPublisherTest {
 		assertEquals(expected2, actual2);
 		assertEquals(expected3, actual3);
 		assertEquals(expected4, actual4);
+	}
+
+	@Test
+	void subscribeAfterPublishTest1() throws InterruptedException {
+		List<Integer> expected = List.of(1, 2);
+
+		List<Integer> actual = new CopyOnWriteArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.buffered(5);
+		Observable<Integer> observable = publisher.asObservable();
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(100);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void subscribeAfterPublishTest2() throws InterruptedException {
+		List<Integer> expected = List.of(2, 3);
+
+		List<Integer> actual = new CopyOnWriteArrayList<>();
+
+		Publisher<Integer> publisher = Publisher.buffered(2);
+		Observable<Integer> observable = publisher.asObservable();
+
+		publisher.publish(1);
+		publisher.publish(2);
+		publisher.publish(3);
+
+		observable.subscribe(actual::add);
+
+		Thread.sleep(100);
+
+		assertEquals(expected, actual);
 	}
 
 	@Test

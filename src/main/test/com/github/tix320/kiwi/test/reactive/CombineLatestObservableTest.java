@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.test.reactive;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -32,6 +33,9 @@ public class CombineLatestObservableTest {
 		Thread.sleep(100);
 
 		publisher2.publish(4);
+
+		Thread.sleep(100);
+
 		publisher1.publish(3);
 
 		Thread.sleep(100);
@@ -42,7 +46,7 @@ public class CombineLatestObservableTest {
 	@Test
 	public void oneCompleteTest() throws InterruptedException {
 		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4), new Tuple<>(3, 4));
-		List<Tuple<Integer, Integer>> actual = new ArrayList<>();
+		List<Tuple<Integer, Integer>> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = Publisher.simple();

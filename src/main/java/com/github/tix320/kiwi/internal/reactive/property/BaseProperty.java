@@ -1,9 +1,9 @@
 package com.github.tix320.kiwi.internal.reactive.property;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.property.FreezeableProperty;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyProperty;
 import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
@@ -12,20 +12,16 @@ import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseProperty<T> implements Property<T>, RepublishProperty {
+public abstract class BaseProperty<T> implements Property<T>, FreezeableProperty {
 
 	private final SinglePublisher<T> publisher;
 
-	private final AtomicReference<State> state;
-
 	public BaseProperty() {
 		this.publisher = new SinglePublisher<>();
-		this.state = new AtomicReference<>(new State(null));
 	}
 
 	public BaseProperty(T value) {
 		this.publisher = new SinglePublisher<>(Objects.requireNonNull(value));
-		this.state = new AtomicReference<>(new State(null));
 	}
 
 	@Override
@@ -62,14 +58,17 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 	}
 
 	@Override
-	public void republishState() {
-		if (!PropertyAtomicContext.inAtomicContext(this)) {
-			publishValue(publisher.getValue());
-		}
+	public final void freeze() {
+		publisher.freeze();
 	}
 
-	protected void doAtomic(Runnable runnable){
+	@Override
+	public final void unfreeze() {
+		publisher.unfreeze();
+	}
 
+	protected final void republish() {
+		publishValue(getValue());
 	}
 
 	private void publishValue(T value) {
@@ -98,17 +97,5 @@ public abstract class BaseProperty<T> implements Property<T>, RepublishProperty 
 
 	private PropertyClosedException createClosedException() {
 		return new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
-	}
-
-	private static final class State {
-		private final Thread changer;
-
-		public State(Thread changer) {
-			this.changer = changer;
-		}
-
-		public Thread getChanger() {
-			return changer;
-		}
 	}
 }

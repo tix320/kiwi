@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -42,11 +41,6 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 		super.close();
 	}
 
-	@Override
-	public synchronized void republishState() {
-		super.republishState();
-	}
-
 	public synchronized V getOrDefault(K key, V defaultValue) {
 		return getValue().getOrDefault(key, defaultValue);
 	}
@@ -58,13 +52,13 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 	public synchronized void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
 		checkClosed();
 		getValue().replaceAll(function);
-		republishState();
+		republish();
 	}
 
 	public synchronized V putIfAbsent(K key, V value) {
 		checkClosed();
 		V v = getValue().putIfAbsent(key, value);
-		republishState();
+		republish();
 		return v;
 	}
 
@@ -72,7 +66,7 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 		checkClosed();
 		boolean removed = getValue().remove(key, value);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -81,7 +75,7 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 		checkClosed();
 		boolean replaced = getValue().replace(key, oldValue, newValue);
 		if (replaced) {
-			republishState();
+			republish();
 		}
 		return replaced;
 	}
@@ -89,40 +83,36 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 	public synchronized V replace(K key, V value) {
 		checkClosed();
 		V v = getValue().replace(key, value);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfAbsent(key, mappingFunction);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().computeIfPresent(key, remappingFunction);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().compute(key, remappingFunction);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		checkClosed();
 		V v = getValue().merge(key, value, remappingFunction);
-		republishState();
+		republish();
 		return v;
-	}
-
-	public synchronized int size() {
-		return getValue().size();
 	}
 
 	public synchronized boolean isEmpty() {
@@ -144,27 +134,27 @@ public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
 	public synchronized V put(K key, V value) {
 		checkClosed();
 		V v = getValue().put(key, value);
-		republishState();
+		republish();
 		return v;
 	}
 
-	public synchronized V remove(Object key) {
+	public synchronized V remove(K key) {
 		checkClosed();
 		V v = getValue().remove(key);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized void putAll(Map<? extends K, ? extends V> m) {
 		checkClosed();
 		getValue().putAll(m);
-		republishState();
+		republish();
 	}
 
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		republishState();
+		republish();
 	}
 
 	public synchronized Set<K> keySet() {

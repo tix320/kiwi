@@ -19,7 +19,7 @@ public class ConcatObservableTest {
 
 		Observable<Integer> observable1 = Observable.of(3);
 		Observable<Integer> observable2 = Observable.of(5, 6);
-		Publisher<Integer> publisher = Publisher.cached();
+		Publisher<Integer> publisher = Publisher.buffered();
 		publisher.publish(9);
 
 		Observable<Integer> observable3 = publisher.asObservable();

@@ -37,28 +37,23 @@ public final class BiMapProperty<K, V> extends BaseProperty<BiMap<K, V>> {
 		super.close();
 	}
 
-	@Override
-	public synchronized void republishState() {
-		super.republishState();
-	}
-
 	public synchronized void put(K key, V value) {
 		checkClosed();
 		getValue().put(key, value);
-		republishState();
+		republish();
 	}
 
 	public synchronized V straightRemove(K key) {
 		checkClosed();
 		V v = getValue().straightRemove(key);
-		republishState();
+		republish();
 		return v;
 	}
 
 	public synchronized K inverseRemove(V key) {
 		checkClosed();
 		K k = getValue().inverseRemove(key);
-		republishState();
+		republish();
 		return k;
 	}
 

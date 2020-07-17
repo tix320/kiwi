@@ -40,11 +40,6 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 		super.close();
 	}
 
-	@Override
-	public synchronized void republishState() {
-		super.republishState();
-	}
-
 	public synchronized int size() {
 		return getValue().size();
 	}
@@ -65,7 +60,7 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 	public synchronized boolean add(T t) {
 		checkClosed();
 		getValue().add(t);
-		republishState();
+		republish();
 		return true;
 	}
 
@@ -73,7 +68,7 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -85,14 +80,14 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 	public synchronized boolean addAll(Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
-		republishState();
+		republish();
 		return true;
 	}
 
 	public synchronized boolean addAll(int index, Collection<? extends T> c) {
 		checkClosed();
 		getValue().addAll(c);
-		republishState();
+		republish();
 		return true;
 	}
 
@@ -100,7 +95,7 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -109,7 +104,7 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republishState();
+			republish();
 		}
 		return changed;
 	}
@@ -117,19 +112,19 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 	public synchronized void replaceAll(UnaryOperator<T> operator) {
 		checkClosed();
 		getValue().replaceAll(operator);
-		republishState();
+		republish();
 	}
 
 	public synchronized void sort(Comparator<? super T> c) {
 		checkClosed();
 		getValue().sort(c);
-		republishState();
+		republish();
 	}
 
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		republishState();
+		republish();
 	}
 
 	public synchronized T get(int index) {
@@ -139,20 +134,20 @@ public final class ListProperty<T> extends BaseProperty<List<T>> {
 	public synchronized T set(int index, T element) {
 		checkClosed();
 		T previousElem = getValue().set(index, element);
-		republishState();
+		republish();
 		return previousElem;
 	}
 
 	public synchronized void add(int index, T element) {
 		checkClosed();
 		getValue().add(index, element);
-		republishState();
+		republish();
 	}
 
 	public synchronized T remove(int index) {
 		checkClosed();
 		T removed = getValue().remove(index);
-		republishState();
+		republish();
 		return removed;
 	}
 

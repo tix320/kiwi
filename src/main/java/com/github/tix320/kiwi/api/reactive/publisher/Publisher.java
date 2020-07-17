@@ -96,13 +96,13 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	}
 
 	/**
-	 * Create buffered publisher {@link CachedPublisher} without limit.
+	 * Create buffered publisher {@link BufferedPublisher} without limit.
 	 *
 	 * @param <T> type of objects.
 	 *
 	 * @return created publisher.
 	 */
-	static <T> CachedPublisher<T> cached() {
-		return new CachedPublisher<>();
+	static <T> BufferedPublisher<T> buffered() {
+		return new UnlimitBufferedPublisher<>();
 	}
 }

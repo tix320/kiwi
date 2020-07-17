@@ -2,6 +2,8 @@ package com.github.tix320.kiwi.test.reactive;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,7 +33,7 @@ class PublisherTest {
 	}
 
 	@Test
-	void unsubscribeOnPublishTest() {
+	void unsubscribeOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		List<Integer> expected = List.of(1);
@@ -45,16 +47,22 @@ class PublisherTest {
 		}));
 
 		publisher.publish(1);
+
+		Thread.sleep(100);
+
 		publisher.publish(2);
+
+		Thread.sleep(100);
+
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void unsubscribeFromOtherSubscriptionOnPublishTest() {
+	void unsubscribeFromOtherSubscriptionOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
-		List<Integer> expected = List.of(10, 50);
-		List<Integer> actual = new ArrayList<>();
+		Set<Integer> expected = Set.of(10, 20, 50);
+		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		Observable<Integer> observable = publisher.asObservable();
 		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
@@ -67,7 +75,12 @@ class PublisherTest {
 				.onPublish(integer -> actual.add(integer * 20)));
 
 		publisher.publish(1);
+
+		Thread.sleep(100);
+
 		publisher.publish(5);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
@@ -89,19 +102,19 @@ class PublisherTest {
 
 		publisher.publish(1);
 
-		Thread.sleep(100);
-
+		Thread.sleep(200);
 		assertThrows(PublisherCompletedException.class, () -> publisher.publish(2));
+
 		assertEquals(expected, actual);
-		assertFalse(onCompleteCalled.get());
+		assertTrue(onCompleteCalled.get());
 	}
 
 	@Test
 	void completeOnPublishWithTwoSubscribersTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
-		List<Integer> expected = List.of(10);
-		List<Integer> actual = new ArrayList<>();
+		Set<Integer> expected = Set.of(10, 20);
+		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		Observable<Integer> observable = publisher.asObservable();
 		observable.subscribe(integer -> {

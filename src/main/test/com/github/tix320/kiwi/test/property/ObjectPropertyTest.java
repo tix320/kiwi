@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.test.property;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
@@ -28,11 +29,11 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	void observableTest() {
+	void observableTest() throws InterruptedException {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2, 3);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		property.setValue(1);
 
@@ -40,6 +41,8 @@ public class ObjectPropertyTest {
 
 		property.setValue(2);
 		property.setValue(3);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

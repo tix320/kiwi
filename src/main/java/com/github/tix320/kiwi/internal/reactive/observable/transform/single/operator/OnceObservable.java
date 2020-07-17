@@ -18,7 +18,7 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 	public void subscribe(Subscriber<? super T> subscriber) {
 		observable.subscribe(new Subscriber<T>() {
 
-			private volatile boolean completedFromSubscriber = false;
+			private volatile boolean unsubscribed = false;
 
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
@@ -30,7 +30,7 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 
 					@Override
 					public void unsubscribe() {
-						completedFromSubscriber = true;
+						unsubscribed = true;
 						subscription.unsubscribe();
 					}
 				});
@@ -39,9 +39,13 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 			@Override
 			public boolean onPublish(T item) {
 				try {
-					subscriber.onPublish(item);
+					boolean needMore = subscriber.onPublish(item);
+
+					if (!needMore) {
+						unsubscribed = true;
+					}
 				}
-				catch (Exception e) {
+				catch (Throwable e) {
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
@@ -50,7 +54,7 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 
 			@Override
 			public void onComplete(CompletionType completionType) {
-				if (completedFromSubscriber) {
+				if (unsubscribed) {
 					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
 				}
 				else {

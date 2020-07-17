@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.test.reactive;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,9 +26,9 @@ public class TakeWhileObservableTest {
 	}
 
 	@Test
-	public void withUnsubscribeTest() {
+	public void withUnsubscribeTest() throws InterruptedException {
 		List<Integer> expected = List.of(3, 4);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
 
@@ -41,6 +42,8 @@ public class TakeWhileObservableTest {
 		publisher.publish(4);
 		subscriptionHolder.get().unsubscribe();
 		publisher.publish(5);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

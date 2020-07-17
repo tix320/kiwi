@@ -1,11 +1,9 @@
 package com.github.tix320.kiwi.test.reactive;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,11 +13,9 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.util.WrapperException;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
@@ -47,9 +43,9 @@ class ObservableTest {
 	}
 
 	@Test
-	void ofTest() {
+	void ofTest() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(32, 32, 32);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Observable<Integer> of = Observable.of(32);
 
@@ -59,14 +55,15 @@ class ObservableTest {
 
 		of.toMono().subscribe(actual::add);
 
+		Thread.sleep(100);
+
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void concatTest() {
-
-		List<Integer> expected = Arrays.asList(10, 20, 25);
-		List<Integer> actual = new ArrayList<>();
+	void concatTest() throws InterruptedException {
+		Set<Integer> expected = Set.of(10, 20, 25, 50);
+		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		Observable<Integer> observable1 = Observable.of(10);
 
@@ -76,23 +73,21 @@ class ObservableTest {
 
 		Observable<Integer> observable3 = publisher.asObservable();
 
-		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(object -> {
-			actual.add(object);
-			return !object.equals(25);
-		});
+		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(actual::add);
 
 		publisher.publish(25);
 
 		publisher.publish(50);
 
+		Thread.sleep(100);
+
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void concatWithDecoratorTest() {
-
-		List<Integer> expected = Arrays.asList(10, 20, 30, 40, 50, 60, 70);
-		List<Integer> actual = new ArrayList<>();
+	void concatWithDecoratorTest() throws InterruptedException {
+		Set<Integer> canBe = Set.of(10, 20, 30, 40, 50, 60, 70, 80);
+		Set<Integer> actual = Collections.synchronizedSet(new HashSet<>());
 
 		Observable<Integer> observable1 = Observable.of(10, 20, 30);
 
@@ -107,7 +102,12 @@ class ObservableTest {
 		publisher.publish(70);
 		publisher.publish(80);
 
-		assertEquals(expected, actual);
+		Thread.sleep(100);
+
+		assertEquals(7, actual.size());
+		for (Integer integer : actual) {
+			assertTrue(canBe.contains(integer));
+		}
 	}
 
 	@Test
@@ -134,12 +134,12 @@ class ObservableTest {
 
 		Thread.sleep(100);
 
-		assertEquals("10,20,25,50", actual.get());
+		assertEquals(Set.of("10", "20", "25", "50"), new HashSet<>(Arrays.asList(actual.get().split(","))));
 	}
 
 	@Test
-	void mapTest() {
-		List<String> expected1 = List.of("10lol","20lol","25lol");
+	void mapTest() throws InterruptedException {
+		List<String> expected1 = List.of("10lol", "20lol", "25lol");
 		List<String> expected2 = List.of("20wtf");
 
 		List<String> actual1 = new CopyOnWriteArrayList<>();
@@ -162,15 +162,16 @@ class ObservableTest {
 
 		publisher.publish(50);
 
+		Thread.sleep(100);
+
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
 	}
 
 	@Test
-	void untilTest() {
-
+	void untilTest() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(10, 20, 25);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher = Publisher.simple();
 
@@ -186,10 +187,16 @@ class ObservableTest {
 		publisher.publish(20);
 		publisher.publish(25);
 
+		Thread.sleep(100);
+
 		untilPublisher.complete();
+
+		Thread.sleep(100);
 
 		publisher.publish(50);
 		publisher.publish(60);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
@@ -408,9 +415,9 @@ class ObservableTest {
 	}
 
 	@Test
-	void doubleUnsubscribe() {
+	void doubleUnsubscribe() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(1, 2, 15);
-		List<Integer> actual = new ArrayList<>();
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Publisher<Integer> publisher = Publisher.simple();
 
@@ -426,6 +433,8 @@ class ObservableTest {
 		subscriptionHolder.get().unsubscribe();
 		publisher.publish(3);
 		subscriptionHolder.get().unsubscribe();
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

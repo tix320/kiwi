@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.test.reactive;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
@@ -18,13 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UntilObservableTest {
 
 	@Test
-	void takeUntilAlreadyCompletedObservableTest() {
+	void takeUntilAlreadyCompletedObservableTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();
 		untilPublisher.complete();
 
-		List<String> called = new ArrayList<>();
+		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
@@ -45,6 +46,7 @@ public class UntilObservableTest {
 			}
 		});
 
+		Thread.sleep(100);
 
 		assertEquals(2, called.size());
 		assertEquals("onSubscribe", called.get(0));
@@ -52,13 +54,13 @@ public class UntilObservableTest {
 	}
 
 	@Test
-	void publishOnSubscribeWithTakeUntilTest() {
+	void publishOnSubscribeWithTakeUntilTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();
 		untilPublisher.complete();
 
-		List<String> called = new ArrayList<>();
+		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
@@ -80,6 +82,7 @@ public class UntilObservableTest {
 			}
 		});
 
+		Thread.sleep(100);
 
 		assertEquals(2, called.size());
 		assertEquals("onSubscribe", called.get(0));

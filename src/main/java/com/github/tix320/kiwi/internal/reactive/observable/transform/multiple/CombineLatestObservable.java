@@ -2,13 +2,12 @@ package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
-import com.github.tix320.kiwi.internal.reactive.publisher.ArrayUtils;
 
-//TODO rair bug, when complete and publish is parralel
 public final class CombineLatestObservable<T> implements TransformObservable<T, List<T>> {
 
 	private final List<Observable<? extends T>> observables;
@@ -23,26 +22,30 @@ public final class CombineLatestObservable<T> implements TransformObservable<T, 
 	@Override
 	public void subscribe(Subscriber<? super List<T>> subscriber) {
 		int observablesCount = observables.size();
-		AtomicReference<State> state = new AtomicReference<>(new State(observablesCount));
+
+		AtomicBoolean completed = new AtomicBoolean(false);
+		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
+		List<T> lastItems = new CopyOnWriteArrayList<>();
+
+		for (int i = 0; i < observablesCount; i++) {
+			lastItems.add(null);
+		}
 
 		Consumer<CompletionType> cleanup = (completionType) -> {
-			State currentState;
-			do {
-				currentState = state.get();
-
-			} while (!state.compareAndSet(currentState, currentState.changeCompleted(true)));
-
-			Subscription[] subscriptions = currentState.getSubscriptions();
-			for (Subscription subscription : subscriptions) {
-				subscription.unsubscribe();
+			synchronized (subscriber) {
+				if (completed.compareAndSet(false, true)) {
+					for (Subscription subscription : subscriptions) {
+						subscription.unsubscribe();
+					}
+					subscriber.onComplete(completionType);
+				}
 			}
-			subscriber.onComplete(completionType);
 		};
 
 		Subscription subscription = new Subscription() {
 			@Override
 			public boolean isCompleted() {
-				return state.get().isCompleted();
+				return completed.get();
 			}
 
 			@Override
@@ -59,54 +62,38 @@ public final class CombineLatestObservable<T> implements TransformObservable<T, 
 
 				@Override
 				public boolean onSubscribe(Subscription subscription) {
-					State currentState;
-					State newState;
-					do {
-						currentState = state.get();
-						if (currentState.isCompleted()) {
+					synchronized (subscriber) {
+						if (completed.get()) {
 							return false;
 						}
-
-						newState = currentState.addSubscription(index, subscription);
-					} while (!state.compareAndSet(currentState, newState));
-
-					return true;
+						else {
+							subscriptions.add(subscription);
+							return true;
+						}
+					}
 				}
 
 				@Override
 				public boolean onPublish(T item) {
-					State currentState;
-					State newState;
-					do {
-						currentState = state.get();
-						if (currentState.isCompleted()) {
+					synchronized (subscriber) {
+						lastItems.set(index, item);
+
+						for (Object lastItem : lastItems) {
+							if (lastItem == null) {
+								return true;
+							}
+						}
+
+						List<T> combinedObjects = new ArrayList<>(lastItems.size());
+						combinedObjects.addAll(lastItems);
+						boolean needMore = subscriber.onPublish(combinedObjects);
+
+						if (!needMore) {
+							cleanup.accept(CompletionType.UNSUBSCRIPTION);
 							return false;
 						}
-
-						newState = currentState.changeLastItem(index, item);
-					} while (!state.compareAndSet(currentState, newState));
-
-					Object[] lastItems = newState.getLastItems();
-
-					for (Object lastItem : lastItems) {
-						if (lastItem == null) {
-							return true;
-						}
+						return true;
 					}
-
-					List<T> combinedObjects = new ArrayList<>(lastItems.length);
-					for (Object obj : lastItems) {
-						@SuppressWarnings("unchecked")
-						T casted = (T) obj;
-						combinedObjects.add(casted);
-					}
-					boolean needMore = subscriber.onPublish(combinedObjects);
-
-					if (!needMore) {
-						cleanup.accept(CompletionType.UNSUBSCRIPTION);
-						return false;
-					}
-					return true;
 				}
 
 				@Override
@@ -116,49 +103,6 @@ public final class CombineLatestObservable<T> implements TransformObservable<T, 
 					}
 				}
 			});
-		}
-	}
-
-	private static final class State {
-		private final boolean completed;
-		private final Subscription[] subscriptions;
-		private final Object[] lastItems;
-
-		private State(boolean completed, Subscription[] subscriptions, Object[] lastItems) {
-			this.completed = completed;
-			this.subscriptions = subscriptions;
-			this.lastItems = lastItems;
-		}
-
-		public State(int observablesCount) {
-			this(false, new Subscription[observablesCount], new Object[observablesCount]);
-		}
-
-		public boolean isCompleted() {
-			return completed;
-		}
-
-		public Subscription[] getSubscriptions() {
-			return subscriptions;
-		}
-
-		public Object[] getLastItems() {
-			return lastItems;
-		}
-
-		public State changeCompleted(boolean completed) {
-			return new State(completed, this.subscriptions, this.lastItems);
-		}
-
-		public State addSubscription(int index, Subscription subscription) {
-			Subscription[] subscriptions = ArrayUtils.changeItem(this.subscriptions, index, subscription,
-					Subscription[]::new);
-			return new State(this.completed, subscriptions, this.lastItems);
-		}
-
-		public State changeLastItem(int index, Object item) {
-			Object[] lastItems = ArrayUtils.changeItem(this.lastItems, index, item, Object[]::new);
-			return new State(this.completed, this.subscriptions, lastItems);
 		}
 	}
 }

@@ -4,10 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.util.collection.BiMap;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyAtomicContext;
 
 public interface Property<T> extends ObservableProperty<T> {
 
@@ -75,29 +73,22 @@ public interface Property<T> extends ObservableProperty<T> {
 		return new BiMapProperty<>(initialValue);
 	}
 
-	// ---------- Helper methods ----------
+	// ---------- Atomic helper ----------
 
-	static <T> T inAtomicContext(Supplier<T> runnable) {
-		if (PropertyAtomicContext.inAtomicContext()) {
-			return runnable.get();
+	static Committer updateAtomic(FreezeableProperty... properties) {
+		for (FreezeableProperty property : properties) {
+			property.freeze();
 		}
-		else {
-			try {
-				PropertyAtomicContext.create();
-				T result = runnable.get();
-				PropertyAtomicContext.commitChangesAndDestroy();
-				return result;
+
+		return () -> {
+			for (FreezeableProperty property : properties) {
+				property.unfreeze();
 			}
-			finally {
-				PropertyAtomicContext.destroy();
-			}
-		}
+		};
 	}
 
-	static void inAtomicContext(Runnable runnable) {
-		inAtomicContext(() -> {
-			runnable.run();
-			return null;
-		});
+	interface Committer {
+
+		void commit();
 	}
 }

@@ -1,48 +1,65 @@
 package com.github.tix320.kiwi.api.util;
 
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
+
 /**
  * @author Tigran Sargsyan on 18-Apr-20.
  */
 public final class LoopThread {
 
-	private final Thread thread;
+	private final ThreadSubmitter threadSubmitter;
 
-	public LoopThread(LoopRunner runner) {
-		this(runner, true);
+	private final LoopAction loopAction;
+
+	private final AtomicReference<Thread> thread;
+
+	public LoopThread(ThreadSubmitter threadSubmitter, LoopAction loopAction) {
+		this.threadSubmitter = threadSubmitter;
+		this.loopAction = loopAction;
+		this.thread = new AtomicReference<>();
 	}
 
-	public LoopThread(LoopRunner runner, boolean isDaemon) {
-		thread = new Thread(() -> {
+	public void start() {
+		threadSubmitter.submit(() -> {
+			thread.set(Thread.currentThread());
 			while (!Thread.currentThread().isInterrupted()) {
 				try {
-					boolean needContinue = runner.run();
-					if (!needContinue) {
-						break;
-					}
+					loopAction.run();
 				}
 				catch (InterruptedException e) {
 					break;
 				}
-				catch (Exception e) {
+				catch (Throwable e) {
 					e.printStackTrace();
 				}
 			}
 		});
-
-		thread.setDaemon(isDaemon);
 	}
 
-	public void start() {
-		thread.start();
+	public boolean isStarted() {
+		return thread.get() != null;
 	}
 
 	public void stop() {
-		thread.interrupt();
+		Thread thread = this.thread.get();
+		if (thread != null) {
+			thread.interrupt();
+		}
 	}
 
-	public interface LoopRunner {
+	public void unpark() {
+		LockSupport.unpark(thread.get());
+	}
 
-		boolean run() throws InterruptedException;
+	public interface ThreadSubmitter {
+
+		void submit(Runnable action);
+	}
+
+	public interface LoopAction {
+
+		void run() throws InterruptedException;
 	}
 }

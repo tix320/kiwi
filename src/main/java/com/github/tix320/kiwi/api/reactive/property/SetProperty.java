@@ -41,11 +41,6 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		super.close();
 	}
 
-	@Override
-	public synchronized void republishState() {
-		super.republishState();
-	}
-
 	public synchronized int size() {
 		return getValue().size();
 	}
@@ -70,7 +65,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		checkClosed();
 		boolean added = getValue().add(t);
 		if (added) {
-			republishState();
+			republish();
 		}
 		return added;
 	}
@@ -79,7 +74,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		checkClosed();
 		boolean removed = getValue().remove(o);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -92,7 +87,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		checkClosed();
 		boolean added = getValue().addAll(c);
 		if (added) {
-			republishState();
+			republish();
 		}
 		return added;
 	}
@@ -101,7 +96,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		checkClosed();
 		boolean changed = getValue().retainAll(c);
 		if (changed) {
-			republishState();
+			republish();
 		}
 		return changed;
 	}
@@ -110,7 +105,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 		checkClosed();
 		boolean removed = getValue().removeAll(c);
 		if (removed) {
-			republishState();
+			republish();
 		}
 		return removed;
 	}
@@ -118,7 +113,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 	public synchronized void clear() {
 		checkClosed();
 		getValue().clear();
-		republishState();
+		republish();
 	}
 
 	public Stream<T> stream() {

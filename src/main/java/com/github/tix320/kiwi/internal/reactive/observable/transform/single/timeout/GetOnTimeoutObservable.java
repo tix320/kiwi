@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
 import com.github.tix320.kiwi.api.util.Threads;
+import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
 /**
  * @author Tigran Sargsyan on 08-Apr-20.
@@ -35,20 +36,9 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicBoolean published = new AtomicBoolean(false);
 
-		SCHEDULER.schedule(() -> {
-			try {
-				if (published.compareAndSet(false, true)) {
-					subscriber.onPublish(newItemFactory.get());
-				}
-			}
-			catch (Throwable t) {
-				t.printStackTrace();
-			}
-		}, timeout.toMillis(), TimeUnit.MILLISECONDS);
-
 		observable.toMono().subscribe(new Subscriber<T>() {
 
-			private volatile boolean completedFromSubscriber = false;
+			private volatile boolean unsubscribed = false;
 
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
@@ -60,7 +50,7 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 
 					@Override
 					public void unsubscribe() {
-						completedFromSubscriber = true;
+						unsubscribed = true;
 						subscription.unsubscribe();
 					}
 				});
@@ -69,14 +59,17 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 			@Override
 			public boolean onPublish(T item) {
 				if (published.compareAndSet(false, true)) {
-					subscriber.onPublish(item);
+					boolean needMore = subscriber.onPublish(item);
+					if (!needMore) {
+						unsubscribed = true;
+					}
 				}
 				return false;
 			}
 
 			@Override
 			public void onComplete(CompletionType completionType) {
-				if (completedFromSubscriber) {
+				if (unsubscribed) {
 					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
 				}
 				else {
@@ -84,5 +77,19 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 				}
 			}
 		});
+
+		SCHEDULER.schedule(() -> {
+			try {
+				if (published.compareAndSet(false, true)) {
+					BasePublisher.runAsync(() -> {
+						subscriber.onPublish(newItemFactory.get());
+						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+					});
+				}
+			}
+			catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}, timeout.toMillis(), TimeUnit.MILLISECONDS);
 	}
 }

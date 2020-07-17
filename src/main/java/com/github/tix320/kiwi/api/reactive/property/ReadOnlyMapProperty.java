@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 
@@ -39,10 +38,6 @@ public final class ReadOnlyMapProperty<K, V> implements ReadOnlyProperty<Map<K, 
 
 	public void forEach(BiConsumer<? super K, ? super V> action) {
 		property.forEach(action);
-	}
-
-	public int size() {
-		return property.size();
 	}
 
 	public boolean isEmpty() {

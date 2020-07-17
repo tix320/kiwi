@@ -1,8 +1,8 @@
 package com.github.tix320.kiwi.api.reactive.property;
 
-import com.github.tix320.kiwi.internal.reactive.property.BaseLazyStock;
+import com.github.tix320.kiwi.internal.reactive.property.BaseStock;
 
-public final class ObjectStock<T> extends BaseLazyStock<T> {
+public final class ObjectStock<T> extends BaseStock<T> {
 
 	@Override
 	public ReadOnlyObjectStock<T> toReadOnly() {
@@ -11,6 +11,6 @@ public final class ObjectStock<T> extends BaseLazyStock<T> {
 
 	@Override
 	public String toString() {
-		return "ObjectStock: " + list();
+		return "ObjectStock";
 	}
 }

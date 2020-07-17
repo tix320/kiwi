@@ -3,37 +3,30 @@ package com.github.tix320.kiwi.internal.reactive.property;
 import java.util.List;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.api.reactive.property.FreezeableProperty;
 import com.github.tix320.kiwi.api.reactive.property.ReadOnlyStock;
 import com.github.tix320.kiwi.api.reactive.property.Stock;
-import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
+import com.github.tix320.kiwi.api.reactive.publisher.UnlimitBufferedPublisher;
 
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
+public abstract class BaseStock<T> implements Stock<T>, FreezeableProperty {
 
-	private final CachedPublisher<T> publisher;
+	private final UnlimitBufferedPublisher<T> publisher;
 
 	public BaseStock() {
-		this.publisher = new CachedPublisher<>();
+		this.publisher = new UnlimitBufferedPublisher<>();
 	}
 
 	@Override
-	public synchronized final void add(T value) {
-		checkClosed();
-		publish(value);
+	public final void add(T value) {
+		publishValue(value);
 	}
 
 	@Override
-	public synchronized final void addAll(Iterable<T> values) {
-		checkClosed();
-		for (T value : values) {
-			publish(value);
-		}
-	}
-
-	@Override
-	public synchronized void close() {
+	public final void close() {
 		publisher.complete();
 	}
 
@@ -50,14 +43,27 @@ public abstract class BaseStock<T> implements Stock<T>, RepublishProperty {
 		return publisher.asObservable();
 	}
 
-	protected synchronized void publish(T value) {
-		checkClosed();
-		publisher.publish(value);
+	@Override
+	public final void freeze() {
+		publisher.freeze();
 	}
 
-	protected final void checkClosed() {
-		if (publisher.isCompleted()) {
-			throw new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
+
+	@Override
+	public final void unfreeze() {
+		publisher.unfreeze();
+	}
+
+	private void publishValue(T value) {
+		try {
+			publisher.publish(value);
 		}
+		catch (PublisherCompletedException e) {
+			throw createClosedException();
+		}
+	}
+
+	private PropertyClosedException createClosedException() {
+		return new PropertyClosedException(String.format("%s closed. Value adding is forbidden.", this));
 	}
 }

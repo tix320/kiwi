@@ -14,6 +14,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.UnlimitBufferedPublisher;
 import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineLatestObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
@@ -23,10 +26,6 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
-import com.github.tix320.kiwi.api.reactive.publisher.CachedPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
 
 /**
  * @param <T> type of data.
@@ -37,7 +36,6 @@ public interface Observable<T> {
 
 	/**
 	 * Subscribe to observable.
-	 * If observable already completed, then available values will be processed immediately.
 	 *
 	 * @param consumer for processing items
 	 */
@@ -48,7 +46,6 @@ public interface Observable<T> {
 	/**
 	 * Subscribe to observable and handle every item, consumer must return boolean value,
 	 * which indicates that need more elements or not.
-	 * If observable already completed, then available values will be processed immediately.
 	 *
 	 * @param consumer for processing items
 	 */
@@ -68,8 +65,16 @@ public interface Observable<T> {
 	}
 
 	/**
+	 * Subscribe to observable completeness.
+	 *
+	 * @param onComplete for processing completeness
+	 */
+	default void subscribeOnComplete(Consumer<CompletionType> onComplete) {
+		subscribe(Subscriber.<T>builder().onComplete(onComplete).build());
+	}
+
+	/**
 	 * Subscribe to observable and handle every item, error or completeness.
-	 * If observable already completed, then available values will be processed immediately
 	 * and after which completed handler will be invoked.
 	 *
 	 * @param subscriber for subscribing
@@ -102,10 +107,7 @@ public interface Observable<T> {
 		long millis = timeout.toMillis();
 
 		Observable.this.subscribe(Subscriber.builder().onComplete(completionType -> {
-			boolean changed = isTimout.compareAndSet(false, true);
-			if (!changed) {
-				System.err.println(String.format("The observable was completed after timout of %sms", millis));
-			}
+			isTimout.compareAndSet(false, true);
 			latch.countDown();
 		}));
 
@@ -161,10 +163,9 @@ public interface Observable<T> {
 		AtomicBoolean isTimout = new AtomicBoolean(false);
 		this.toMono().subscribe(item -> {
 			boolean changed = isTimout.compareAndSet(false, true);
-			if (!changed) {
-				System.err.println(String.format("The observable was completed after timout of %sms", millis));
+			if (changed) {
+				consumer.accept(item);
 			}
-			consumer.accept(item);
 			latch.countDown();
 		});
 
@@ -203,7 +204,7 @@ public interface Observable<T> {
 	 *
 	 * @return new observable
 	 */
-	default <R> TransformObservable<T, R> map(Function<? super T, ? extends R> mapper) {
+	default <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
 		return new MapperObservable<>(this, mapper);
 	}
 
@@ -387,7 +388,7 @@ public interface Observable<T> {
 	 * @return observable
 	 */
 	static <T> Observable<T> of(Iterable<T> iterable) {
-		CachedPublisher<T> publisher = new CachedPublisher<>(iterable);
+		UnlimitBufferedPublisher<T> publisher = new UnlimitBufferedPublisher<>(iterable);
 		publisher.complete();
 		return publisher.asObservable();
 	}
@@ -402,7 +403,7 @@ public interface Observable<T> {
 	 */
 	@SafeVarargs
 	static <T> Observable<T> of(T... values) {
-		CachedPublisher<T> publisher = new CachedPublisher<>(Arrays.asList(values));
+		UnlimitBufferedPublisher<T> publisher = new UnlimitBufferedPublisher<>(Arrays.asList(values));
 		publisher.complete();
 		return publisher.asObservable();
 	}

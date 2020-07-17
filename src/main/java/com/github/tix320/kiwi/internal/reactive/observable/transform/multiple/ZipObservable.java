@@ -1,10 +1,14 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.*;
 
 public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
@@ -20,9 +24,9 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 
 	@Override
 	public void subscribe(Subscriber<? super List<T>> subscriber) {
-		List<Queue<T>> queues = new ArrayList<>();
+		List<Queue<T>> queues = new CopyOnWriteArrayList<>();
 		for (int i = 0; i < observables.size(); i++) {
-			queues.add(new LinkedList<>());
+			queues.add(new ConcurrentLinkedQueue<>());
 		}
 
 		AtomicBoolean atLeastOneObservableCompleted = new AtomicBoolean(false);
@@ -30,12 +34,14 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
 
 		Consumer<CompletionType> cleanup = (completionType) -> {
-			boolean changed = completed.compareAndSet(false, true);
-			if (changed) {
-				subscriptions.forEach(Subscription::unsubscribe);
-				subscriber.onComplete(completionType);
-				queues.forEach(Collection::clear);
-				queues.clear();
+			synchronized (subscriber) {
+				boolean changed = completed.compareAndSet(false, true);
+				if (changed) {
+					subscriptions.forEach(Subscription::unsubscribe);
+					queues.forEach(Collection::clear);
+					queues.clear();
+					subscriber.onComplete(completionType);
+				}
 			}
 		};
 
@@ -47,9 +53,7 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 
 			@Override
 			public void unsubscribe() {
-				if (completed.compareAndSet(false, true)) {
-					cleanup.accept(CompletionType.UNSUBSCRIPTION);
-				}
+				cleanup.accept(CompletionType.UNSUBSCRIPTION);
 			}
 		};
 		subscriber.onSubscribe(subscription);
@@ -72,8 +76,11 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 
 				@Override
 				public boolean onPublish(T item) {
-					List<T> combinedObjects;
-					synchronized (this) {
+					synchronized (subscriber) {
+						if (completed.get()) {
+							return false;
+						}
+
 						queue.add(item);
 						for (Queue<T> q : queues) {
 							if (q.isEmpty()) {
@@ -81,22 +88,20 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 							}
 						}
 
-						combinedObjects = new ArrayList<>(queues.size());
+						List<T> combinedObjects = new ArrayList<>(queues.size());
 						for (Queue<T> q : queues) {
 							combinedObjects.add(q.poll());
 						}
-					}
 
-					boolean needMore = subscriber.onPublish(combinedObjects);
+						boolean needMore = subscriber.onPublish(combinedObjects);
 
-					if (!needMore) {
-						cleanup.accept(CompletionType.UNSUBSCRIPTION);
-						return false;
-					}
+						if (!needMore) {
+							cleanup.accept(CompletionType.UNSUBSCRIPTION);
+							return false;
+						}
 
-					boolean needComplete = false;
+						boolean needComplete = false;
 
-					synchronized (this) {
 						if (atLeastOneObservableCompleted.get()) {
 							for (int j = 0; j < queues.size(); j++) {
 								Queue<T> q = queues.get(j);
@@ -107,31 +112,29 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 								}
 							}
 						}
-					}
 
-					if (needComplete) {
-						synchronized (this) {
+						if (needComplete) {
 							subscriptions.remove(subscription);
+							cleanup.accept(CompletionType.SOURCE_COMPLETED);
+							return false;
 						}
-						cleanup.accept(CompletionType.SOURCE_COMPLETED);
-						return false;
-					}
 
-					return true;
+						return true;
+					}
 				}
 
 				@Override
 				public void onComplete(CompletionType completionType) {
-					boolean needComplete = false;
-					synchronized (this) {
+					synchronized (subscriber) {
+						boolean needComplete = false;
 						if (completionType == CompletionType.SOURCE_COMPLETED) {
 							if (atLeastOneObservableCompleted.compareAndSet(false, true) && queue.isEmpty()) {
 								needComplete = true;
 							}
 						}
-					}
-					if (needComplete) {
-						cleanup.accept(CompletionType.SOURCE_COMPLETED);
+						if (needComplete) {
+							cleanup.accept(CompletionType.SOURCE_COMPLETED);
+						}
 					}
 				}
 			});

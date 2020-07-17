@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.test.property;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.github.tix320.kiwi.api.reactive.property.MapProperty;
 import com.github.tix320.kiwi.api.reactive.property.Property;
@@ -27,15 +27,15 @@ public class MapPropertyTest {
 	}
 
 	@Test
-	void observableTest() {
-		MapProperty<Integer, String> property = Property.forMap();
+	void observableTest() throws InterruptedException {
+		MapProperty<Integer, String> mapProperty = Property.forMap();
 
-		HashMap<Integer, String> map = new HashMap<>();
+		ConcurrentHashMap<Integer, String> map = new ConcurrentHashMap<>();
 		map.put(1, "foo");
-		property.setValue(map);
+		mapProperty.setValue(map);
 
 		boolean[] tested = new boolean[]{false, false, false};
-		property.asObservable().subscribe(changedMap -> {
+		mapProperty.asObservable().subscribe(changedMap -> {
 			if (changedMap.containsKey(1)) {
 				assertEquals("foo", changedMap.get(1));
 				tested[0] = true;
@@ -51,10 +51,13 @@ public class MapPropertyTest {
 			}
 		});
 
-		property.put(2, "boo");
-		property.put(3, "goo");
+		mapProperty.put(2, "boo");
+		mapProperty.put(3, "goo");
 
-		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), map);
+		Thread.sleep(100);
+
+		assertEquals(Map.of(1, "foo"), map);
+		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), mapProperty.getValue());
 		assertTrue(tested[0]);
 		assertTrue(tested[1]);
 		assertTrue(tested[2]);

@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.multiple;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
@@ -26,8 +26,7 @@ public final class ConcatObservable<T> implements Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		int observablesCount = observables.size();
-		List<Subscription> subscriptions = new ArrayList<>(observables.size());
-		// AtomicBoolean unsubscribed = new AtomicBoolean(false);
+		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
 		AtomicReference<State> state = new AtomicReference<>(new State(false, 0));
 
@@ -72,7 +71,7 @@ public final class ConcatObservable<T> implements Observable<T> {
 
 			@Override
 			public boolean onPublish(T item) {
-				synchronized (this) {
+				synchronized (subscriber) {
 					if (state.get().isUnsubscribed()) {
 						return false;
 					}
@@ -83,13 +82,7 @@ public final class ConcatObservable<T> implements Observable<T> {
 						return true;
 					}
 					else {
-						State currentState;
-						State newState;
-						do {
-							currentState = state.get();
-
-							newState = new State(true, currentState.getCompletedCount());
-						} while (!state.compareAndSet(currentState, newState));
+						state.updateAndGet(s -> new State(true, s.getCompletedCount()));
 						return false;
 					}
 				}

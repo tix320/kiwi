@@ -3,16 +3,17 @@ package com.github.tix320.kiwi.test.reactive;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.tix320.kiwi.api.reactive.observable.MonoObservable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
+import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MonoPublisherTest {
 
 	@Test
-	void simpleTest() {
+	void simpleTest() throws InterruptedException {
 		MonoPublisher<String> mono = Publisher.mono();
 		MonoObservable<String> observable = mono.asObservable();
 		AtomicBoolean called = new AtomicBoolean(false);
@@ -21,11 +22,14 @@ public class MonoPublisherTest {
 			called.set(true);
 		});
 		mono.publish("foo");
+
+		Thread.sleep(100);
+
 		assertTrue(called.get());
 	}
 
 	@Test
-	void subscribeAfterPublish() {
+	void subscribeAfterPublish() throws InterruptedException {
 		MonoPublisher<String> mono = Publisher.mono();
 		MonoObservable<String> observable = mono.asObservable();
 		AtomicBoolean called = new AtomicBoolean(false);
@@ -34,23 +38,9 @@ public class MonoPublisherTest {
 			assertEquals("foo", s);
 			called.set(true);
 		});
+
+		Thread.sleep(100);
+
 		assertTrue(called.get());
-	}
-
-	@Test
-	void emptyContentTest() {
-		MonoPublisher<String> mono = new MonoPublisher<>();
-
-		assertTrue(mono.getContent().isEmpty());
-	}
-
-	@Test
-	void valueContentTest() {
-		MonoPublisher<String> mono = new MonoPublisher<>();
-		mono.publish("foo");
-
-		assertTrue(mono.getContent().isPresent());
-		String content = mono.getContent().get();
-		assertEquals("foo", content);
 	}
 }

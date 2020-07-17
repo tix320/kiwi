@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.test.reactive;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
@@ -8,6 +9,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
 import com.github.tix320.kiwi.api.reactive.property.ObjectStock;
 import com.github.tix320.kiwi.api.reactive.property.Property;
+import com.github.tix320.kiwi.api.reactive.property.Property.Committer;
 import com.github.tix320.kiwi.api.reactive.property.Stock;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class PropertyAtomicContextTest {
 
 	@Test
-	public void onePropertyTest() {
-		List<Integer> expected = Arrays.asList(3, 5, 6);
+	public void withoutCommitTest() throws InterruptedException {
+		List<Integer> expected = Collections.singletonList(3);
 		List<Integer> actual = new ArrayList<>();
 
 		ObjectProperty<Integer> property = Property.forObject();
@@ -28,19 +30,43 @@ public class PropertyAtomicContextTest {
 
 		property.setValue(3);
 
-		Property.inAtomicContext(() -> {
-			property.setValue(4);
-			property.setValue(5);
-		});
+		Committer committer = Property.updateAtomic(property);
 
-		property.setValue(6);
+		property.setValue(4);
+		property.setValue(5);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void doublePropertyTest() {
-		Set<Integer> expected = Set.of(3, 4, 5, 7, 8, 9);
+	public void onePropertyTest() throws InterruptedException {
+		List<Integer> expected = Arrays.asList(3, 4, 5, 6);
+		List<Integer> actual = new ArrayList<>();
+
+		ObjectProperty<Integer> property = Property.forObject();
+		property.asObservable().subscribe(actual::add);
+
+		property.setValue(3);
+
+		Committer committer = Property.updateAtomic(property);
+
+		property.setValue(4);
+		property.setValue(5);
+
+		committer.commit();
+
+		property.setValue(6);
+
+		Thread.sleep(100);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void doublePropertyTest() throws InterruptedException {
+		Set<Integer> expected = Set.of(3, 4, 5, 6, 7, 8, 9);
 		Set<Integer> actual = new HashSet<>();
 
 		ObjectProperty<Integer> property1 = Property.forObject();
@@ -51,25 +77,29 @@ public class PropertyAtomicContextTest {
 		property1.setValue(3);
 		property2.setValue(4);
 
-		Property.inAtomicContext(() -> {
-			property1.setValue(4);
-			property1.setValue(5);
-			property2.setValue(6);
-			property2.setValue(7);
-		});
+		Committer committer = Property.updateAtomic(property1, property2);
+
+		property1.setValue(4);
+		property1.setValue(5);
+		property2.setValue(6);
+		property2.setValue(7);
+
+		committer.commit();
 
 		property1.setValue(8);
 		property2.setValue(9);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void stockTest() {
+	void stockTest() throws InterruptedException {
 		List<IllegalStateException> exceptions = new ArrayList<>();
 
-		List<Integer> expected = Arrays.asList(3, 4, 5, 6);
-		List<Integer> actual = new ArrayList<>();
+		Set<Integer> expected = Set.of(3, 4, 5, 6);
+		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		ObjectStock<Integer> stock = Stock.forObject();
 
@@ -81,30 +111,31 @@ public class PropertyAtomicContextTest {
 			}
 		});
 
-		Property.inAtomicContext(() -> {
-			stock.add(4);
+		Committer committer = Property.updateAtomic(stock);
 
-			AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-			stock.asObservable()
-					.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
-						if (integer == 4) {
-							exceptions.add(new IllegalStateException());
-						}
-					}));
+		stock.add(4);
 
-			subscriptionHolder.get().unsubscribe();
+		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+		stock.asObservable()
+				.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
+					if (integer == 4) {
+						exceptions.add(new IllegalStateException());
+					}
+				}));
 
-			stock.add(5);
+		subscriptionHolder.get().unsubscribe();
 
-			stock.asObservable()
-					.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
-						if (integer == 4 || integer == 5) {
-							exceptions.add(new IllegalStateException());
-						}
-					}));
+		stock.add(5);
 
-			subscriptionHolder.get().unsubscribe();
-		});
+		stock.asObservable()
+				.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
+					if (integer == 4 || integer == 5) {
+						exceptions.add(new IllegalStateException());
+					}
+				}));
+
+		subscriptionHolder.get().unsubscribe();
+
 
 		stock.asObservable().subscribe(integer -> {
 			if (integer == 5) {
@@ -120,14 +151,18 @@ public class PropertyAtomicContextTest {
 			}
 		});
 
+		committer.commit();
+
+		Thread.sleep(100);
+
 		assertEquals(expected, actual);
 		exceptions.forEach(Throwable::printStackTrace);
 		assertEquals(0, exceptions.size());
 	}
 
 	@Test
-	void nestedContextsTest() {
-		List<Integer> expected = Arrays.asList(3, 5, 6);
+	void nestedContextsTest() throws InterruptedException {
+		List<Integer> expected = Arrays.asList(3, 4, 5, 6);
 		List<Integer> actual = new ArrayList<>();
 
 		ObjectProperty<Integer> property = Property.forObject();
@@ -135,12 +170,19 @@ public class PropertyAtomicContextTest {
 
 		property.setValue(3);
 
-		Property.inAtomicContext(() -> {
-			property.setValue(4);
-			Property.inAtomicContext(() -> property.setValue(5));
-		});
+		Committer committer = Property.updateAtomic(property);
+
+		property.setValue(4);
+
+		Property.updateAtomic(property);
+
+		property.setValue(5);
+
+		committer.commit();
 
 		property.setValue(6);
+
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

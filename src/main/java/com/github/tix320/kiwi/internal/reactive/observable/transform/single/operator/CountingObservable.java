@@ -30,7 +30,7 @@ public final class CountingObservable<T> implements Observable<T> {
 		AtomicLong limit = new AtomicLong(count);
 		observable.subscribe(new Subscriber<T>() {
 
-			private volatile boolean completedFromSubscriber = false;
+			private volatile boolean unsubscribed = false;
 
 			@Override
 			public boolean onSubscribe(Subscription subscription) {
@@ -42,7 +42,7 @@ public final class CountingObservable<T> implements Observable<T> {
 
 					@Override
 					public void unsubscribe() {
-						completedFromSubscriber = true;
+						unsubscribed = true;
 						subscription.unsubscribe();
 					}
 				});
@@ -52,14 +52,23 @@ public final class CountingObservable<T> implements Observable<T> {
 			public boolean onPublish(T item) {
 				long remaining = limit.decrementAndGet();
 				if (remaining > 0) {
-					return subscriber.onPublish(item);
+					boolean needMore = subscriber.onPublish(item);
+
+					if (!needMore) {
+						unsubscribed = true;
+					}
+					return needMore;
 				}
 				else {
 					if (remaining == 0) {
 						try {
-							subscriber.onPublish(item);
+							boolean needMore = subscriber.onPublish(item);
+
+							if (!needMore) {
+								unsubscribed = true;
+							}
 						}
-						catch (Exception e) {
+						catch (Throwable e) {
 							ExceptionUtils.applyToUncaughtExceptionHandler(e);
 						}
 					}
@@ -69,7 +78,7 @@ public final class CountingObservable<T> implements Observable<T> {
 
 			@Override
 			public void onComplete(CompletionType completionType) {
-				if (completedFromSubscriber) {
+				if (unsubscribed) {
 					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
 				}
 				else {

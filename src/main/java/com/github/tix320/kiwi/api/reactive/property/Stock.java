@@ -4,8 +4,6 @@ public interface Stock<T> extends ObservableStock<T> {
 
 	void add(T value);
 
-	void addAll(Iterable<T> values);
-
 	void close();
 
 	ReadOnlyStock<T> toReadOnly();

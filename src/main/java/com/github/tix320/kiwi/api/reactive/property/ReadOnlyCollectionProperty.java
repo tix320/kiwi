@@ -36,10 +36,6 @@ public final class ReadOnlyCollectionProperty<T> implements ReadOnlyProperty<Col
 		return property.stream();
 	}
 
-	public int size() {
-		return property.size();
-	}
-
 	public boolean isEmpty() {
 		return property.isEmpty();
 	}
