@@ -13,6 +13,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
 import com.github.tix320.kiwi.api.util.AsyncException;
+import com.github.tix320.kiwi.api.util.Threads;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
@@ -20,7 +21,7 @@ import com.github.tix320.kiwi.api.util.AsyncException;
 public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
-			new SynchronousQueue<>());
+			new SynchronousQueue<>(), Threads::daemon);
 
 	private final List<InternalSubscription<T>> subscriptions;
 
