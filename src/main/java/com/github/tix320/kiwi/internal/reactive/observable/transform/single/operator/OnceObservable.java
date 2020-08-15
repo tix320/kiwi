@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
-import com.github.tix320.kiwi.internal.reactive.publisher.ExceptionUtils;
+import com.github.tix320.kiwi.api.util.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19

@@ -12,7 +12,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
-import com.github.tix320.kiwi.api.util.AsyncException;
+import com.github.tix320.kiwi.api.util.ExceptionUtils;
 import com.github.tix320.kiwi.api.util.Threads;
 
 /**
@@ -146,7 +146,8 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				runnable.run();
 			}
 			catch (Throwable e) {
-				ExceptionUtils.applyToUncaughtExceptionHandler(new AsyncException(e, stackTrace));
+				ExceptionUtils.appendAsyncStacktrace(stackTrace, e);
+				ExceptionUtils.applyToUncaughtExceptionHandler(e);
 			}
 		});
 	}
