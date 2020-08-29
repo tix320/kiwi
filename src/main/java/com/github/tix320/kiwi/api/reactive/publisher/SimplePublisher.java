@@ -28,10 +28,10 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 		Iterator<InternalSubscription<T>> iterator;
 		synchronized (this) {
 			checkCompleted();
-			queue.add(object);
+			addToQueueWithStackTrace(object);
 			iterator = getSubscriptionsIterator();
 		}
 
-		iterator.forEachRemaining(InternalSubscription::publish);
+		iterator.forEachRemaining(InternalSubscription::tryPublish);
 	}
 }

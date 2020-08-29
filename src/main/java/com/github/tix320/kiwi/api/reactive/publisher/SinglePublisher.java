@@ -13,7 +13,7 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 	public SinglePublisher(T initialValue) {
 		super(1);
 		synchronized (this) {
-			queue.add(initialValue);
+			addToQueueWithStackTrace(initialValue);
 		}
 	}
 
@@ -26,16 +26,16 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 			boolean changed = false;
 			Iterator<InternalSubscription<T>> iterator;
 			synchronized (this) {
-				T lastItem = queue.get(queue.size() - 1);
+				T lastItem = queue.get(queue.size() - 1).getValue();
 				if (lastItem.equals(expected)) {
-					queue.add(newValue);
+					addToQueueWithStackTrace(newValue);
 					changed = true;
 				}
 				iterator = getSubscriptionsIterator();
 			}
 
 			if (changed) {
-				iterator.forEachRemaining(InternalSubscription::publish);
+				iterator.forEachRemaining(InternalSubscription::tryPublish);
 			}
 
 			return changed;
@@ -48,7 +48,7 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 				return null;
 			}
 
-			return queue.get(queue.size() - 1);
+			return queue.get(queue.size() - 1).getValue();
 		}
 	}
 }

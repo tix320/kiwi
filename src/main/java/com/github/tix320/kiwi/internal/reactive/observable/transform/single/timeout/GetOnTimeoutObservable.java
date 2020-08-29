@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
+import com.github.tix320.kiwi.api.util.ExceptionUtils;
 import com.github.tix320.kiwi.api.util.Threads;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
@@ -78,17 +79,25 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 			}
 		});
 
+		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+
 		SCHEDULER.schedule(() -> {
 			try {
 				if (published.compareAndSet(false, true)) {
 					BasePublisher.runAsync(() -> {
-						subscriber.onPublish(newItemFactory.get());
-						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+						try {
+							subscriber.onPublish(newItemFactory.get());
+							subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+						}
+						catch (Throwable e) {
+							ExceptionUtils.appendAsyncStacktrace(stackTrace, e);
+							throw e;
+						}
 					});
 				}
 			}
 			catch (Throwable t) {
-				t.printStackTrace();
+				ExceptionUtils.applyToUncaughtExceptionHandler(t);
 			}
 		}, timeout.toMillis(), TimeUnit.MILLISECONDS);
 	}

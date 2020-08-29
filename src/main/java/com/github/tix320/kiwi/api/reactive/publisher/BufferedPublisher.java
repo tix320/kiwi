@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.api.reactive.publisher;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
 
@@ -33,7 +34,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 				subscription.changeCursor(Math.max(0, queue.size() - bufferCapacity));
 			}
 
-			subscription.publish();
+			subscription.tryPublish();
 			if (isCompleted.get()) {
 				subscription.complete();
 			}
@@ -46,13 +47,13 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 		boolean freeze;
 		synchronized (this) {
 			checkCompleted();
-			queue.add(object);
+			addToQueueWithStackTrace(object);
 			iterator = getSubscriptionsIterator();
 			freeze = isFreeze();
 		}
 
 		if (!freeze) {
-			iterator.forEachRemaining(InternalSubscription::publish);
+			iterator.forEachRemaining(InternalSubscription::tryPublish);
 		}
 	}
 
@@ -61,8 +62,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 			int size = queue.size();
 			int start = Math.max(0, size - Math.max(size, this.bufferCapacity));
 
-			List<T> subList = queue.subList(start, size);
-			return List.copyOf(subList);
+			return queue.subList(start, size).stream().map(Item::getValue).collect(Collectors.toList());
 		}
 	}
 }

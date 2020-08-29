@@ -20,7 +20,7 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 	protected void subscribe(InternalSubscription<T> subscription) {
 		synchronized (this) {
 			subscription.changeCursor(Math.max(0, queue.size() - 1));
-			subscription.publish();
+			subscription.tryPublish();
 			if (isCompleted.get()) {
 				subscription.complete();
 			}
@@ -32,13 +32,13 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 		Iterator<InternalSubscription<T>> iterator;
 		synchronized (this) {
 			checkCompleted();
-			queue.add(object);
+			addToQueueWithStackTrace(object);
 			iterator = getSubscriptionsIterator();
 			isCompleted.set(true);
 		}
 
 		iterator.forEachRemaining(subscription -> {
-			subscription.publish();
+			subscription.tryPublish();
 			subscription.complete();
 		});
 	}

@@ -156,8 +156,7 @@ public class PropertyAtomicContextTest {
 		Thread.sleep(100);
 
 		assertEquals(expected, actual);
-		exceptions.forEach(Throwable::printStackTrace);
-		assertEquals(0, exceptions.size());
+		assertEquals(3, exceptions.size());
 	}
 
 	@Test

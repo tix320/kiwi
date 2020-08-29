@@ -2,7 +2,9 @@ package com.github.tix320.kiwi.test.reactive;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
@@ -34,9 +36,13 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
+		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[0];
+		Field valueField = itemClass.getDeclaredField("value");
+
 		queueField.setAccessible(true);
+		valueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		List<Integer> queue = (List<Integer>) queueField.get(publisher);
+		List<Object> queue = (List<Object>) queueField.get(publisher);
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -56,7 +62,11 @@ public class BasePublisherTest {
 
 		List<Integer> expected = List.of(5, 6, 7, 8, 9, 10);
 
-		assertEquals(expected, queue);
+		List<Integer> values = queue.stream()
+				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.collect(Collectors.toList());
+
+		assertEquals(expected, values);
 	}
 
 	@Test
@@ -77,9 +87,13 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
+		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[0];
+		Field valueField = itemClass.getDeclaredField("value");
+
 		queueField.setAccessible(true);
+		valueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		List<Integer> queue = (List<Integer>) queueField.get(publisher);
+		List<Object> queue = (List<Object>) queueField.get(publisher);
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -95,7 +109,11 @@ public class BasePublisherTest {
 
 		List<Integer> expected = List.of(3, 4, 5, 6);
 
-		assertEquals(expected, queue);
+		List<Integer> values = queue.stream()
+				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.collect(Collectors.toList());
+
+		assertEquals(expected, values);
 
 		publisher.publish(7);
 		publisher.publish(8);
@@ -111,6 +129,10 @@ public class BasePublisherTest {
 
 		expected = List.of(9, 10, 11, 12);
 
-		assertEquals(expected, queue);
+		values = queue.stream()
+				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.collect(Collectors.toList());
+
+		assertEquals(expected, values);
 	}
 }

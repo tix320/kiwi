@@ -25,7 +25,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private final List<InternalSubscription<T>> subscriptions;
 
-	protected final List<T> queue;
+	protected final List<Item<T>> queue;
 
 	private volatile boolean freeze;
 
@@ -76,6 +76,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	protected abstract void publishOverride(T object);
 
+	protected final void addToQueueWithStackTrace(T object) {
+		Item<T> item = new Item<>(object, Thread.currentThread().getStackTrace());
+		queue.add(item);
+	}
+
 	@Override
 	public final void complete() {
 		Iterator<InternalSubscription<T>> iterator;
@@ -111,7 +116,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		synchronized (this) {
 			freeze = false;
 			for (InternalSubscription<T> subscription : subscriptions) {
-				subscription.publish();
+				subscription.tryPublish();
 			}
 		}
 	}
@@ -140,13 +145,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	public static void runAsync(CheckedRunnable runnable) {
-		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
 		EXECUTOR.submit(() -> {
 			try {
 				runnable.run();
 			}
 			catch (Throwable e) {
-				ExceptionUtils.appendAsyncStacktrace(stackTrace, e);
 				ExceptionUtils.applyToUncaughtExceptionHandler(e);
 			}
 		});
@@ -204,94 +207,80 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 			this.cursor = newCursor;
 		}
 
-		public void publish() {
-			boolean runPublish = false;
-			boolean runComplete = false;
+		public void tryPublish() {
 			synchronized (publisher) {
-				if (!publishInProgress && !publisher.freeze) {
-					if (completion != null) {
-						if (cursor <= completion.cursor) {
-							publishInProgress = true;
-							runPublish = true;
-						}
-						else {
-							if (!completion.onCompleteCalled) {
-								completion = completion.changeOnCompleteCalled(true);
-								runComplete = true;
-							}
-						}
-					}
-					else if (cursor < publisher.queue.size()) {
+				if (publishInProgress || publisher.freeze) {
+					return;
+				}
+
+				if (completion == null) {
+					if (cursor < publisher.queue.size()) {
 						publishInProgress = true;
-						runPublish = true;
+					}
+					else {
+						return;
+					}
+				}
+				else {
+					if (cursor <= completion.cursor) {
+						publishInProgress = true;
+					}
+					else {
+						return;
 					}
 				}
 			}
 
-			if (runComplete) {
-				runAsync(() -> realSubscriber.onComplete(completion.type));
-			}
+			runAsync(() -> {
+				List<Item<I>> queue = publisher.queue;
+				Item<I> item;
+				synchronized (publisher) {
+					item = queue.get(cursor++);
+				}
 
-			else if (runPublish) {
-				runAsync(() -> {
-					List<I> queue = publisher.queue;
-					I item;
-					synchronized (publisher) {
-						item = queue.get(cursor);
+				boolean needMore = true;
+
+				try {
+					needMore = realSubscriber.onPublish(item.value);
+				}
+				catch (Throwable e) {
+					ExceptionUtils.appendAsyncStacktrace(item.publisherStackTrace, e);
+					ExceptionUtils.applyToUncaughtExceptionHandler(e);
+				}
+
+				Completion completion = null;
+				synchronized (publisher) {
+
+					if (!needMore) { // need force delete subscription
+						publisher.subscriptions.remove(this);
+						completion = new Completion(cursor - 1, CompletionType.UNSUBSCRIPTION,
+								item.publisherStackTrace);
 					}
-					boolean needMore = true;
+					else if (this.completion != null) { // SOURCE completed or unsubscribed via method unsubscribe()
+						if (cursor > this.completion.cursor) {
+							completion = this.completion;
+						}
+					}
 
-					Throwable subscriberError = null;
+					publishInProgress = false;
+				}
+				if (completion != null) {
 					try {
-						needMore = realSubscriber.onPublish(item);
+						realSubscriber.onComplete(completion.type);
 					}
 					catch (Throwable e) {
-						subscriberError = e;
+						ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
-
-					boolean removed = false;
-					synchronized (publisher) {
-						publishInProgress = false;
-
-						cursor++;
-
-						if (needMore) {
-							publish();
-						}
-						else {
-							publisher.subscriptions.remove(this);
-							completion = new Completion(cursor - 1, CompletionType.UNSUBSCRIPTION, true);
-							removed = true;
-						}
-					}
-					if (removed) {
-						realSubscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-					}
-
-					if (subscriberError != null) {
-						throw subscriberError;
-					}
-				});
-			}
-
+				}
+				else {
+					tryPublish();
+				}
+			});
 		}
 
 		public void complete() {
-			boolean needCallOnComplete = false;
-			synchronized (publisher) {
-				if (completion == null) {
-					if (publishInProgress) {
-						completion = new Completion(publisher.queue.size() - 1, CompletionType.SOURCE_COMPLETED, false);
-					}
-					else {
-						completion = new Completion(publisher.queue.size() - 1, CompletionType.SOURCE_COMPLETED, true);
-						needCallOnComplete = true;
-					}
-				}
-			}
-			if (needCallOnComplete) {
-				runAsync(() -> realSubscriber.onComplete(CompletionType.SOURCE_COMPLETED));
-			}
+			completeSubscription(CompletionType.SOURCE_COMPLETED);
 		}
 
 		@Override
@@ -301,21 +290,37 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 		@Override
 		public void unsubscribe() {
+			completeSubscription(CompletionType.UNSUBSCRIPTION);
+		}
+
+		private void completeSubscription(CompletionType completionType) {
 			boolean needCallOnComplete = false;
 			synchronized (publisher) {
-				if (completion == null) {
-					if (publishInProgress) {
-						completion = new Completion(publisher.queue.size() - 1, CompletionType.UNSUBSCRIPTION, false);
+				if (completion != null) {
+					return;
+				}
+				else {
+					StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+					if (publishInProgress || publisher.freeze) {
+						completion = new Completion(publisher.queue.size() - 1, completionType, stackTrace);
 					}
 					else {
 						publisher.subscriptions.remove(this);
-						completion = new Completion(publisher.queue.size() - 1, CompletionType.UNSUBSCRIPTION, true);
+						completion = new Completion(publisher.queue.size() - 1, completionType, stackTrace);
 						needCallOnComplete = true;
 					}
 				}
 			}
 			if (needCallOnComplete) {
-				runAsync(() -> realSubscriber.onComplete(CompletionType.UNSUBSCRIPTION));
+				runAsync(() -> {
+					try {
+						realSubscriber.onComplete(completionType);
+					}
+					catch (Throwable e) {
+						ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
+					}
+				});
 			}
 		}
 
@@ -325,30 +330,31 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 			private final CompletionType type;
 
-			private final boolean onCompleteCalled;
+			private final StackTraceElement[] stacktrace;
 
-			private Completion(int cursor, CompletionType type, boolean onCompleteCalled) {
+			private Completion(int cursor, CompletionType type, StackTraceElement[] stacktrace) {
 				this.cursor = cursor;
 				this.type = type;
-				this.onCompleteCalled = onCompleteCalled;
+				this.stacktrace = stacktrace;
 			}
 
-			public int getCursor() {
-				return cursor;
-			}
+			// public Completion changeOnCompleteCalled(boolean value) {
+			// 	return new Completion(cursor, type, value, stacktrace);
+			// }
+		}
+	}
 
-			public CompletionType getType() {
-				return type;
-			}
+	protected static final class Item<I> {
+		private final I value;
+		private final StackTraceElement[] publisherStackTrace;
 
-			public boolean isOnCompleteCalled() {
-				return onCompleteCalled;
-			}
-
-			public Completion changeOnCompleteCalled(boolean value) {
-				return new Completion(cursor, type, value);
-			}
+		private Item(I value, StackTraceElement[] publisherStackTrace) {
+			this.value = value;
+			this.publisherStackTrace = publisherStackTrace;
 		}
 
+		public I getValue() {
+			return value;
+		}
 	}
 }
