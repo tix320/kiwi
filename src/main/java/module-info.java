@@ -1,4 +1,4 @@
-module kiwi {
+module com.github.tix.kiwi {
 	requires static net.bytebuddy;
 
 	exports com.github.tix320.kiwi.api.util;
