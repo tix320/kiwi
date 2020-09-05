@@ -28,7 +28,7 @@ public final class LoopThread {
 				try {
 					loopAction.run();
 				}
-				catch (InterruptedException e) {
+				catch (BreakLoopException e) {
 					break;
 				}
 				catch (Throwable e) {
@@ -60,6 +60,10 @@ public final class LoopThread {
 
 	public interface LoopAction {
 
-		void run() throws InterruptedException;
+		void run() throws BreakLoopException;
+	}
+
+	public static final class BreakLoopException extends Exception {
+
 	}
 }
