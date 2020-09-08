@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
+import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
 public final class ReadOnlyCollectionProperty<T> implements ReadOnlyProperty<Collection<T>> {
 

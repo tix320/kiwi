@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 import com.github.tix320.kiwi.api.reactive.publisher.MonoPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SimplePublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.UnlimitBufferedPublisher;
-import com.github.tix320.kiwi.api.util.collection.Tuple;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.CombineLatestObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ConcatObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.multiple.ZipObservable;
@@ -26,6 +25,7 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect.ToMapObservable;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
+import com.github.tix320.skimp.api.collection.Tuple;
 
 /**
  * @param <T> type of data.

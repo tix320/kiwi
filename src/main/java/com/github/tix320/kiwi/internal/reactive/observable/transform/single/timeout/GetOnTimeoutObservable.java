@@ -8,9 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.api.reactive.observable.*;
-import com.github.tix320.kiwi.api.util.ExceptionUtils;
-import com.github.tix320.kiwi.api.util.Threads;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.thread.Threads;
 
 /**
  * @author Tigran Sargsyan on 08-Apr-20.

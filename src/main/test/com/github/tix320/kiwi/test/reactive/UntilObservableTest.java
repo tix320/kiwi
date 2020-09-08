@@ -8,7 +8,7 @@ import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.util.None;
+import com.github.tix320.skimp.api.object.None;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

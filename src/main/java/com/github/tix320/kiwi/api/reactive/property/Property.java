@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.github.tix320.kiwi.api.util.collection.BiMap;
+import com.github.tix320.skimp.api.collection.BiMap;
 
 public interface Property<T> extends ObservableProperty<T> {
 

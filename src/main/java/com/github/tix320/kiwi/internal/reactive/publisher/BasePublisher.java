@@ -12,8 +12,8 @@ import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.PublisherCompletedException;
-import com.github.tix320.kiwi.api.util.ExceptionUtils;
-import com.github.tix320.kiwi.api.util.Threads;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.thread.Threads;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19

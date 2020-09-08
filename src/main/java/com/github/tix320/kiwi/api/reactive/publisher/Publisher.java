@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
 import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
-import com.github.tix320.kiwi.api.util.None;
+import com.github.tix320.skimp.api.object.None;
 
 /**
  * A producer of items (and related control messages) received by subscribers.

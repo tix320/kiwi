@@ -8,11 +8,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.skimp.api.check.Try;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

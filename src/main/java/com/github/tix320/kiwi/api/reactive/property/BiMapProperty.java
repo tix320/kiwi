@@ -2,8 +2,8 @@ package com.github.tix320.kiwi.api.reactive.property;
 
 import java.util.Map;
 
-import com.github.tix320.kiwi.api.util.collection.BiMap;
 import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
+import com.github.tix320.skimp.api.collection.BiMap;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.

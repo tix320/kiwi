@@ -6,7 +6,7 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
-import com.github.tix320.kiwi.api.util.collection.Tuple;
+import com.github.tix320.skimp.api.collection.Tuple;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -1,6 +1,5 @@
 package com.github.tix320.kiwi.internal.reactive.observable.transform.single.collect;
 
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;

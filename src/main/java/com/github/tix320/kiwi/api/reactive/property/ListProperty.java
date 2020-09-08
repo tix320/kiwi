@@ -8,8 +8,8 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.api.util.collection.UnmodifiableIterator;
 import com.github.tix320.kiwi.internal.reactive.property.BaseProperty;
+import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
 public final class ListProperty<T> extends BaseProperty<List<T>> {
 

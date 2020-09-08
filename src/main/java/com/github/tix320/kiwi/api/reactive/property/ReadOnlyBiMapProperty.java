@@ -3,8 +3,8 @@ package com.github.tix320.kiwi.api.reactive.property;
 import java.util.Map;
 
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.util.collection.BiMap;
-import com.github.tix320.kiwi.api.util.collection.UnmodifiableBiMap;
+import com.github.tix320.skimp.api.collection.BiMap;
+import com.github.tix320.skimp.api.collection.UnmodifiableBiMap;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.

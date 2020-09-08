@@ -4,11 +4,11 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.github.tix320.kiwi.api.check.Try;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
+import com.github.tix320.skimp.api.check.Try;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
