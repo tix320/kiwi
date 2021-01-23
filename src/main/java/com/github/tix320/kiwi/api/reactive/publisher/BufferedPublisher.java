@@ -31,11 +31,11 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 				subscription.changeCursor(0);
 			}
 			else {
-				subscription.changeCursor(Math.max(0, queue.size() - bufferCapacity));
+				subscription.changeCursor(Math.max(0, queueSize() - bufferCapacity));
 			}
 
 			subscription.tryPublish();
-			if (isCompleted.get()) {
+			if (isCompleted()) {
 				subscription.complete();
 			}
 		}
@@ -47,7 +47,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 		boolean freeze;
 		synchronized (this) {
 			checkCompleted();
-			addToQueueWithStackTrace(object);
+			addToQueue(object);
 			iterator = getSubscriptionsIterator();
 			freeze = isFreeze();
 		}
@@ -59,10 +59,10 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
 
 	public final List<T> getBuffer() {
 		synchronized (this) {
-			int size = queue.size();
+			int size = queueSize();
 			int start = Math.max(0, size - Math.max(size, this.bufferCapacity));
 
-			return queue.subList(start, size).stream().map(Item::getValue).collect(Collectors.toList());
+			return queueSnapshot(start, size);
 		}
 	}
 }

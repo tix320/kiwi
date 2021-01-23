@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
 import com.github.tix320.kiwi.api.reactive.observable.Observable;
@@ -20,16 +21,19 @@ import com.github.tix320.skimp.api.thread.Threads;
  */
 public abstract class BasePublisher<T> implements Publisher<T> {
 
+	private static final boolean ENABLE_ASYNC_STACKTRACE = System.getProperty("kiwi.publisher.async-stacktrace.enable")
+														   != null;
+
 	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
 			new SynchronousQueue<>(), Threads::daemon);
 
 	private final List<InternalSubscription<T>> subscriptions;
 
-	protected final List<Item<T>> queue;
+	private final List<Item<T>> queue;
 
 	private volatile boolean freeze;
 
-	protected final AtomicBoolean isCompleted;
+	private final AtomicBoolean isCompleted;
 
 	private final int saveOnCleanup;
 
@@ -74,13 +78,6 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		publishOverride(object);
 	}
 
-	protected abstract void publishOverride(T object);
-
-	protected final void addToQueueWithStackTrace(T object) {
-		Item<T> item = new Item<>(object, Thread.currentThread().getStackTrace());
-		queue.add(item);
-	}
-
 	@Override
 	public final void complete() {
 		Iterator<InternalSubscription<T>> iterator;
@@ -104,6 +101,33 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	@Override
 	public Observable<T> asObservable() {
 		return new PublisherObservable();
+	}
+
+	protected abstract void publishOverride(T object);
+
+	protected final void addToQueue(T object) {
+		Item<T> item;
+
+		if (ENABLE_ASYNC_STACKTRACE) {
+			item = new Item<>(object, Thread.currentThread().getStackTrace());
+		}
+		else {
+			item = new Item<>(object, null);
+		}
+
+		queue.add(item);
+	}
+
+	protected final int queueSize() {
+		return queue.size();
+	}
+
+	protected final T getItem(int index) {
+		return queue.get(index).getValue();
+	}
+
+	protected synchronized final List<T> queueSnapshot(int fromIndex, int toIndex) {
+		return queue.subList(fromIndex, toIndex).stream().map(Item::getValue).collect(Collectors.toList());
 	}
 
 	public void freeze() {
@@ -130,18 +154,18 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	 */
 	protected abstract void subscribe(InternalSubscription<T> subscription);
 
+	protected final void setCompleted() {
+		isCompleted.set(true);
+	}
+
 	protected final void checkCompleted() {
 		if (isCompleted.get()) {
-			throw createCompletedException();
+			throw new PublisherCompletedException("Publisher is completed, you can not publish items.");
 		}
 	}
 
 	protected final Iterator<InternalSubscription<T>> getSubscriptionsIterator() {
 		return subscriptions.iterator();
-	}
-
-	private PublisherCompletedException createCompletedException() {
-		return new PublisherCompletedException("Publisher is completed, you can not publish items.");
 	}
 
 	public static void runAsync(CheckedRunnable runnable) {
@@ -244,7 +268,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 					needMore = realSubscriber.onPublish(item.value);
 				}
 				catch (Throwable e) {
-					ExceptionUtils.appendAsyncStacktrace(item.publisherStackTrace, e);
+					if (ENABLE_ASYNC_STACKTRACE) {
+						ExceptionUtils.appendAsyncStacktrace(item.publisherStackTrace, e);
+					}
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
@@ -269,7 +295,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 						realSubscriber.onComplete(completion.type);
 					}
 					catch (Throwable e) {
-						ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						if (ENABLE_ASYNC_STACKTRACE) {
+							ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						}
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
 				}
@@ -317,7 +345,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 						realSubscriber.onComplete(completionType);
 					}
 					catch (Throwable e) {
-						ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						if (ENABLE_ASYNC_STACKTRACE) {
+							ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+						}
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
 				});
@@ -337,14 +367,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				this.type = type;
 				this.stacktrace = stacktrace;
 			}
-
-			// public Completion changeOnCompleteCalled(boolean value) {
-			// 	return new Completion(cursor, type, value, stacktrace);
-			// }
 		}
 	}
 
-	protected static final class Item<I> {
+	private static final class Item<I> {
 		private final I value;
 		private final StackTraceElement[] publisherStackTrace;
 

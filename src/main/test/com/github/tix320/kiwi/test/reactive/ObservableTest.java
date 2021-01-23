@@ -12,7 +12,6 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
 import com.github.tix320.kiwi.api.reactive.observable.Subscription;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.skimp.api.check.Try;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -367,7 +366,12 @@ class ObservableTest {
 
 		publisher.publish(2);
 		CompletableFuture.runAsync(() -> {
-			Try.runOrRethrow(() -> Thread.sleep(50));
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException e) {
+				throw new IllegalStateException(e);
+			}
 			publisher.publish(3);
 		});
 		Integer number = observable.map(integer -> integer + 5).get();
@@ -382,7 +386,12 @@ class ObservableTest {
 
 		publisher.publish(2);
 		CompletableFuture.runAsync(() -> {
-			Try.runOrRethrow(() -> Thread.sleep(50));
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException e) {
+				throw new IllegalStateException(e);
+			}
 			publisher.publish(3);
 		});
 		Integer number = observable.map(integer -> integer + 5).get();

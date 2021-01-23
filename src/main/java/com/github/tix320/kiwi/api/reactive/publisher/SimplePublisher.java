@@ -16,8 +16,8 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 	@Override
 	protected void subscribe(InternalSubscription<T> subscription) {
 		synchronized (this) {
-			subscription.changeCursor(queue.size());
-			if (isCompleted.get()) {
+			subscription.changeCursor(queueSize());
+			if (isCompleted()) {
 				subscription.complete();
 			}
 		}
@@ -28,7 +28,7 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 		Iterator<InternalSubscription<T>> iterator;
 		synchronized (this) {
 			checkCompleted();
-			addToQueueWithStackTrace(object);
+			addToQueue(object);
 			iterator = getSubscriptionsIterator();
 		}
 

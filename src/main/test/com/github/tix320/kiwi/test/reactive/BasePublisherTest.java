@@ -8,7 +8,6 @@ import com.github.tix320.kiwi.api.reactive.observable.Observable;
 import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
 import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
-import com.github.tix320.skimp.api.check.Try;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,7 +62,13 @@ public class BasePublisherTest {
 		List<Integer> expected = List.of(5, 6, 7, 8, 9, 10);
 
 		List<Integer> values = queue.stream()
-				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.map(item -> {
+					try {
+						return (Integer) valueField.get(item);
+					} catch (IllegalAccessException e) {
+						throw new IllegalStateException();
+					}
+				})
 				.collect(Collectors.toList());
 
 		assertEquals(expected, values);
@@ -110,7 +115,13 @@ public class BasePublisherTest {
 		List<Integer> expected = List.of(3, 4, 5, 6);
 
 		List<Integer> values = queue.stream()
-				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.map(item -> {
+					try {
+						return (Integer) valueField.get(item);
+					} catch (IllegalAccessException e) {
+						throw new IllegalStateException(e);
+					}
+				})
 				.collect(Collectors.toList());
 
 		assertEquals(expected, values);
@@ -130,7 +141,13 @@ public class BasePublisherTest {
 		expected = List.of(9, 10, 11, 12);
 
 		values = queue.stream()
-				.map(item -> Try.supplyOrRethrow(() -> (Integer) valueField.get(item)))
+				.map(item -> {
+					try {
+						return (Integer) valueField.get(item);
+					} catch (IllegalAccessException e) {
+						throw new IllegalStateException(e);
+					}
+				})
 				.collect(Collectors.toList());
 
 		assertEquals(expected, values);
