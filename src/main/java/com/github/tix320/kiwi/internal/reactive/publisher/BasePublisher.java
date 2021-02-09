@@ -21,7 +21,7 @@ import com.github.tix320.skimp.api.thread.Threads;
  */
 public abstract class BasePublisher<T> implements Publisher<T> {
 
-	private static final boolean ENABLE_ASYNC_STACKTRACE = System.getProperty("kiwi.publisher.async-stacktrace.enable")
+	public static final boolean ENABLE_ASYNC_STACKTRACE = System.getProperty("kiwi.publisher.async-stacktrace.enable")
 														   != null;
 
 	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
@@ -269,7 +269,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				}
 				catch (Throwable e) {
 					if (ENABLE_ASYNC_STACKTRACE) {
-						ExceptionUtils.appendAsyncStacktrace(item.publisherStackTrace, e);
+						ExceptionUtils.appendStacktraceToThrowable(e, item.publisherStackTrace);
 					}
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
@@ -296,7 +296,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 					}
 					catch (Throwable e) {
 						if (ENABLE_ASYNC_STACKTRACE) {
-							ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+							ExceptionUtils.appendStacktraceToThrowable(e, completion.stacktrace);
 						}
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
@@ -346,7 +346,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 					}
 					catch (Throwable e) {
 						if (ENABLE_ASYNC_STACKTRACE) {
-							ExceptionUtils.appendAsyncStacktrace(completion.stacktrace, e);
+							ExceptionUtils.appendStacktraceToThrowable(e, completion.stacktrace);
 						}
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}

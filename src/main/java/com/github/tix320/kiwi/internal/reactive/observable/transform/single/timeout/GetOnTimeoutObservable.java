@@ -72,8 +72,7 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 			public void onComplete(CompletionType completionType) {
 				if (unsubscribed) {
 					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				}
-				else {
+				} else {
 					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
 				}
 			}
@@ -88,15 +87,15 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 						try {
 							subscriber.onPublish(newItemFactory.get());
 							subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-						}
-						catch (Throwable e) {
-							ExceptionUtils.appendAsyncStacktrace(stackTrace, e);
+						} catch (Throwable e) {
+							if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
+								ExceptionUtils.appendStacktraceToThrowable(e, stackTrace);
+							}
 							throw e;
 						}
 					});
 				}
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				ExceptionUtils.applyToUncaughtExceptionHandler(t);
 			}
 		}, timeout.toMillis(), TimeUnit.MILLISECONDS);

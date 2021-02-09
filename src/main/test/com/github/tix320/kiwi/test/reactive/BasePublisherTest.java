@@ -35,7 +35,7 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[0];
+		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[2];
 		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);
@@ -92,7 +92,7 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[0];
+		Class<?> itemClass = BasePublisher.class.getDeclaredClasses()[2];
 		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);
