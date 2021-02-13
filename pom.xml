@@ -3,12 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.sonatype.oss</groupId>
+        <groupId>com.github.tix320</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>9</version>
+        <version>0.1.0</version>
     </parent>
 
-    <groupId>com.github.tix320</groupId>
     <artifactId>kiwi</artifactId>
     <version>2.2.0</version>
     <packaging>jar</packaging>
