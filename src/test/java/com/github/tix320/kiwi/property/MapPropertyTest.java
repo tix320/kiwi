@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.property;
+package com.github.tix320.kiwi.property;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class MapPropertyTest {
 
 	@Test
-	void simpleTest() {
+	public void simpleTest() {
 		MapProperty<Integer, String> property = Property.forMap();
 
 		assertNull(property.getValue());
@@ -27,7 +27,7 @@ public class MapPropertyTest {
 	}
 
 	@Test
-	void observableTest() throws InterruptedException {
+	public void observableTest() throws InterruptedException {
 		MapProperty<Integer, String> mapProperty = Property.forMap();
 
 		ConcurrentHashMap<Integer, String> map = new ConcurrentHashMap<>();

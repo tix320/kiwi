@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-class BufferedPublisherTest {
+public class BufferedPublisherTest {
 
 	@Test
-	void simpleTest() throws InterruptedException {
+	public void simpleTest() throws InterruptedException {
 		List<String> expected1 = List.of("a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12", "a13", "a14", "a15");
 		List<String> expected2 = List.of("b4", "b5", "b6", "b7", "b8", "b9", "b10", "b11", "b12", "b13", "b14", "b15");
 		List<String> expected3 = List.of("c5", "c6", "c7");
@@ -63,11 +63,11 @@ class BufferedPublisherTest {
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
 		assertEquals(expected3, actual3);
-		assertEquals(expected4, actual4);
+		assertEquals(expected4, actual4); //FIXME expected: <[d9]> but was: <[d9, d10]>
 	}
 
 	@Test
-	void subscribeAfterPublishTest1() throws InterruptedException {
+	public void subscribeAfterPublishTest1() throws InterruptedException {
 		List<Integer> expected = List.of(1, 2);
 
 		List<Integer> actual = new CopyOnWriteArrayList<>();
@@ -86,7 +86,7 @@ class BufferedPublisherTest {
 	}
 
 	@Test
-	void subscribeAfterPublishTest2() throws InterruptedException {
+	public void subscribeAfterPublishTest2() throws InterruptedException {
 		List<Integer> expected = List.of(2, 3);
 
 		List<Integer> actual = new CopyOnWriteArrayList<>();
@@ -106,7 +106,7 @@ class BufferedPublisherTest {
 	}
 
 	@Test
-	void concurrentTest() throws InterruptedException {
+	public void concurrentTest() throws InterruptedException {
 		Publisher<String> publisher = Publisher.buffered(15);
 		Observable<String> observable = publisher.asObservable();
 

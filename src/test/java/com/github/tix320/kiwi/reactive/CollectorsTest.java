@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.HashMap;
 import java.util.List;
@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Tigran.Sargsyan on 28-Feb-19
  */
-class CollectorsTest {
+public class CollectorsTest {
 
 	@Test
-	void toMapTest() throws InterruptedException {
+	public void toMapTest() throws InterruptedException {
 		AtomicReference<Map<Integer, String>> actual = new AtomicReference<>();
 		Observable.of("a", "aa", "aaa", "aaaa").toMap(String::length, s -> s).subscribe(actual::set);
 
@@ -28,7 +28,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void toMapTest2() throws InterruptedException {
+	public void toMapTest2() throws InterruptedException {
 		Map<Integer, String> actualMap = new HashMap<>();
 
 		Publisher<Integer> publisher = Publisher.buffered(2);
@@ -57,7 +57,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void toListTest() throws InterruptedException {
+	public void toListTest() throws InterruptedException {
 		AtomicReference<List<Integer>> actual = new AtomicReference<>();
 		Observable.of(1, 2, 3, 4).toList().subscribe(actual::set);
 
@@ -67,7 +67,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void joinTest() throws InterruptedException {
+	public void joinTest() throws InterruptedException {
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Publisher<Integer> publisher = Publisher.buffered(2);
@@ -95,7 +95,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void joinWithParamsTest() throws InterruptedException {
+	public void joinWithParamsTest() throws InterruptedException {
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Publisher<Integer> publisher = Publisher.buffered(2);
@@ -123,7 +123,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void doubleCollectorTest() throws InterruptedException {
+	public void doubleCollectorTest() throws InterruptedException {
 		AtomicReference<Map<Integer, String>> actual = new AtomicReference<>(Map.of());
 
 		Observable.of("hello").join(s -> s, ",", "[", "]").toMap(String::length, s -> s).subscribe(actual::set);
@@ -134,7 +134,7 @@ class CollectorsTest {
 	}
 
 	@Test
-	void decorateCollectorTest() throws InterruptedException {
+	public void decorateCollectorTest() throws InterruptedException {
 		AtomicReference<Integer> actual = new AtomicReference<>();
 
 		Observable.of(1, 2, 3)

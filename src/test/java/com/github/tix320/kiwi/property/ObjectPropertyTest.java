@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.property;
+package com.github.tix320.kiwi.property;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ObjectPropertyTest {
 
 	@Test
-	void simpleTest() {
+	public void simpleTest() {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		assertNull(property.getValue());
@@ -29,7 +29,7 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	void observableTest() throws InterruptedException {
+	public void observableTest() throws InterruptedException {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2, 3);
@@ -48,7 +48,7 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	void closeTest() {
+	public void closeTest() {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2);

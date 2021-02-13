@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class MonoPublisherTest {
 
 	@Test
-	void simpleTest() throws InterruptedException {
+	public void simpleTest() throws InterruptedException {
 		MonoPublisher<String> mono = Publisher.mono();
 		MonoObservable<String> observable = mono.asObservable();
 		AtomicBoolean called = new AtomicBoolean(false);
@@ -29,7 +29,7 @@ public class MonoPublisherTest {
 	}
 
 	@Test
-	void subscribeAfterPublish() throws InterruptedException {
+	public void subscribeAfterPublish() throws InterruptedException {
 		MonoPublisher<String> mono = Publisher.mono();
 		MonoObservable<String> observable = mono.asObservable();
 		AtomicBoolean called = new AtomicBoolean(false);

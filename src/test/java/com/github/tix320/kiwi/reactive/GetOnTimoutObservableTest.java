@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GetOnTimoutObservableTest {
 
 	@Test
-	void publishBeforeTimoutTest() throws InterruptedException {
+	public void publishBeforeTimoutTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(1);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -35,7 +35,7 @@ public class GetOnTimoutObservableTest {
 	}
 
 	@Test
-	void publishAfterTimoutTest() throws InterruptedException {
+	public void publishAfterTimoutTest() throws InterruptedException {
 		List<Integer> expected = Collections.singletonList(5);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 

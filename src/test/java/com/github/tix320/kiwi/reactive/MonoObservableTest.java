@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +29,7 @@ public class MonoObservableTest {
 
 		Thread.sleep(100);
 
-		assertEquals(expected, actual);
+		assertEquals(expected, actual); //FIXME expected: <[3]> but was: <[3, 4]>
 	}
 
 	@Test

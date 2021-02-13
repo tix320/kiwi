@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;

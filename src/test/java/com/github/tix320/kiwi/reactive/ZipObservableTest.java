@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.*;
 
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ZipObservableTest {
 
 	@Test
-	void zipTest() throws InterruptedException {
+	public void zipTest() throws InterruptedException {
 		Set<Tuple<Integer, Integer>> expected = Set.of(new Tuple<>(10, 20), new Tuple<>(30, 50));
 		Set<Tuple<Integer, Integer>> actual = Collections.synchronizedSet(new HashSet<>());
 
@@ -24,13 +24,13 @@ public class ZipObservableTest {
 
 		Observable.zip(observable1, observable2).subscribe(actual::add);
 
-		Thread.sleep(100);
+		Thread.sleep(200);
 
-		assertEquals(expected, actual);
+		assertEquals(expected, actual); //FIXME <[[10,20], [30,50]]> but was: <[[10,20]]>
 	}
 
 	@Test
-	void zipTestWithMono() throws InterruptedException {
+	public void zipTestWithMono() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(10, 50, -1);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -49,7 +49,7 @@ public class ZipObservableTest {
 	}
 
 	@Test
-	void zipOnCompleteTest() throws InterruptedException {
+	public void zipOnCompleteTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(6, 4), Arrays.asList(9, 7),
 				Collections.singletonList(25));
 		List<List<Integer>> actual = new ArrayList<>();
@@ -77,7 +77,7 @@ public class ZipObservableTest {
 	}
 
 	@Test
-	void zipCompleteObservableWhichHasItemInQueueTest() throws InterruptedException {
+	public void zipCompleteObservableWhichHasItemInQueueTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(6, 4), Arrays.asList(9, 7), Arrays.asList(10, 20),
 				Collections.singletonList(25));
 		List<List<Integer>> actual = new ArrayList<>();
@@ -108,7 +108,7 @@ public class ZipObservableTest {
 
 
 	@Test
-	void zipCompleteObservableComplexTest() throws InterruptedException {
+	public void zipCompleteObservableComplexTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(1, 3), Arrays.asList(2, 4),
 				Collections.singletonList(25));
 

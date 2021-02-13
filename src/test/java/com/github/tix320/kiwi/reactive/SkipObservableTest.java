@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class SkipObservableTest {
 
 	@Test
-	void simpleTest() throws InterruptedException {
+	public void simpleTest() throws InterruptedException {
 		List<Integer> expected = List.of(6, 7);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 		Observable.of(4, 5, 6, 7).skip(2).subscribe(actual::add);
@@ -27,7 +27,7 @@ public class SkipObservableTest {
 	}
 
 	@Test
-	void completeBeforeSkipAll() {
+	public void completeBeforeSkipAll() {
 		List<Integer> expected = List.of();
 		List<Integer> actual = new ArrayList<>();
 		Publisher<Integer> publisher = Publisher.simple();
