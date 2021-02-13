@@ -17,30 +17,13 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected void subscribe(InternalSubscription<T> subscription) {
-		synchronized (this) {
-			subscription.changeCursor(Math.max(0, queueSize() - 1));
-			subscription.tryPublish();
-			if (isCompleted()) {
-				subscription.complete();
-			}
-		}
+	protected final int resolveInitialCursorOnSubscribe() {
+		return Math.max(0, queueSize() - 1);
 	}
 
 	@Override
-	public void publishOverride(T object) {
-		Iterator<InternalSubscription<T>> iterator;
-		synchronized (this) {
-			checkCompleted();
-			addToQueue(object);
-			iterator = getSubscriptionsIterator();
-			setCompleted();
-		}
-
-		iterator.forEachRemaining(subscription -> {
-			subscription.tryPublish();
-			subscription.complete();
-		});
+	protected final void postPublish() {
+		complete();
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package com.github.tix320.kiwi.reactive;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +22,10 @@ public class TakeWhileObservableTest {
 	@Test
 	public void simpleTest() throws InterruptedException {
 		List<Integer> expected = List.of(3, 4, 5);
-		List<Integer> actual = Observable.of(3, 4, 5, 7).takeWhile(integer -> integer < 6).toList().get();
+		List<Integer> actual = Observable.of(3, 4, 5, 7)
+				.takeWhile(integer -> integer < 6)
+				.toList()
+				.get(Duration.ofSeconds(5));
 		assertEquals(expected, actual);
 	}
 
