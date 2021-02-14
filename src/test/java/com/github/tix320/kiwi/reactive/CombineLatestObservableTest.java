@@ -62,6 +62,8 @@ public class CombineLatestObservableTest {
 		publisher2.publish(4);
 		publisher2.complete();
 
+		Thread.sleep(200);
+
 		publisher1.publish(3);
 
 		Thread.sleep(200);
