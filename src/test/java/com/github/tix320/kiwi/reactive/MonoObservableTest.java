@@ -27,9 +27,9 @@ public class MonoObservableTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Thread.sleep(100);
+		Thread.sleep(1000);
 
-		assertEquals(expected, actual); //FIXME expected: <[3]> but was: <[3, 4]>
+		assertEquals(expected, actual);
 	}
 
 	@Test

@@ -71,7 +71,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(100);
+		Thread.sleep(200);
 
 		assertEquals(expected, actual);
 	}

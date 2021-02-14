@@ -27,7 +27,6 @@ public class ObjectPropertyTest {
 		property.setValue(3);
 
 		assertEquals(3, property.getValue());
-		assertNotEquals(3, property);
 	}
 
 	@Test
