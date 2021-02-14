@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-class PublisherTest {
+public class PublisherTest {
 
 	@Test
-	void completeTest() {
+	public void completeTest() {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		publisher.publish(1);
@@ -33,7 +33,7 @@ class PublisherTest {
 	}
 
 	@Test
-	void unsubscribeOnPublishTest() throws InterruptedException {
+	public void unsubscribeOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		List<Integer> expected = List.of(1);
@@ -58,7 +58,7 @@ class PublisherTest {
 	}
 
 	@Test
-	void unsubscribeFromOtherSubscriptionOnPublishTest() throws InterruptedException {
+	public void unsubscribeFromOtherSubscriptionOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Set<Integer> expected = Set.of(10, 20, 50);
@@ -86,7 +86,7 @@ class PublisherTest {
 	}
 
 	@Test
-	void completeOnPublishTest() throws InterruptedException {
+	public void completeOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		List<Integer> expected = List.of(1);
@@ -110,7 +110,7 @@ class PublisherTest {
 	}
 
 	@Test
-	void completeOnPublishWithTwoSubscribersTest() throws InterruptedException {
+	public void completeOnPublishWithTwoSubscribersTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Set<Integer> expected = Set.of(10, 20);

@@ -10,7 +10,7 @@ public final class UnlimitBufferedPublisher<T> extends BufferedPublisher<T> {
 		super(-1);
 		synchronized (this) {
 			for (T t : iterable) {
-				addToQueue(t);
+				publish(t); // TODO batch publish
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -95,7 +95,7 @@ public class PropertyAtomicContextTest {
 	}
 
 	@Test
-	void stockTest() throws InterruptedException {
+	public void stockTest() throws InterruptedException {
 		List<IllegalStateException> exceptions = new ArrayList<>();
 
 		Set<Integer> expected = Set.of(3, 4, 5, 6);
@@ -160,7 +160,7 @@ public class PropertyAtomicContextTest {
 	}
 
 	@Test
-	void nestedContextsTest() throws InterruptedException {
+	public void nestedContextsTest() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(3, 4, 5, 6);
 		List<Integer> actual = new ArrayList<>();
 

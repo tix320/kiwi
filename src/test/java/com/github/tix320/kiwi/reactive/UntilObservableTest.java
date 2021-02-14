@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UntilObservableTest {
 
 	@Test
-	void takeUntilAlreadyCompletedObservableTest() throws InterruptedException {
+	public void takeUntilAlreadyCompletedObservableTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();
@@ -54,7 +54,7 @@ public class UntilObservableTest {
 	}
 
 	@Test
-	void publishOnSubscribeWithTakeUntilTest() throws InterruptedException {
+	public void publishOnSubscribeWithTakeUntilTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();
@@ -90,7 +90,7 @@ public class UntilObservableTest {
 	}
 
 	@Test
-	void takeUntilObservableTest() throws InterruptedException {
+	public void takeUntilObservableTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();

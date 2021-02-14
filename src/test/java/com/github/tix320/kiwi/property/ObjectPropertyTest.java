@@ -1,5 +1,6 @@
-package com.github.tix320.kiwi.test.property;
+package com.github.tix320.kiwi.property;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.List;
 import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.skimp.api.general.IntervalRepeater;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ObjectPropertyTest {
 
 	@Test
-	void simpleTest() {
+	public void simpleTest() {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		assertNull(property.getValue());
@@ -25,11 +27,10 @@ public class ObjectPropertyTest {
 		property.setValue(3);
 
 		assertEquals(3, property.getValue());
-		assertNotEquals(3, property);
 	}
 
 	@Test
-	void observableTest() throws InterruptedException {
+	public void observableTest() throws InterruptedException {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2, 3);
@@ -48,7 +49,7 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	void closeTest() {
+	public void closeTest() throws InterruptedException {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2);
@@ -64,6 +65,9 @@ public class ObjectPropertyTest {
 
 		assertThrows(PropertyClosedException.class, () -> property.setValue(3));
 
-		assertEquals(expected, actual);
+		IntervalRepeater<?> retryPolicy = IntervalRepeater.every(() -> assertEquals(expected, actual),
+				Duration.ofMillis(200));
+
+		assertTrue(retryPolicy.doUntilSuccess(10).isPresent());
 	}
 }

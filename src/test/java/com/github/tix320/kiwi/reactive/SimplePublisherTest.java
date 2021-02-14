@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,10 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-class SimplePublisherTest {
+public class SimplePublisherTest {
 
 	@Test
-	void oneObservableTest() throws InterruptedException {
+	public void oneObservableTest() throws InterruptedException {
 		List<Integer> expected = Arrays.asList(6, 7);
 		List<Integer> actual = new ArrayList<>();
 
@@ -47,7 +47,7 @@ class SimplePublisherTest {
 	}
 
 	@Test
-	void anyTypeObservables() throws InterruptedException {
+	public void anyTypeObservables() throws InterruptedException {
 
 		List<Integer> expected1 = List.of(7, 8, 9, 10, 11, 12, 13, 14, 15);
 		List<Integer> expected2 = List.of(9, 10, 11, 12, 13, 14, 15);
@@ -96,7 +96,7 @@ class SimplePublisherTest {
 	}
 
 	@Test
-	void callAsObservableMore() throws InterruptedException {
+	public void callAsObservableMore() throws InterruptedException {
 		List<Integer> expected1 = List.of(3, 4, 5);
 		List<Integer> expected2 = List.of(3, 4, 5);
 		List<Integer> expected3 = List.of(3, 4, 5);

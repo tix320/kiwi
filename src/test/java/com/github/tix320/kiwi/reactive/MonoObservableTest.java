@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +27,7 @@ public class MonoObservableTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Thread.sleep(100);
+		Thread.sleep(1000);
 
 		assertEquals(expected, actual);
 	}
@@ -57,14 +57,14 @@ public class MonoObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
 		observable.subscribe(integer -> {
-			actual.add(3);
+			actual.add(integer);
 			throw new IllegalStateException();
 		});
 
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Thread.sleep(100);
+		Thread.sleep(1000);
 
 		assertEquals(expected, actual);
 	}

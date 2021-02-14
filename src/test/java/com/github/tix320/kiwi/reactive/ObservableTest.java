@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.time.Duration;
 import java.util.*;
@@ -19,10 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Tigran Sargsyan on 24-Feb-19
  */
-class ObservableTest {
+public class ObservableTest {
 
 	@Test
-	void emptyTest() throws InterruptedException {
+	public void emptyTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Observable<Integer> empty = Observable.empty();
 
 		empty.subscribe(integer -> {
@@ -42,7 +43,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void ofTest() throws InterruptedException {
+	public void ofTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(32, 32, 32);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -60,7 +62,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void concatTest() throws InterruptedException {
+	public void concatTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Set<Integer> expected = Set.of(10, 20, 25, 50);
 		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
@@ -84,7 +87,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void concatWithDecoratorTest() throws InterruptedException {
+	public void concatWithDecoratorTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Set<Integer> canBe = Set.of(10, 20, 30, 40, 50, 60, 70, 80);
 		Set<Integer> actual = Collections.synchronizedSet(new HashSet<>());
 
@@ -110,7 +114,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void concatOnCompleteTest() throws InterruptedException {
+	public void concatOnCompleteTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		AtomicReference<String> actual = new AtomicReference<>("");
 
 		Observable<Integer> observable1 = Observable.of(10);
@@ -137,7 +142,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void mapTest() throws InterruptedException {
+	public void mapTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<String> expected1 = List.of("10lol", "20lol", "25lol");
 		List<String> expected2 = List.of("20wtf");
 
@@ -168,7 +174,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void untilTest() throws InterruptedException {
+	public void untilTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20, 25);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -201,7 +208,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void awaitTest() {
+	public void awaitTest() {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -231,7 +239,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void awaitBeforeTakeTest() {
+	public void awaitBeforeTakeTest() {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -261,7 +270,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void awaitWithCompletedTest() {
+	public void awaitWithCompletedTest() {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40, 50);
 		List<Integer> actual = new ArrayList<>();
 
@@ -292,7 +302,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void blockWithCompleteTest() {
+	public void blockWithCompleteTest() {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20, 25);
 		List<Integer> actual = new ArrayList<>();
 
@@ -323,7 +334,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void blockWithZipTest() {
+	public void blockWithZipTest() {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20);
 		List<Integer> actual = new ArrayList<>();
 
@@ -360,7 +372,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void getTest() throws InterruptedException {
+	public void getTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
@@ -380,7 +393,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void getWithBufferedTest() throws InterruptedException {
+	public void getWithBufferedTest() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Publisher<Integer> publisher = Publisher.buffered(1);
 		Observable<Integer> observable = publisher.asObservable();
 
@@ -400,7 +414,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void onCompleteOnUnsubscribe() throws InterruptedException {
+	public void onCompleteOnUnsubscribe() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(1, 2, 15);
 		List<Integer> actual = new CopyOnWriteArrayList<>();
 
@@ -424,7 +439,8 @@ class ObservableTest {
 	}
 
 	@Test
-	void doubleUnsubscribe() throws InterruptedException {
+	public void doubleUnsubscribe() throws InterruptedException {
+		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(1, 2, 15);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 

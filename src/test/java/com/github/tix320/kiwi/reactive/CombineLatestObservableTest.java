@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.test.reactive;
+package com.github.tix320.kiwi.reactive;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,10 +62,12 @@ public class CombineLatestObservableTest {
 		publisher2.publish(4);
 		publisher2.complete();
 
+		Thread.sleep(200);
+
 		publisher1.publish(3);
 
-		Thread.sleep(100);
+		Thread.sleep(200);
 
-		assertEquals(expected, actual);
+		assertEquals(expected, actual);  // FIXME  expected: <[[1,2], [1,4], [3,4]]> but was: <[[1,2], [3,2], [3,4]]>
 	}
 }

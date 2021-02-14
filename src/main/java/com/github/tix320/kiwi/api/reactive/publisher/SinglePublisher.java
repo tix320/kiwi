@@ -1,7 +1,6 @@
 package com.github.tix320.kiwi.api.reactive.publisher;
 
 
-import java.util.Iterator;
 import java.util.Objects;
 
 public class SinglePublisher<T> extends BufferedPublisher<T> {
@@ -13,7 +12,7 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 	public SinglePublisher(T initialValue) {
 		super(1);
 		synchronized (this) {
-			addToQueue(initialValue);
+			publish(initialValue);
 		}
 	}
 
@@ -21,24 +20,13 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 		Objects.requireNonNull(expected);
 		Objects.requireNonNull(newValue);
 		synchronized (this) {
-			checkCompleted();
-
-			boolean changed = false;
-			Iterator<InternalSubscription<T>> iterator;
-			synchronized (this) {
-				T lastItem = getItem(queueSize() - 1);
-				if (lastItem.equals(expected)) {
-					addToQueue(newValue);
-					changed = true;
-				}
-				iterator = getSubscriptionsIterator();
+			T lastItem = getValueAt(queueSize() - 1);
+			if (lastItem.equals(expected)) {
+				publish(newValue);
+				return true;
+			} else {
+				return false;
 			}
-
-			if (changed) {
-				iterator.forEachRemaining(InternalSubscription::tryPublish);
-			}
-
-			return changed;
 		}
 	}
 
@@ -48,7 +36,7 @@ public class SinglePublisher<T> extends BufferedPublisher<T> {
 				return null;
 			}
 
-			return getItem(queueSize() - 1);
+			return getValueAt(queueSize() - 1);
 		}
 	}
 }
