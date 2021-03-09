@@ -26,6 +26,7 @@ import com.github.tix320.kiwi.internal.reactive.observable.transform.single.coll
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.operator.*;
 import com.github.tix320.kiwi.internal.reactive.observable.transform.single.timeout.GetOnTimeoutObservable;
 import com.github.tix320.skimp.api.collection.Tuple;
+import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
 
 /**
  * @param <T> type of data.
@@ -86,10 +87,11 @@ public interface Observable<T> {
 	/**
 	 * Blocks current thread until this observable will be completed.
 	 *
+	 * @throws ThreadInterruptedException when thread was interrupted
 	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #await(Duration)} (Duration)}} instead.
 	 */
 	@Deprecated
-	default void await() throws InterruptedException {
+	default void await() {
 		await(Duration.ofMillis(-1));
 	}
 
@@ -98,9 +100,10 @@ public interface Observable<T> {
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
 	 *
-	 * @throws TimeoutException when observable not completed in given time.
+	 * @throws TimeoutException         when observable not completed in given time.
+	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
-	default void await(Duration timeout) throws InterruptedException {
+	default void await(Duration timeout) {
 		CountDownLatch latch = new CountDownLatch(1);
 		AtomicBoolean isTimout = new AtomicBoolean(false);
 
@@ -112,10 +115,18 @@ public interface Observable<T> {
 		}));
 
 		if (millis < 0) {
-			latch.await();
-		}
-		else {
-			boolean normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				throw new ThreadInterruptedException();
+			}
+		} else {
+			boolean normally;
+			try {
+				normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException e) {
+				throw new ThreadInterruptedException();
+			}
 			if (!normally) {
 				boolean changed = isTimout.compareAndSet(false, true);
 				if (changed) {
@@ -128,10 +139,11 @@ public interface Observable<T> {
 	/**
 	 * Blocks current thread until this observable will be published one value and return.
 	 *
+	 * @throws ThreadInterruptedException when thread was interrupted
 	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #get(Duration)}} instead.
 	 */
 	@Deprecated
-	default T get() throws InterruptedException {
+	default T get() {
 		return get(Duration.ofSeconds(-1));
 	}
 
@@ -140,9 +152,10 @@ public interface Observable<T> {
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
 	 *
-	 * @throws TimeoutException when observable not completed in given time.
+	 * @throws TimeoutException         when observable not completed in given time.
+	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
-	default T get(Duration timeout) throws InterruptedException {
+	default T get(Duration timeout) {
 		AtomicReference<T> itemHolder = new AtomicReference<>();
 		waitAndApply(timeout, itemHolder::set);
 		return itemHolder.get();
@@ -153,9 +166,10 @@ public interface Observable<T> {
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
 	 *
-	 * @throws TimeoutException when observable not completed in given time.
+	 * @throws TimeoutException         when observable not completed in given time.
+	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
-	default void waitAndApply(Duration timeout, Consumer<T> consumer) throws InterruptedException {
+	default void waitAndApply(Duration timeout, Consumer<T> consumer) {
 		CountDownLatch latch = new CountDownLatch(1);
 
 		long millis = timeout.toMillis();
@@ -170,10 +184,18 @@ public interface Observable<T> {
 		});
 
 		if (millis < 0) {
-			latch.await();
-		}
-		else {
-			boolean normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				throw new ThreadInterruptedException();
+			}
+		} else {
+			boolean normally;
+			try {
+				normally = latch.await(millis, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException e) {
+				throw new ThreadInterruptedException();
+			}
 			if (!normally) {
 				boolean changed = isTimout.compareAndSet(false, true);
 				if (changed) {

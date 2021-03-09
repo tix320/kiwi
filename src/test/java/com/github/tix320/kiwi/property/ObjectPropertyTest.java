@@ -8,7 +8,8 @@ import java.util.List;
 import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
 import com.github.tix320.kiwi.api.reactive.property.Property;
 import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
-import com.github.tix320.skimp.api.general.IntervalRepeater;
+import com.github.tix320.skimp.api.interval.Interval;
+import com.github.tix320.skimp.api.interval.IntervalRepeater;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,7 +50,7 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	public void closeTest() throws InterruptedException {
+	public void closeTest() {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2);
@@ -65,8 +66,8 @@ public class ObjectPropertyTest {
 
 		assertThrows(PropertyClosedException.class, () -> property.setValue(3));
 
-		IntervalRepeater<?> retryPolicy = IntervalRepeater.every(() -> assertEquals(expected, actual),
-				Duration.ofMillis(200));
+		Interval interval = Interval.every(Duration.ofMillis(200));
+		IntervalRepeater<?> retryPolicy = IntervalRepeater.of(interval, () -> assertEquals(expected, actual));
 
 		assertTrue(retryPolicy.doUntilSuccess(10).isPresent());
 	}
