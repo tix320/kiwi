@@ -1,8 +1,8 @@
-package com.github.tix320.kiwi.api.reactive.property;
+package com.github.tix320.kiwi.property;
 
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.ObservableCandidate;
+import com.github.tix320.kiwi.observable.ObservableCandidate;
 
 public interface ObservableStock<T> extends ObservableCandidate<T> {
 
