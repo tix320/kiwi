@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.skimp.api.collection.Tuple;
 import org.junit.jupiter.api.Test;
 

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.observable.CompletionType;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
+import com.github.tix320.kiwi.observable.CompletionType;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.skimp.api.object.None;
 import org.junit.jupiter.api.Test;
 

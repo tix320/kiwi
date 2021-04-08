@@ -5,9 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
-import com.github.tix320.kiwi.api.reactive.property.Property;
-import com.github.tix320.kiwi.internal.reactive.property.PropertyClosedException;
+import com.github.tix320.kiwi.property.internal.PropertyClosedException;
 import com.github.tix320.skimp.api.interval.Interval;
 import com.github.tix320.skimp.api.interval.IntervalRepeater;
 import org.junit.jupiter.api.Test;

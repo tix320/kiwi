@@ -2,10 +2,10 @@ package com.github.tix320.kiwi.reactive;
 
 import java.util.*;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.api.reactive.publisher.SinglePublisher;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.publisher.SinglePublisher;
 import com.github.tix320.skimp.api.collection.Tuple;
 import org.junit.jupiter.api.Test;
 

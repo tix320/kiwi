@@ -3,7 +3,7 @@ package com.github.tix320.kiwi.reactive;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
+import com.github.tix320.kiwi.observable.Observable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
