@@ -4,10 +4,10 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.github.tix320.kiwi.api.reactive.observable.Observable;
-import com.github.tix320.kiwi.api.reactive.publisher.BufferedPublisher;
-import com.github.tix320.kiwi.api.reactive.publisher.Publisher;
-import com.github.tix320.kiwi.internal.reactive.publisher.BasePublisher;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.publisher.BufferedPublisher;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,7 +34,7 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.internal.reactive.publisher.Item");
+		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.publisher.internal.Item");
 		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);
@@ -88,7 +88,7 @@ public class BasePublisherTest {
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.internal.reactive.publisher.Item");
+		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.publisher.internal.Item");
 		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);

@@ -3,8 +3,6 @@ package com.github.tix320.kiwi.property;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.github.tix320.kiwi.api.reactive.property.MapProperty;
-import com.github.tix320.kiwi.api.reactive.property.Property;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

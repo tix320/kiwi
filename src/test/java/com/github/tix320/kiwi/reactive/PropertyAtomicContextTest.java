@@ -4,13 +4,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.github.tix320.kiwi.api.reactive.observable.Subscriber;
-import com.github.tix320.kiwi.api.reactive.observable.Subscription;
-import com.github.tix320.kiwi.api.reactive.property.ObjectProperty;
-import com.github.tix320.kiwi.api.reactive.property.ObjectStock;
-import com.github.tix320.kiwi.api.reactive.property.Property;
-import com.github.tix320.kiwi.api.reactive.property.Property.Committer;
-import com.github.tix320.kiwi.api.reactive.property.Stock;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.property.ObjectProperty;
+import com.github.tix320.kiwi.property.ObjectStock;
+import com.github.tix320.kiwi.property.Property;
+import com.github.tix320.kiwi.property.Property.Committer;
+import com.github.tix320.kiwi.property.Stock;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
