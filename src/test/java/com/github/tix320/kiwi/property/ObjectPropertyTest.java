@@ -48,7 +48,7 @@ public class ObjectPropertyTest {
 	}
 
 	@Test
-	public void closeTest() {
+	public void closeTest() throws InterruptedException {
 		ObjectProperty<Integer> property = Property.forObject();
 
 		List<Integer> expected = List.of(1, 2);
@@ -64,9 +64,8 @@ public class ObjectPropertyTest {
 
 		assertThrows(PropertyClosedException.class, () -> property.setValue(3));
 
-		Interval interval = Interval.every(Duration.ofMillis(200));
-		IntervalRepeater<?> retryPolicy = IntervalRepeater.of(interval, () -> assertEquals(expected, actual));
+		Thread.sleep(1000);
 
-		assertTrue(retryPolicy.doUntilSuccess(10).isPresent());
+		assertEquals(expected, actual);
 	}
 }
