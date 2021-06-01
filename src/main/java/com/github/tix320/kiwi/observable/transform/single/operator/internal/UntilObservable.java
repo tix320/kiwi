@@ -1,18 +1,14 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.github.tix320.kiwi.observable.CompletionType;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.*;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
 // TODO in case of user unsubscription, until subscription not deleted
 public final class UntilObservable<T> implements Observable<T> {
+
+	private static final Unsubscription UNTIL_UNSUBSCRIPTION = new Unsubscription(null);
 
 	private final Observable<T> observable;
 
@@ -25,59 +21,25 @@ public final class UntilObservable<T> implements Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		AtomicBoolean untilCompleted = new AtomicBoolean(false);
-
-		until.subscribeOnComplete(completionType -> {
-			synchronized (subscriber) {
-				untilCompleted.set(true);
-
-				Subscription subscription = subscriptionHolder.get();
-				if (subscription != null) {
-					subscription.unsubscribe();
-				}
-			}
-		});
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				synchronized (subscriber) {
-					boolean needRegister = subscriber.onSubscribe(subscription);
-
-					if (!needRegister) {
-						return false;
-					}
-
-					if (untilCompleted.get()) {
-						return false;
-					}
-
-					subscriptionHolder.set(subscription);
-					return true;
-				}
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
+				until.subscribeOnComplete(completionType -> subscription.unsubscribe(UNTIL_UNSUBSCRIPTION));
 			}
 
 			@Override
-			public boolean onPublish(T item) {
-				synchronized (subscriber) {
-					if (untilCompleted.get()) {
-						return false;
-					}
-
-					return subscriber.onPublish(item);
-				}
+			public void onPublish(T item) {
+				return subscriber.onPublish(item);
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				synchronized (subscriber) {
-					if (untilCompleted.get()) {
-						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-					}
-					else {
-						subscriber.onComplete(completionType);
-					}
+			public void onComplete(Completion completion) {
+				if (completion == UNTIL_UNSUBSCRIPTION) {
+					subscriber.onComplete(SourceCompleted.DEFAULT);
+				} else {
+					subscriber.onComplete(completion);
 				}
 			}
 		});

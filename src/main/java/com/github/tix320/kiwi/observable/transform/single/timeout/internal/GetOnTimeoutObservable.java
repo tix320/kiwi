@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
 import com.github.tix320.skimp.api.thread.Threads;
 
@@ -16,6 +16,8 @@ import com.github.tix320.skimp.api.thread.Threads;
  * @author Tigran Sargsyan on 08-Apr-20.
  */
 public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
+
+	private static final RegularUnsubscription ALREADY_PUBLISHED = new RegularUnsubscription(null);
 
 	private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(
 			Threads::daemon);
@@ -37,67 +39,61 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicBoolean published = new AtomicBoolean(false);
 
-		observable.toMono().subscribe(new Subscriber<T>() {
-
-			private volatile boolean unsubscribed = false;
-
-			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(new Subscription() {
-					@Override
-					public boolean isCompleted() {
-						return subscription.isCompleted();
-					}
-
-					@Override
-					public void unsubscribe() {
-						unsubscribed = true;
-						subscription.unsubscribe();
-					}
-				});
-			}
-
-			@Override
-			public boolean onPublish(T item) {
-				if (published.compareAndSet(false, true)) {
-					boolean needMore = subscriber.onPublish(item);
-					if (!needMore) {
-						unsubscribed = true;
-					}
-				}
-				return false;
-			}
-
-			@Override
-			public void onComplete(CompletionType completionType) {
-				if (unsubscribed) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				} else {
-					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-				}
-			}
-		});
-
 		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
 
-		SCHEDULER.schedule(() -> {
-			try {
-				if (published.compareAndSet(false, true)) {
-					BasePublisher.runAsync(() -> {
-						try {
-							subscriber.onPublish(newItemFactory.get());
-							subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-						} catch (Throwable e) {
-							if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-								ExceptionUtils.appendStacktraceToThrowable(e, stackTrace);
-							}
-							throw e;
-						}
-					});
-				}
-			} catch (Throwable t) {
-				ExceptionUtils.applyToUncaughtExceptionHandler(t);
+		final Subscriber<T> newSubscriber = new Subscriber<>() {
+
+			@Override
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
-		}, timeout.toMillis(), TimeUnit.MILLISECONDS);
+
+			@Override
+			public void onPublish(T item) {
+				if (published.compareAndSet(false, true)) {
+
+					try {
+						RegularUnsubscription regularUnsubscription = subscriber.onPublish(item);
+						if (regularUnsubscription != null) {
+							return regularUnsubscription;
+						}
+					} catch (Throwable e) {
+						if (BasePublisher.ENABLE_TRACER) {
+							ExceptionUtils.appendStacktraceToThrowable(e, stackTrace);
+						}
+
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
+					}
+
+					return RegularUnsubscription.DEFAULT;
+				} else {
+					return ALREADY_PUBLISHED;
+				}
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				if (completion != ALREADY_PUBLISHED) {
+					subscriber.onComplete(completion);
+				}
+			}
+		};
+
+		observable.toMono().subscribe(newSubscriber);
+
+		schedule(() -> BasePublisher.runAsync(() -> {
+			final RegularUnsubscription regularUnsubscription = newSubscriber.onPublish(newItemFactory.get());
+			if (regularUnsubscription != ALREADY_PUBLISHED) {
+				subscriber.onComplete(SourceCompleted.DEFAULT);
+			}
+		}), timeout.toMillis());
+	}
+
+	private void schedule(Runnable runnable, long millisDelay) {
+		try {
+			SCHEDULER.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
+		} catch (Throwable e) {
+			ExceptionUtils.applyToUncaughtExceptionHandler(e);
+		}
 	}
 }

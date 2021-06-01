@@ -20,24 +20,24 @@ public abstract class CollectorObservable<S, R> implements TransformObservable<S
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new ConcurrentLinkedQueue<>();
-		observable.subscribe(new Subscriber<S>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(S item) {
+			public void onPublish(S item) {
 				objects.add(item);
-				return true;
+				return null;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (completionType == CompletionType.SOURCE_COMPLETED) {
+			public void onComplete(Completion completion) {
+				if (completion instanceof SourceCompleted) {
 					subscriber.onPublish(collect(objects.stream()));
 				}
-				subscriber.onComplete(completionType);
+				subscriber.onComplete(completion);
 			}
 		});
 	}

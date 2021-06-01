@@ -1,7 +1,6 @@
 package com.github.tix320.kiwi.observable;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +18,8 @@ import com.github.tix320.kiwi.publisher.MonoPublisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
 import com.github.tix320.kiwi.publisher.UnlimitBufferedPublisher;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
-import com.github.tix320.kiwi.observable.transform.multiple.internal.ConcatObservable;
-import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
+// import com.github.tix320.kiwi.observable.transform.multiple.internal.ConcatObservable;
+// import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.JoinObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToListObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
@@ -50,19 +49,8 @@ public interface Observable<T> {
 	 *
 	 * @param consumer for processing items
 	 */
-	default void conditionalSubscribe(ConditionalConsumer<? super T> consumer) {
+	default void conditionalSubscribe( Function<? super T, RegularUnsubscription>  consumer) {
 		subscribe(Subscriber.<T>builder().onPublishConditional(consumer).build());
-	}
-
-	/**
-	 * Build subscriber from builder and subscribe.
-	 *
-	 * @param subscriberBuilder for constructing subscriber
-	 *
-	 * @see #subscribe(Subscriber)
-	 */
-	default void subscribe(SubscriberBuilder<? super T> subscriberBuilder) {
-		subscribe(subscriberBuilder.build());
 	}
 
 	/**
@@ -70,9 +58,17 @@ public interface Observable<T> {
 	 *
 	 * @param onComplete for processing completeness
 	 */
-	default void subscribeOnComplete(Consumer<CompletionType> onComplete) {
+	default void subscribeOnComplete(Consumer<Completion> onComplete) {
 		subscribe(Subscriber.<T>builder().onComplete(onComplete).build());
 	}
+
+	/**
+	 * Subscribe to observable and handle every item or completeness.
+	 * and after which completed handler will be invoked.
+	 *
+	 * @param subscriber for subscribing
+	 */
+	void subscribe(Subscriber<? super T> subscriber);
 
 	/**
 	 * Subscribe to observable and handle every item, error or completeness.
@@ -80,10 +76,9 @@ public interface Observable<T> {
 	 *
 	 * @param subscriber for subscribing
 	 */
-	void subscribe(Subscriber<? super T> subscriber);
+	void subscribe(SharedSubscriber<? super T> subscriber);
 
-	// await functions --------------------------------------
-
+	//region await functions
 	/**
 	 * Blocks current thread until this observable will be completed.
 	 *
@@ -215,9 +210,9 @@ public interface Observable<T> {
 	default MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
 		return new GetOnTimeoutObservable<>(this, timeout, factory);
 	}
+	//endregion
 
-	// transform functions --------------------------------------
-
+	//region transform functions
 	/**
 	 * Return observable, which will subscribe to this and transform every object according to given transformer.
 	 *
@@ -288,9 +283,9 @@ public interface Observable<T> {
 	default Observable<T> filter(Predicate<? super T> filter) {
 		return new FilterObservable<>(this, filter);
 	}
+	//endregion
 
-	// collect functions --------------------------------------
-
+	//region collect functions
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
 	 * and collect received values to map according to given factories.
@@ -345,9 +340,9 @@ public interface Observable<T> {
 									String suffix) {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
+	//endregion
 
-	// other functions --------------------------------------
-
+	//region other
 	/**
 	 * Convert this observable to {@link MonoObservable} or return @this if it is already mono.
 	 *
@@ -429,9 +424,9 @@ public interface Observable<T> {
 		publisher.complete();
 		return publisher.asObservable();
 	}
+	//endregion
 
-	// multiple observable functions --------------------------------------
-
+	//region combining functions
 	/**
 	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
 	 *
@@ -445,86 +440,86 @@ public interface Observable<T> {
 		List<Observable<? extends T>> list = Arrays.asList(observables);
 		return new ConcatObservable<>(list);
 	}
-
-	/**
-	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
-	 *
-	 * @param observables to subscribe
-	 *
-	 * @return observable
-	 */
-	@SuppressWarnings("all")
-	static Observable<Object> concatRaw(Observable<?>... observables) {
-		List<Observable<? extends Object>> list = (List) Arrays.asList(observables);
-		return new ConcatObservable<>(list);
-	}
-
-	/**
-	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
-	 *
-	 * @param observables to subscribe
-	 * @param <T>         type of object
-	 *
-	 * @return observable
-	 */
-	static <T> Observable<T> concat(Iterable<Observable<? extends T>> observables) {
-		List<Observable<? extends T>> list = new ArrayList<>();
-		for (Observable<? extends T> observable : observables) {
-			list.add(observable);
-		}
-		return new ConcatObservable<>(list);
-	}
-
-	/**
-	 * Return observable, which will be subscribe to given observables.
-	 * It will ba wait for objects from every observable and then combine them to list and publish.
-	 *
-	 * @param observables to subscribe
-	 * @param <T>         type of object
-	 *
-	 * @return observable
-	 */
-	@SafeVarargs
-	static <T> Observable<List<T>> zip(Observable<? extends T>... observables) {
-		List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
-		return new ZipObservable<>(list);
-	}
-
-	/**
-	 * Return observable, which will be subscribe to given observables.
-	 * It will ba wait for objects from every observable and then combine them to list and publish.
-	 * Items order in list will be same as a given observables.
-	 *
-	 * @param observables to subscribe
-	 * @param <T>         type of object
-	 *
-	 * @return observable
-	 */
-	static <T> Observable<List<T>> zip(Iterable<? extends Observable<? extends T>> observables) {
-		List<Observable<? extends T>> list = new ArrayList<>();
-		for (Observable<? extends T> observable : observables) {
-			list.add(observable);
-		}
-		return new ZipObservable<>(list);
-	}
-
-	/**
-	 * Return observable, which will be subscribe to given observables.
-	 * It will ba wait for objects from every observable and then combine them to as tuple and publish.
-	 *
-	 * @param observable1 to subscribe
-	 * @param observable2 to subscribe
-	 * @param <A>         type of first object
-	 * @param <B>         type of second object
-	 *
-	 * @return observable
-	 */
-	@SuppressWarnings("all")
-	static <A, B> Observable<Tuple<A, B>> zip(Observable<? extends A> observable1,
-											  Observable<? extends B> observable2) {
-		ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
-		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
-	}
+	//
+	// /**
+	//  * Return observable, which will be subscribe to given observables and publish objects from each of them.
+	//  *
+	//  * @param observables to subscribe
+	//  *
+	//  * @return observable
+	//  */
+	// @SuppressWarnings("all")
+	// static Observable<Object> concatRaw(Observable<?>... observables) {
+	// 	List<Observable<? extends Object>> list = (List) Arrays.asList(observables);
+	// 	return new ConcatObservable<>(list);
+	// }
+	//
+	// /**
+	//  * Return observable, which will be subscribe to given observables and publish objects from each of them.
+	//  *
+	//  * @param observables to subscribe
+	//  * @param <T>         type of object
+	//  *
+	//  * @return observable
+	//  */
+	// static <T> Observable<T> concat(Iterable<Observable<? extends T>> observables) {
+	// 	List<Observable<? extends T>> list = new ArrayList<>();
+	// 	for (Observable<? extends T> observable : observables) {
+	// 		list.add(observable);
+	// 	}
+	// 	return new ConcatObservable<>(list);
+	// }
+	//
+	// /**
+	//  * Return observable, which will be subscribe to given observables.
+	//  * It will ba wait for objects from every observable and then combine them to list and publish.
+	//  *
+	//  * @param observables to subscribe
+	//  * @param <T>         type of object
+	//  *
+	//  * @return observable
+	//  */
+	// @SafeVarargs
+	// static <T> Observable<List<T>> zip(Observable<? extends T>... observables) {
+	// 	List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
+	// 	return new ZipObservable<>(list);
+	// }
+	//
+	// /**
+	//  * Return observable, which will be subscribe to given observables.
+	//  * It will ba wait for objects from every observable and then combine them to list and publish.
+	//  * Items order in list will be same as a given observables.
+	//  *
+	//  * @param observables to subscribe
+	//  * @param <T>         type of object
+	//  *
+	//  * @return observable
+	//  */
+	// static <T> Observable<List<T>> zip(Iterable<? extends Observable<? extends T>> observables) {
+	// 	List<Observable<? extends T>> list = new ArrayList<>();
+	// 	for (Observable<? extends T> observable : observables) {
+	// 		list.add(observable);
+	// 	}
+	// 	return new ZipObservable<>(list);
+	// }
+	//
+	// /**
+	//  * Return observable, which will be subscribe to given observables.
+	//  * It will ba wait for objects from every observable and then combine them to as tuple and publish.
+	//  *
+	//  * @param observable1 to subscribe
+	//  * @param observable2 to subscribe
+	//  * @param <A>         type of first object
+	//  * @param <B>         type of second object
+	//  *
+	//  * @return observable
+	//  */
+	// @SuppressWarnings("all")
+	// static <A, B> Observable<Tuple<A, B>> zip(Observable<? extends A> observable1,
+	// 										  Observable<? extends B> observable2) {
+	// 	ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
+	// 	return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
+	// }
 
 	/**
 	 * Return observable, which will be subscribe to given observables.
@@ -544,4 +539,5 @@ public interface Observable<T> {
 				(List) List.of(observable1, observable2));
 		return combineLatestObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
+	//endregion
 }

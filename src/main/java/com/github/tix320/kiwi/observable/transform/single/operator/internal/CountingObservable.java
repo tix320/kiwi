@@ -2,16 +2,15 @@ package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.github.tix320.kiwi.observable.CompletionType;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
 public final class CountingObservable<T> implements Observable<T> {
+
+	private static final RegularUnsubscription COUNTING_UNSUBSCRIPTION = new RegularUnsubscription(null);
 
 	private final Observable<T> observable;
 
@@ -28,61 +27,38 @@ public final class CountingObservable<T> implements Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong limit = new AtomicLong(count);
-		observable.subscribe(new Subscriber<T>() {
-
-			private volatile boolean unsubscribed = false;
+		observable.subscribe(new Subscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(new Subscription() {
-					@Override
-					public boolean isCompleted() {
-						return subscription.isCompleted();
-					}
-
-					@Override
-					public void unsubscribe() {
-						unsubscribed = true;
-						subscription.unsubscribe();
-					}
-				});
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(T item) {
+			public void onPublish(T item) {
 				long remaining = limit.decrementAndGet();
 				if (remaining > 0) {
-					boolean needMore = subscriber.onPublish(item);
-
-					if (!needMore) {
-						unsubscribed = true;
-					}
-					return needMore;
-				}
-				else {
-					if (remaining == 0) {
-						try {
-							boolean needMore = subscriber.onPublish(item);
-
-							if (!needMore) {
-								unsubscribed = true;
-							}
+					return subscriber.onPublish(item);
+				} else {
+					try {
+						final RegularUnsubscription regularUnsubscription = subscriber.onPublish(item);
+						if (regularUnsubscription != null) {
+							return regularUnsubscription;
 						}
-						catch (Throwable e) {
-							ExceptionUtils.applyToUncaughtExceptionHandler(e);
-						}
+					} catch (Throwable e) {
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
-					return false;
+
+					return COUNTING_UNSUBSCRIPTION;
 				}
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (unsubscribed) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				}
-				else {
-					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+			public void onComplete(Completion completion) {
+				if (completion == COUNTING_UNSUBSCRIPTION) {
+					subscriber.onComplete(SourceCompleted.DEFAULT);
+				} else {
+					subscriber.onComplete(completion);
 				}
 			}
 		});

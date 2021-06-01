@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.observable.CompletionType;
+import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
@@ -29,19 +29,18 @@ public class UntilObservableTest {
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
+				return RegularUnsubscription.DEFAULT;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});
@@ -62,22 +61,21 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
+				return RegularUnsubscription.DEFAULT;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});
@@ -99,20 +97,19 @@ public class UntilObservableTest {
 
 		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
+				return RegularUnsubscription.DEFAULT;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});

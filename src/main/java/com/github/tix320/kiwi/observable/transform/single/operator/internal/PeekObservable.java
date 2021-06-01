@@ -2,10 +2,7 @@ package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import java.util.function.Consumer;
 
-import com.github.tix320.kiwi.observable.CompletionType;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.*;
 
 /**
  * @author Tigran Sargsyan on 02-Mar-19
@@ -23,21 +20,21 @@ public final class PeekObservable<T> implements Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(T item) {
+			public void onPublish(T item) {
 				action.accept(item);
 				return subscriber.onPublish(item);
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				subscriber.onComplete(completionType);
+			public void onComplete(Completion completion) {
+				subscriber.onComplete(completion);
 			}
 		});
 	}

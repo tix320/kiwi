@@ -8,6 +8,8 @@ import com.github.tix320.skimp.api.exception.ExceptionUtils;
  */
 public final class OnceObservable<T> implements MonoObservable<T> {
 
+	private static final RegularUnsubscription ONCE_UNSUBSCRIPTION = new RegularUnsubscription(null);
+
 	private final Observable<T> observable;
 
 	public OnceObservable(Observable<T> observable) {
@@ -16,49 +18,33 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>() {
-
-			private volatile boolean unsubscribed = false;
+		observable.subscribe(new Subscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(new Subscription() {
-					@Override
-					public boolean isCompleted() {
-						return subscription.isCompleted();
-					}
-
-					@Override
-					public void unsubscribe() {
-						unsubscribed = true;
-						subscription.unsubscribe();
-					}
-				});
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(T item) {
+			public void onPublish(T item) {
 				try {
-					boolean needMore = subscriber.onPublish(item);
-
-					if (!needMore) {
-						unsubscribed = true;
+					final RegularUnsubscription regularUnsubscription = subscriber.onPublish(item);
+					if (regularUnsubscription != null) {
+						return regularUnsubscription;
 					}
-				}
-				catch (Throwable e) {
+				} catch (Throwable e) {
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
-				return false;
+				return ONCE_UNSUBSCRIPTION;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (unsubscribed) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				}
-				else {
-					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+			public void onComplete(Completion completion) {
+				if (completion == ONCE_UNSUBSCRIPTION) {
+					subscriber.onComplete(SourceCompleted.DEFAULT);
+				} else {
+					subscriber.onComplete(completion);
 				}
 			}
 		});
