@@ -33,7 +33,7 @@ public class MergeObservableTest {
 
 		Thread.sleep(100);
 
-		assertEquals(4, actual.size());
+		assertEquals(4, actual.size()); // FIXME expected 4 , actual 5
 		for (Integer integer : actual) {
 			assertTrue(maybe.contains(integer));
 		}
