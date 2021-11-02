@@ -34,7 +34,7 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 
 			@Override
 			public void onComplete(Completion completion) {
-				if (completion instanceof SourceCompleted) {
+				if (completion instanceof SourceCompletion) {
 					try {
 						subscriber.onPublish(collect(objects.stream()));
 					}

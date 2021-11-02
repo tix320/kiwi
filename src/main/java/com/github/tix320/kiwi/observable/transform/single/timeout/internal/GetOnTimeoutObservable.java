@@ -20,7 +20,7 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 	private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(
 			Threads::daemon);
 
-	private static final SourceCompleted SOURCE_COMPLETED_BY_TIMEOUT = new SourceCompleted(
+	private static final SourceCompletion SOURCE_COMPLETED_BY_TIMEOUT = new SourceCompletion(
 			"SOURCE_COMPLETED_BY_TIMEOUT");
 
 	private final Observable<? extends T> observable;

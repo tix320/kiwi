@@ -1,8 +1,6 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,7 +9,7 @@ import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
-	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("COMBINE_LATEST_ALL_COMPLETED");
+	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("COMBINE_LATEST_ALL_COMPLETED");
 
 	private final List<Observable<? extends T>> observables;
 
@@ -103,7 +101,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 								subscriber.onComplete(userUnsubscription.unsubscription);
 							}
 						}
-						else if (completion instanceof SourceCompleted) {
+						else if (completion instanceof SourceCompletion) {
 							if (completedCount.incrementAndGet() == observablesCount) {
 								subscriber.onComplete(ALL_COMPLETED);
 							}

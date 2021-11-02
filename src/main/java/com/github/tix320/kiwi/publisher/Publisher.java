@@ -1,7 +1,7 @@
 package com.github.tix320.kiwi.publisher;
 
 import com.github.tix320.kiwi.observable.ObservableCandidate;
-import com.github.tix320.kiwi.observable.SourceCompleted;
+import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.skimp.api.object.None;
 
 /**
@@ -26,10 +26,10 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 	 * Complete this publisher, after that cannot be published objects.
 	 * Invoking this method more than one time will no effect.
 	 */
-	public abstract void complete(SourceCompleted sourceCompleted);
+	public abstract void complete(SourceCompletion sourceCompletion);
 
 	public final void complete() {
-		complete(SourceCompleted.DEFAULT);
+		complete(SourceCompletion.DEFAULT);
 	}
 
 	/**

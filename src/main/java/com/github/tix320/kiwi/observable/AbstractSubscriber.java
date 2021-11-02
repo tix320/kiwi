@@ -8,16 +8,16 @@ import java.util.concurrent.atomic.AtomicReference;
  **/
 public abstract class AbstractSubscriber<T> implements Subscriber<T> {
 
-	private final AtomicReference<Subscription> subscription = new AtomicReference<>();
+	private volatile Subscription subscription;
 
 	public final void onSubscribe(Subscription subscription) {
-		this.subscription.set(subscription);
+		this.subscription = subscription;
 		onSubscribe();
 	}
 
 	public abstract void onSubscribe();
 
 	public final Subscription subscription() {
-		return subscription.get();
+		return subscription;
 	}
 }

@@ -12,7 +12,7 @@ import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 public final class ZipObservable<T> extends Observable<List<T>> {
 
-	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("ZIP_ALL_COMPLETED");
+	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("ZIP_ALL_COMPLETED");
 
 	private static final Unsubscription UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE = new Unsubscription(
 			"UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE");
@@ -135,7 +135,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 							if (completedCount.incrementAndGet() == observablesCount) {
 								subscriber.onComplete(ALL_COMPLETED);
 							}
-							else if (completion instanceof SourceCompleted && queues.get(index).isEmpty()) {
+							else if (completion instanceof SourceCompletion && queues.get(index).isEmpty()) {
 								subscriber.onComplete(ALL_COMPLETED);
 							}
 						}

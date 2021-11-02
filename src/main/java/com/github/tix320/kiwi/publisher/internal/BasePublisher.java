@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.SourceCompleted;
+import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
@@ -31,7 +31,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	private volatile boolean isFrozen;
 
-	private volatile SourceCompleted completion;
+	private volatile SourceCompletion completion;
 
 	private volatile int cleanupCounter;
 
@@ -80,12 +80,12 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 	}
 
 	@Override
-	public final void complete(SourceCompleted sourceCompleted) {
+	public final void complete(SourceCompletion sourceCompletion) {
 		synchronized (this) {
 			if (completion != null) {
 				return;
 			}
-			completion = sourceCompleted;
+			completion = sourceCompletion;
 
 			if (!isFrozen) {
 				subscriptions.forEach(PublisherSubscription::markSourceCompleted);
@@ -123,7 +123,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		return isFrozen;
 	}
 
-	public SourceCompleted getCompletion() {
+	public SourceCompletion getCompletion() {
 		return completion;
 	}
 

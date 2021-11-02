@@ -10,7 +10,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 
 	private static final Unsubscription ONCE_UNSUBSCRIPTION = new Unsubscription("ONCE_UNSUBSCRIPTION");
 
-	private static final SourceCompleted SOURCE_COMPLETED_BY_ONCE = new SourceCompleted("SOURCE_COMPLETED_BY_ONCE");
+	private static final SourceCompletion SOURCE_COMPLETED_BY_ONCE = new SourceCompletion("SOURCE_COMPLETED_BY_ONCE");
 
 	private final Observable<T> observable;
 

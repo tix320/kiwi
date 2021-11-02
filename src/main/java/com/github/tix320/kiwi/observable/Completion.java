@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.observable;
 
-public abstract sealed class Completion permits SourceCompleted, Unsubscription {
+public abstract sealed class Completion permits SourceCompletion, Unsubscription {
 
 	private final Object data;
 

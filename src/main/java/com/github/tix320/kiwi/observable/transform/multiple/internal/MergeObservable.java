@@ -13,7 +13,7 @@ import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
  */
 public final class MergeObservable<T> extends Observable<T> {
 
-	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("MERGE_ALL_COMPLETED");
+	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("MERGE_ALL_COMPLETED");
 
 	private final List<Observable<? extends T>> observables;
 
@@ -88,7 +88,7 @@ public final class MergeObservable<T> extends Observable<T> {
 								subscriber.onComplete(userUnsubscription.unsubscription);
 							}
 						}
-						else if (completion instanceof SourceCompleted) {
+						else if (completion instanceof SourceCompletion) {
 							if (completedCount.incrementAndGet() == observablesCount) {
 								subscriber.onComplete(ALL_COMPLETED);
 							}

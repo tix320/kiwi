@@ -10,7 +10,7 @@ public final class UntilObservable<T> extends Observable<T> {
 
 	private static final Unsubscription UNTIL_UNSUBSCRIPTION = new Unsubscription();
 
-	private static final SourceCompleted SOURCE_COMPLETED_VIA_UNTIL = new SourceCompleted("SOURCE_COMPLETED_VIA_UNTIL");
+	private static final SourceCompletion SOURCE_COMPLETED_VIA_UNTIL = new SourceCompletion("SOURCE_COMPLETED_VIA_UNTIL");
 
 	private final Observable<T> observable;
 
@@ -48,7 +48,7 @@ public final class UntilObservable<T> extends Observable<T> {
 
 					@Override
 					public void onComplete(Completion completion) {
-						if (completion instanceof SourceCompleted) {
+						if (completion instanceof SourceCompletion) {
 							synchronized (lock) {
 								subscription.cancelImmediately(UNTIL_UNSUBSCRIPTION);
 							}

@@ -87,7 +87,7 @@ final class PublisherSubscription<I> implements Subscription {
 			}
 			else {
 				if (publisher.isCompleted()) {
-					doComplete(SourceCompleted.DEFAULT).whenComplete((unused, unused1) -> actionInProgress.set(false));
+					doComplete(SourceCompletion.DEFAULT).whenComplete((unused, unused1) -> actionInProgress.set(false));
 				}
 				else {
 					actionInProgress.set(false);

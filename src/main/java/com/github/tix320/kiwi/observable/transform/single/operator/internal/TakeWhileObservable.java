@@ -11,7 +11,7 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 
 	private static final Unsubscription PREDICATE_UNSUBSCRIPTION = new Unsubscription("PREDICATE_UNSUBSCRIPTION");
 
-	private static final SourceCompleted SOURCE_COMPLETED_BY_PREDICATE = new SourceCompleted(
+	private static final SourceCompletion SOURCE_COMPLETED_BY_PREDICATE = new SourceCompletion(
 			"SOURCE_COMPLETED_BY_PREDICATE");
 
 	private final Observable<T> observable;

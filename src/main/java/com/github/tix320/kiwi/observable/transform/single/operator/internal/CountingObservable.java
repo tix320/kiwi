@@ -12,7 +12,7 @@ public final class CountingObservable<T> extends Observable<T> {
 
 	private static final Unsubscription LIMIT_UNSUBSCRIPTION = new Unsubscription("LIMIT_UNSUBSCRIPTION");
 
-	private static final SourceCompleted SOURCE_COMPLETED_BY_LIMIT = new SourceCompleted("SOURCE_COMPLETED_BY_LIMIT");
+	private static final SourceCompletion SOURCE_COMPLETED_BY_LIMIT = new SourceCompletion("SOURCE_COMPLETED_BY_LIMIT");
 
 	private final Observable<T> observable;
 
