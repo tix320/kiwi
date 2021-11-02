@@ -2,13 +2,13 @@ package com.github.tix320.kiwi.property;
 
 import java.util.Map;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.skimp.api.collection.BiMap;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public final class BiMapProperty<K, V> extends BaseProperty<BiMap<K, V>> {
+public final class BiMapProperty<K, V> extends AbstractMutableProperty<BiMap<K, V>> {
 
 	public BiMapProperty() {
 	}

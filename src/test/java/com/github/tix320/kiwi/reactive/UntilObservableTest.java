@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.observable.CompletionType;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.AbstractSubscriber;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.skimp.api.object.None;
 import org.junit.jupiter.api.Test;
@@ -27,30 +27,27 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe() {
 				called.add("onSubscribe");
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
+				subscription().cancelImmediately(Unsubscription.DEFAULT);
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});
 
 		Thread.sleep(100);
 
-		assertEquals(2, called.size());
-		assertEquals("onSubscribe", called.get(0));
-		assertEquals("onComplete", called.get(1));
+		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}
 
 	@Test
@@ -62,31 +59,27 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe() {
 				called.add("onSubscribe");
 				publisher.publish(10);
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});
 
-		Thread.sleep(100);
+		Thread.sleep(500);
 
-		assertEquals(2, called.size());
-		assertEquals("onSubscribe", called.get(0));
-		assertEquals("onComplete", called.get(1));
+		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}
 
 	@Test
@@ -97,22 +90,21 @@ public class UntilObservableTest {
 
 		List<String> called = new ArrayList<>();
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
+			public void onSubscribe() {
 				called.add("onSubscribe");
 				publisher.publish(10);
-				return true;
 			}
 
 			@Override
-			public boolean onPublish(Integer item) {
+			public void onPublish(Integer item) {
 				called.add("onPublish");
-				return false;
+				subscription().cancelImmediately(Unsubscription.DEFAULT);
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
+			public void onComplete(Completion completion) {
 				called.add("onComplete");
 			}
 		});
@@ -121,8 +113,6 @@ public class UntilObservableTest {
 
 		Thread.sleep(100);
 
-		assertEquals(2, called.size());
-		assertEquals("onSubscribe", called.get(0));
-		assertEquals("onComplete", called.get(1));
+		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}
 }

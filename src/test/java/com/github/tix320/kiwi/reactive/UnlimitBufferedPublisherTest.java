@@ -74,7 +74,6 @@ public class UnlimitBufferedPublisherTest {
 
 		Thread.sleep(5000);
 
-		System.out.println(actual.size());
 		assertEquals(chunkSize * 2, actual.size());
 		assertEquals(expectedPart1, actual.subList(0, chunkSize));
 

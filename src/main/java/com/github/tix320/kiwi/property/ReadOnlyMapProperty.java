@@ -9,7 +9,7 @@ import java.util.function.BiConsumer;
 
 import com.github.tix320.kiwi.observable.Observable;
 
-public final class ReadOnlyMapProperty<K, V> implements ReadOnlyProperty<Map<K, V>> {
+public final class ReadOnlyMapProperty<K, V> implements Property<Map<K, V>> {
 
 	private final MapProperty<K, V> property;
 

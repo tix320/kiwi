@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.publisher;
 
 import com.github.tix320.kiwi.observable.ObservableCandidate;
+import com.github.tix320.kiwi.observable.SourceCompleted;
 import com.github.tix320.skimp.api.object.None;
 
 /**
@@ -11,39 +12,41 @@ import com.github.tix320.skimp.api.object.None;
  *
  * @author Tigran Sargsyan on 21-Feb-19
  */
-public interface Publisher<T> extends ObservableCandidate<T> {
+public abstract class Publisher<T> implements ObservableCandidate<T> {
 
 	/**
 	 * Publish object.
 	 *
 	 * @param object to publish
-	 *
 	 * @throws PublisherCompletedException if publisher already completed
 	 */
-	void publish(T object);
+	public abstract void publish(T object);
 
 	/**
 	 * Complete this publisher, after that cannot be published objects.
 	 * Invoking this method more than one time will no effect.
 	 */
-	void complete();
+	public abstract void complete(SourceCompleted sourceCompleted);
+
+	public final void complete() {
+		complete(SourceCompleted.DEFAULT);
+	}
 
 	/**
 	 * Indicated publisher completeness.
 	 *
 	 * @return true, if completed, false otherwise.
 	 */
-	boolean isCompleted();
+	public abstract boolean isCompleted();
 
 	/**
 	 * Create simple publisher for publishing objects.
 	 * The subscribers will receive that objects, which is published after subscription.
 	 *
 	 * @param <T> type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> SimplePublisher<T> simple() {
+	public static <T> SimplePublisher<T> simple() {
 		return new SimplePublisher<>();
 	}
 
@@ -54,10 +57,9 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 *
 	 * @param initialValue initial value of publisher
 	 * @param <T>          type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> SinglePublisher<T> single(T initialValue) {
+	public static <T> SinglePublisher<T> single(T initialValue) {
 		return new SinglePublisher<>(initialValue);
 	}
 
@@ -65,10 +67,9 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 * Equivalent to {@link Publisher#single(Object)} without initial value.
 	 *
 	 * @param <T> type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> SinglePublisher<T> single() {
+	public static <T> SinglePublisher<T> single() {
 		return new SinglePublisher<>();
 	}
 
@@ -76,10 +77,9 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 * Create mono publisher {@link MonoPublisher} for publishing exactly one object.
 	 *
 	 * @param <T> type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> MonoPublisher<T> mono() {
+	public static <T> MonoPublisher<T> mono() {
 		return new MonoPublisher<>();
 	}
 
@@ -88,10 +88,9 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 *
 	 * @param bufferSize for subject buffer
 	 * @param <T>        type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> BufferedPublisher<T> buffered(int bufferSize) {
+	public static <T> BufferedPublisher<T> buffered(int bufferSize) {
 		return new BufferedPublisher<>(bufferSize);
 	}
 
@@ -99,10 +98,9 @@ public interface Publisher<T> extends ObservableCandidate<T> {
 	 * Create buffered publisher {@link BufferedPublisher} without limit.
 	 *
 	 * @param <T> type of objects.
-	 *
 	 * @return created publisher.
 	 */
-	static <T> BufferedPublisher<T> buffered() {
+	public static <T> BufferedPublisher<T> buffered() {
 		return new UnlimitBufferedPublisher<>();
 	}
 }

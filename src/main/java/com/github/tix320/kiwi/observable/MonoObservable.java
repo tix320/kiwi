@@ -5,4 +5,4 @@ package com.github.tix320.kiwi.observable;
  *
  * @param <T> type of items
  */
-public interface MonoObservable<T> extends Observable<T> {}
+public abstract class MonoObservable<T> extends Observable<T> {}

@@ -1,8 +1,8 @@
 package com.github.tix320.kiwi.property;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 
-public class ObjectProperty<T> extends BaseProperty<T> {
+public class ObjectProperty<T> extends AbstractMutableProperty<T> {
 
 	public ObjectProperty() {
 	}

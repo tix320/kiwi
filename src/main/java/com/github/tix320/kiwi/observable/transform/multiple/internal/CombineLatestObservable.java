@@ -1,13 +1,17 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
-public final class CombineLatestObservable<T> implements TransformObservable<T, List<T>> {
+public final class CombineLatestObservable<T> extends Observable<List<T>> {
+
+	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("COMBINE_LATEST_ALL_COMPLETED");
 
 	private final List<Observable<? extends T>> observables;
 
@@ -23,128 +27,108 @@ public final class CombineLatestObservable<T> implements TransformObservable<T, 
 		int observablesCount = observables.size();
 
 		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
+
 		@SuppressWarnings("unchecked")
 		T[] lastItems = (T[]) new Object[observablesCount];
 
-		Completion completion = new Completion(completionType -> {
-			synchronized (subscriber) {
-				for (Subscription subscription : subscriptions) {
-					subscription.unsubscribe();
-				}
-				subscriber.onComplete(completionType);
-			}
-		});
+		Object lock = new Object();
 
-		Subscription subscription = new Subscription() {
+		AtomicInteger readyCount = new AtomicInteger(0);
+
+		AtomicInteger completedCount = new AtomicInteger(0);
+
+		Subscription generalSubscription = new Subscription() {
+
 			@Override
-			public boolean isCompleted() {
-				synchronized (subscriber) {
-					return completion.isFullCompleted();
-				}
+			public void cancel(Unsubscription unsubscription) {
+				throw new UnsupportedOperationException(); // TODO
 			}
 
 			@Override
-			public void unsubscribe() {
-				synchronized (subscriber) {
-					completion.fullComplete(CompletionType.UNSUBSCRIPTION);
+			public void cancelImmediately(Unsubscription unsubscription) {
+				synchronized (lock) {
+					int subscriptionsSize = subscriptions.size();
+					for (int i = 0; i < subscriptionsSize - 1; i++) {
+						Subscription subscription = subscriptions.get(i);
+						UserUnsubscription userUnsubscription = new UserUnsubscription();
+
+						subscription.cancelImmediately(userUnsubscription);
+					}
+
+					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
+					lastSubscription.cancelImmediately(new UserUnsubscription(unsubscription));
 				}
 			}
 		};
 
-		boolean needRegister = subscriber.onSubscribe(subscription);
-		if (!needRegister) {
-			subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-			return;
-		}
-
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<? extends T> observable = observables.get(i);
 			int index = i;
-			observable.subscribe(new Subscriber<T>() {
+			observable.subscribe(new SharedSubscriber<T>() {
 
 				@Override
-				public boolean onSubscribe(Subscription subscription) {
-					synchronized (subscriber) {
-						if (completion.isFullCompleted()) {
-							return false;
-						} else {
-							subscriptions.add(subscription);
-							return true;
-						}
+				public void onSubscribe(Subscription subscription) {
+					subscriptions.add(subscription);
+
+					if (subscriptions.size() == observablesCount) {
+						subscriber.onSubscribe(generalSubscription);
 					}
 				}
 
 				@Override
-				public boolean onPublish(T item) {
-					Objects.requireNonNull(item,
-							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
+				public void onPublish(T item) {
+					synchronized (lock) {
+						int ready = readyCount.get();
 
-					synchronized (subscriber) {
 						lastItems[index] = item;
+						if (ready != observablesCount) {
+							ready = readyCount.incrementAndGet();
 
-						for (Object lastItem : lastItems) {
-							if (lastItem == null) {
-								return true;
+							if (ready != observablesCount) {
+								return;
 							}
 						}
 
-						List<T> combinedObjects = List.of(lastItems);
-						boolean needMore = subscriber.onPublish(combinedObjects);
+						List<T> combined = List.of(lastItems);
 
-						if (!needMore) {
-							completion.fullComplete(CompletionType.UNSUBSCRIPTION);
-							return false;
-						}
-						return true;
+						subscriber.onPublish(combined);
 					}
 				}
 
 				@Override
-				public void onComplete(CompletionType completionType) {
-					synchronized (subscriber) {
-						if (completionType == CompletionType.SOURCE_COMPLETED) {
-							completion.addComplete();
+				public void onComplete(Completion completion) {
+					synchronized (lock) {
+						if (completion instanceof UserUnsubscription userUnsubscription) {
+							if (userUnsubscription.perform) {
+								subscriber.onComplete(userUnsubscription.unsubscription);
+							}
+						}
+						else if (completion instanceof SourceCompleted) {
+							if (completedCount.incrementAndGet() == observablesCount) {
+								subscriber.onComplete(ALL_COMPLETED);
+							}
+						}
+						else {
+							throw new IllegalStateException(completion.toString());
 						}
 					}
-					// If value is UNSUBSCRIPTION, this is because of cleanup has been run, no need action
 				}
 			});
 		}
 	}
 
-	private final class Completion {
-		private final Consumer<CompletionType> cleanup;
+	private static final class UserUnsubscription extends Unsubscription {
+		private final boolean perform;
+		private final Unsubscription unsubscription;
 
-		private int completedCount;
-
-		public Completion(Consumer<CompletionType> cleanup) {
-			this.cleanup = cleanup;
-			this.completedCount = 0;
+		public UserUnsubscription() {
+			this.perform = false;
+			this.unsubscription = null;
 		}
 
-		public void fullComplete(CompletionType completionType) {
-			if (isFullCompleted()) {
-				throw new IllegalStateException();
-			}
-
-			this.completedCount = observables.size();
-			this.cleanup.accept(completionType);
-		}
-
-		public boolean isFullCompleted() {
-			return this.completedCount == observables.size();
-		}
-
-		public void addComplete() {
-			if (isFullCompleted()) {
-				throw new IllegalStateException();
-			}
-
-			this.completedCount++;
-
-			if (isFullCompleted()) {
-				this.cleanup.accept(CompletionType.SOURCE_COMPLETED);
-			}
+		private UserUnsubscription(Unsubscription unsubscription) {
+			this.perform = true;
+			this.unsubscription = unsubscription;
 		}
 	}
 }

@@ -10,9 +10,9 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 
-public final class MapProperty<K, V> extends BaseProperty<Map<K, V>> {
+public final class MapProperty<K, V> extends AbstractMutableProperty<Map<K, V>> {
 
 	public MapProperty() {
 	}

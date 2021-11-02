@@ -3,32 +3,27 @@ package com.github.tix320.kiwi.publisher.internal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
-import com.github.tix320.kiwi.observable.CompletionType;
 import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.SourceCompleted;
 import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
 import com.github.tix320.skimp.api.function.CheckedRunnable;
-import com.github.tix320.skimp.api.thread.Threads;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-public abstract class BasePublisher<T> implements Publisher<T> {
-
-	public static final boolean ENABLE_ASYNC_STACKTRACE = System.getProperty("kiwi.publisher.async-stacktrace.enable")
-														  != null;
+public abstract class BasePublisher<T> extends Publisher<T> {
 
 	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
-			new SynchronousQueue<>(), Threads::daemon);
+			new SynchronousQueue<>(), new PublisherThreadFactory());
 
-	private final List<InternalSubscription<T>> subscriptions;
 
-	private final List<Item<T>> queue;
+	private final List<PublisherSubscription<T>> subscriptions;
+
+	private final List<T> queue;
 
 	private final int saveOnCleanup;
 
@@ -36,9 +31,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	private volatile boolean isFrozen;
 
-	private volatile boolean isCompleted;
+	private volatile SourceCompleted completion;
 
 	private volatile int cleanupCounter;
+
+	private volatile int cleanCount;
 
 	protected BasePublisher(int saveOnCleanup, int cleanupThreshold) {
 		this.subscriptions = new CopyOnWriteArrayList<>();
@@ -46,8 +43,9 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 		this.saveOnCleanup = saveOnCleanup;
 		this.cleanupThreshold = cleanupThreshold;
 		this.isFrozen = false;
-		this.isCompleted = false;
+		this.completion = null;
 		this.cleanupCounter = 0;
+		this.cleanCount = 0;
 	}
 
 	@Override
@@ -59,20 +57,22 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 				cleanupCounter = 0;
 
 				int queueSize = queue.size();
-				int minCursor = subscriptions.stream().mapToInt(InternalSubscription::cursor).min().orElse(queueSize);
+				int minCursor = subscriptions.stream()
+						.mapToInt(PublisherSubscription::cursor)
+						.map(operand -> operand - cleanCount)
+						.min()
+						.orElse(queueSize);
 
 				int deleteCount = Math.min(queueSize - saveOnCleanup, minCursor);
 
 				queue.subList(0, deleteCount).clear();
 
-				for (InternalSubscription<T> subscription : subscriptions) {
-					subscription.changeCursor(subscription.cursor() - deleteCount);
-				}
+				cleanCount += deleteCount;
 			}
 
-			addToQueue(object);
+			queue.add(object);
 			if (!isFrozen) {
-				subscriptions.forEach(InternalSubscription::tryDoAction);
+				subscriptions.forEach(PublisherSubscription::tryDoAction);
 			}
 
 			postPublish();
@@ -80,21 +80,23 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 	}
 
 	@Override
-	public final void complete() {
+	public final void complete(SourceCompleted sourceCompleted) {
 		synchronized (this) {
-			if (isCompleted) {
+			if (completion != null) {
 				return;
 			}
-			isCompleted = true;
+			completion = sourceCompleted;
 
-			subscriptions.forEach(InternalSubscription::markSourceCompleted);
-			subscriptions.clear();
+			if (!isFrozen) {
+				subscriptions.forEach(PublisherSubscription::markSourceCompleted);
+				subscriptions.clear();
+			}
 		}
 	}
 
 	@Override
 	public final boolean isCompleted() {
-		return isCompleted;
+		return completion != null;
 	}
 
 	@Override
@@ -110,13 +112,35 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	public void unfreeze() {
 		synchronized (this) {
-			this.isFrozen = false;
-			subscriptions.forEach(InternalSubscription::tryDoAction);
+			if (this.isFrozen) {
+				this.isFrozen = false;
+				subscriptions.forEach(PublisherSubscription::tryDoAction);
+			}
 		}
 	}
 
-	public boolean isFrozen() {
+	public final boolean isFrozen() {
 		return isFrozen;
+	}
+
+	public SourceCompleted getCompletion() {
+		return completion;
+	}
+
+	public int getPublishCount() {
+		return queue.size() + cleanCount;
+	}
+
+	public final T getNthPublish(int n) {
+		//		T value = queue.get(index).getValue();
+		//		if(value.equals(4)){
+		//			try {
+		//				Thread.sleep(500);
+		//			} catch (InterruptedException e) {
+		//				e.printStackTrace();
+		//			}
+		//		}
+		return queue.get(n - cleanCount);
 	}
 
 	protected void postPublish() {
@@ -133,284 +157,52 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
 	protected final T getValueAt(int index) {
 		synchronized (this) {
-			return queue.get(index).getValue();
+			return queue.get(index);
 		}
 	}
 
 	protected final List<T> queueSnapshot(int fromIndex, int toIndex) {
 		synchronized (this) {
-			return queue.subList(fromIndex, toIndex).stream().map(Item::getValue).collect(Collectors.toList());
+			return queue.subList(fromIndex, toIndex);
 		}
 	}
 
-	Item<T> getItemAt(int index) {
+	void removeSubscription(PublisherSubscription<T> subscription) {
 		synchronized (this) {
-			return queue.get(index);
-		}
-	}
-
-	void removeSubscription(InternalSubscription<T> subscription) {
-		this.subscriptions.remove(subscription);
-	}
-
-	private void addToQueue(T object) {
-		synchronized (this) {
-			Item<T> item;
-
-			if (ENABLE_ASYNC_STACKTRACE) {
-				item = new Item<>(object, Thread.currentThread().getStackTrace());
-			} else {
-				item = new Item<>(object, null);
-			}
-
-			queue.add(item);
+			this.subscriptions.remove(subscription);
 		}
 	}
 
 	private void checkCompleted() {
-		if (isCompleted) {
+		if (completion != null) {
 			throw new PublisherCompletedException("Publisher is completed, you can not publish items.");
 		}
 	}
 
-	public static void runAsync(CheckedRunnable runnable) {
-		EXECUTOR.submit(() -> {
+	public static CompletableFuture<Void> runAsync(CheckedRunnable runnable) {
+		return CompletableFuture.runAsync(() -> {
 			try {
 				runnable.run();
-			} catch (Throwable e) {
+			}
+			catch (Throwable e) {
 				ExceptionUtils.applyToUncaughtExceptionHandler(e);
 			}
-		});
+		}, EXECUTOR);
 	}
 
-	public final class PublisherObservable implements Observable<T> {
+	private final class PublisherObservable extends Observable<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
-			InternalSubscription<T> subscription = new InternalSubscription<>(BasePublisher.this, subscriber);
-			boolean needRegister = subscriber.onSubscribe(subscription);
-			if (!needRegister) {
-				subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				return;
-			}
+			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber);
+			subscriber.onSubscribe(subscription);
 
 			synchronized (BasePublisher.this) {
-				int initialCursor = BasePublisher.this.resolveInitialCursorOnSubscribe();
+				subscriptions.add(subscription);
+				int initialCursor = BasePublisher.this.resolveInitialCursorOnSubscribe() + cleanCount;
 				subscription.changeCursor(initialCursor);
 				subscription.tryDoAction();
-				if (isCompleted) {
-					subscription.markSourceCompleted();
-				} else {
-					subscriptions.add(subscription);
-				}
 			}
 		}
-	}
-}
-
-final class InternalSubscription<I> implements Subscription {
-
-	private final BasePublisher<I> publisher;
-
-	private final Subscriber<? super I> realSubscriber;
-
-	private volatile int cursor;
-
-	private volatile boolean actionInProgress;
-
-	private volatile Completion completion;
-
-	public InternalSubscription(BasePublisher<I> publisher, Subscriber<? super I> realSubscriber) {
-		this(publisher, realSubscriber, 0);
-	}
-
-	private InternalSubscription(BasePublisher<I> publisher, Subscriber<? super I> realSubscriber, int initialCursor) {
-		if (initialCursor < 0) {
-			throw new IllegalStateException();
-		}
-		this.publisher = publisher;
-		this.realSubscriber = realSubscriber;
-		this.cursor = initialCursor;
-		this.actionInProgress = false;
-		this.completion = null;
-	}
-
-	public int cursor() {
-		return cursor;
-	}
-
-	public void changeCursor(int newCursor) {
-		this.cursor = newCursor;
-	}
-
-	public void tryDoAction() {
-		synchronized (publisher) {
-			if (actionInProgress || publisher.isFrozen()) {
-				return;
-			}
-
-			if (completion == null) {
-				if (cursor < publisher.queueSize()) {
-					actionInProgress = true;
-					doPublish();
-				}
-			} else {
-				if (cursor <= completion.getLastItemIndex()) {
-					actionInProgress = true;
-					doPublish();
-				} else {
-					if (!completion.isDone()) {
-						actionInProgress = true;
-						doComplete();
-					}
-				}
-			}
-		}
-	}
-
-	@Override
-	public boolean isCompleted() {
-		Completion completion = this.completion;
-		return completion != null && completion.isDone();
-	}
-
-	@Override
-	public void unsubscribe() {
-		StackTraceElement[] stackTrace = null;
-		if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-			stackTrace = Thread.currentThread().getStackTrace();
-		}
-
-		synchronized (publisher) {
-			if (this.completion == null) {
-				setCompletion(new Completion(publisher.queueSize() - 1, CompletionType.UNSUBSCRIPTION, stackTrace));
-
-				tryDoAction();
-			}
-		}
-	}
-
-	public void markSourceCompleted() {
-		StackTraceElement[] stackTrace = null;
-		if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-			stackTrace = Thread.currentThread().getStackTrace();
-		}
-
-		if (this.completion == null) {
-			setCompletion(new Completion(publisher.queueSize() - 1, CompletionType.SOURCE_COMPLETED, stackTrace));
-
-			tryDoAction();
-		}
-	}
-
-	private void doPublish() {
-		BasePublisher.runAsync(() -> {
-			Item<I> item;
-			synchronized (publisher) {
-				item = publisher.getItemAt(cursor++);
-			}
-
-			boolean needMore = true;
-
-			try {
-				needMore = realSubscriber.onPublish(item.getValue());
-			} catch (Throwable e) {
-				if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-					ExceptionUtils.appendStacktraceToThrowable(e, item.getPublisherStackTrace());
-				}
-				ExceptionUtils.applyToUncaughtExceptionHandler(e);
-			}
-
-			synchronized (publisher) {
-				if (!needMore) { // need force delete subscription
-					publisher.removeSubscription(this);
-					Completion completion = new Completion(cursor - 1, CompletionType.UNSUBSCRIPTION,
-							item.getPublisherStackTrace());
-					setCompletion(completion);
-				}
-
-				this.actionInProgress = false;
-				tryDoAction();
-			}
-		});
-	}
-
-	private void doComplete() {
-		BasePublisher.runAsync(() -> {
-			try {
-				realSubscriber.onComplete(completion.getType());
-			} catch (Throwable e) {
-				if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-					ExceptionUtils.appendStacktraceToThrowable(e, completion.getStacktrace());
-				}
-				ExceptionUtils.applyToUncaughtExceptionHandler(e);
-			}
-
-			synchronized (publisher) {
-				completion.done();
-				this.actionInProgress = false;
-				tryDoAction();
-			}
-		});
-	}
-
-	private void setCompletion(Completion completion) {
-		this.completion = completion;
-	}
-}
-
-final class Item<I> {
-	private final I value;
-	private final StackTraceElement[] publisherStackTrace;
-
-	public Item(I value, StackTraceElement[] publisherStackTrace) {
-		this.value = value;
-		this.publisherStackTrace = publisherStackTrace;
-	}
-
-	public I getValue() {
-		return value;
-	}
-
-	public StackTraceElement[] getPublisherStackTrace() {
-		return publisherStackTrace;
-	}
-}
-
-final class Completion {
-
-	private final int lastItemIndex;
-
-	private final CompletionType type;
-
-	private final StackTraceElement[] stacktrace;
-
-	private volatile boolean done;
-
-	public Completion(int lastItemIndex, CompletionType type, StackTraceElement[] stacktrace) {
-		this.lastItemIndex = lastItemIndex;
-		this.type = type;
-		this.stacktrace = stacktrace;
-		this.done = false;
-	}
-
-	public int getLastItemIndex() {
-		return lastItemIndex;
-	}
-
-	public CompletionType getType() {
-		return type;
-	}
-
-	public StackTraceElement[] getStacktrace() {
-		return stacktrace;
-	}
-
-	public boolean isDone() {
-		return done;
-	}
-
-	public void done() {
-		this.done = true;
 	}
 }

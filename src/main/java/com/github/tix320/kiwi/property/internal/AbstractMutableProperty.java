@@ -4,23 +4,23 @@ import java.util.Objects;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.property.FreezeableProperty;
+import com.github.tix320.kiwi.property.MutableProperty;
 import com.github.tix320.kiwi.property.Property;
-import com.github.tix320.kiwi.property.ReadOnlyProperty;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
 
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseProperty<T> implements Property<T>, FreezeableProperty {
+public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, FreezeableProperty {
 
 	private final SinglePublisher<T> publisher;
 
-	public BaseProperty() {
+	public AbstractMutableProperty() {
 		this.publisher = new SinglePublisher<>();
 	}
 
-	public BaseProperty(T value) {
+	public AbstractMutableProperty(T value) {
 		this.publisher = new SinglePublisher<>(Objects.requireNonNull(value));
 	}
 
@@ -45,7 +45,7 @@ public abstract class BaseProperty<T> implements Property<T>, FreezeableProperty
 	}
 
 	@Override
-	public abstract ReadOnlyProperty<T> toReadOnly();
+	public abstract Property<T> toReadOnly();
 
 	@Override
 	public final T getValue() {

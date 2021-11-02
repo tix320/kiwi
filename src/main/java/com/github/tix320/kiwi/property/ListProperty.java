@@ -8,10 +8,10 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
-public final class ListProperty<T> extends BaseProperty<List<T>> {
+public final class ListProperty<T> extends AbstractMutableProperty<List<T>> {
 
 	public ListProperty() {
 	}

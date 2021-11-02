@@ -4,11 +4,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
@@ -34,17 +32,20 @@ public class TakeWhileObservableTest {
 		List<Integer> expected = List.of(3, 4);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-
 		Publisher<Integer> publisher = Publisher.simple();
 
-		publisher.asObservable()
-				.takeWhile(integer -> integer < 6)
-				.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(actual::add));
+		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+			}
+		};
+
+		publisher.asObservable().takeWhile(integer -> integer < 6).subscribe(subscriber);
 
 		publisher.publish(3);
 		publisher.publish(4);
-		subscriptionHolder.get().unsubscribe();
+		subscriber.subscription().cancel();
 		publisher.publish(5);
 
 		Thread.sleep(100);

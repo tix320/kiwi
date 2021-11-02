@@ -6,14 +6,26 @@ package com.github.tix320.kiwi.observable;
 public interface Subscription {
 
 	/**
-	 * Check, if this subscription completed.
-	 *
-	 * @return true, if completed, false otherwise.
+	 * Unsubscribe from observable passing {@link Unsubscription} instance.
 	 */
-	boolean isCompleted();
+	void cancel(Unsubscription unsubscription);
+
+	/**
+	 * Immediately unsubscribe from observable passing {@link Unsubscription} instance.
+	 */
+	void cancelImmediately(Unsubscription unsubscription);
 
 	/**
 	 * Unsubscribe from observable.
 	 */
-	void unsubscribe();
+	default void cancel() {
+		cancel(Unsubscription.DEFAULT);
+	}
+
+	/**
+	 * Immediately unsubscribe from observable.
+	 */
+	default void cancelImmediately() {
+		cancelImmediately(Unsubscription.DEFAULT);
+	}
 }

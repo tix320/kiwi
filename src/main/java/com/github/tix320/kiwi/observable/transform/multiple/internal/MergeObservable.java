@@ -1,25 +1,23 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
-public final class ZipObservable<T> extends Observable<List<T>> {
+/**
+ * @author Tigran Sargsyan on 24-Feb-19
+ */
+public final class MergeObservable<T> extends Observable<T> {
 
-	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("ZIP_ALL_COMPLETED");
-
-	private static final Unsubscription UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE = new Unsubscription(
-			"UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE");
+	private static final SourceCompleted ALL_COMPLETED = new SourceCompleted("MERGE_ALL_COMPLETED");
 
 	private final List<Observable<? extends T>> observables;
 
-	public ZipObservable(List<Observable<? extends T>> observables) {
+	public MergeObservable(List<Observable<? extends T>> observables) {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
@@ -27,22 +25,14 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 	}
 
 	@Override
-	public void subscribe(Subscriber<? super List<T>> subscriber) {
+	public void subscribe(Subscriber<? super T> subscriber) {
 		int observablesCount = observables.size();
 
-		List<Queue<T>> queues = new CopyOnWriteArrayList<>();
-		for (int i = 0; i < observables.size(); i++) {
-			queues.add(new ConcurrentLinkedQueue<>());
-		}
-
-		List<Subscription> subscriptions = new ArrayList<>(observables.size());
-
-		AtomicInteger readyCount = new AtomicInteger(0);
+		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
 		Object lock = new Object();
 
 		AtomicInteger completedCount = new AtomicInteger(0);
-		boolean[] completed = new boolean[observablesCount];
 
 		Subscription generalSubscription = new Subscription() {
 
@@ -68,9 +58,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 			}
 		};
 
-		for (int i = 0; i < observables.size(); i++) {
-			Observable<? extends T> observable = observables.get(i);
-			int index = i;
+		for (Observable<? extends T> observable : observables) {
 			observable.subscribe(new SharedSubscriber<T>() {
 
 				@Override
@@ -84,41 +72,11 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 				@Override
 				public void onPublish(T item) {
+					Objects.requireNonNull(item,
+							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
+
 					synchronized (lock) {
-
-						Queue<T> queue = queues.get(index);
-
-						boolean isEmpty = queue.isEmpty();
-						queue.add(item);
-
-						if (isEmpty) {
-							int count = readyCount.incrementAndGet();
-
-							if (count == observablesCount) {
-								boolean needCompleteAll = false;
-
-								List<T> zip = new ArrayList<>(observablesCount);
-								for (int j = 0; j < queues.size(); j++) {
-									Queue<T> q = queues.get(j);
-									zip.add(q.remove());
-
-									if (q.isEmpty()) {
-										readyCount.decrementAndGet();
-
-										if (completed[j]) {
-											needCompleteAll = true;
-										}
-									}
-								}
-
-								subscriber.onPublish(zip);
-
-								if (needCompleteAll) {
-									subscriptions.forEach(subscription -> subscription.cancelImmediately(
-											UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE));
-								}
-							}
-						}
+						subscriber.onPublish(item);
 					}
 				}
 
@@ -130,14 +88,13 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 								subscriber.onComplete(userUnsubscription.unsubscription);
 							}
 						}
-						else {
-							completed[index] = true;
+						else if (completion instanceof SourceCompleted) {
 							if (completedCount.incrementAndGet() == observablesCount) {
 								subscriber.onComplete(ALL_COMPLETED);
 							}
-							else if (completion instanceof SourceCompleted && queues.get(index).isEmpty()) {
-								subscriber.onComplete(ALL_COMPLETED);
-							}
+						}
+						else {
+							throw new IllegalStateException(completion.toString());
 						}
 					}
 				}

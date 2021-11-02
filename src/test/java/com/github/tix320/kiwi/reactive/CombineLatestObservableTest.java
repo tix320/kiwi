@@ -57,16 +57,12 @@ public class CombineLatestObservableTest {
 		publisher1.publish(1);
 		publisher2.publish(2);
 
-		Thread.sleep(100);
-
 		publisher2.publish(4);
 		publisher2.complete();
 
-		Thread.sleep(200);
-
 		publisher1.publish(3);
 
-		Thread.sleep(200);
+		Thread.sleep(500);
 
 		assertEquals(expected, actual);  // FIXME  expected: <[[1,2], [1,4], [3,4]]> but was: <[[1,2], [3,2], [3,4]]>
 	}

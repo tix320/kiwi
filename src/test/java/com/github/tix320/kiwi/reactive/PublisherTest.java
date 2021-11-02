@@ -5,11 +5,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
 import org.junit.jupiter.api.Test;
@@ -40,11 +39,16 @@ public class PublisherTest {
 		List<Integer> actual = new ArrayList<>();
 
 		Observable<Integer> observable = publisher.asObservable();
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(integer -> {
-			actual.add(integer);
-			subscriptionHolder.get().unsubscribe();
-		}));
+
+		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+				subscription().cancel();
+			}
+		};
+
+		observable.subscribe(subscriber);
 
 		publisher.publish(1);
 
@@ -65,14 +69,20 @@ public class PublisherTest {
 		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		Observable<Integer> observable = publisher.asObservable();
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
+
+		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item * 20);
+			}
+		};
+
 		observable.subscribe(integer -> {
 			actual.add(integer * 10);
-			subscriptionHolder.get().unsubscribe();
+			subscriber.subscription().cancel();
 		});
 
-		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set)
-				.onPublish(integer -> actual.add(integer * 20)));
+		observable.subscribe(subscriber);
 
 		publisher.publish(1);
 
@@ -95,10 +105,18 @@ public class PublisherTest {
 		AtomicBoolean onCompleteCalled = new AtomicBoolean(false);
 
 		Observable<Integer> observable = publisher.asObservable();
-		observable.subscribe(Subscriber.<Integer>builder().onPublish(integer -> {
-			actual.add(integer);
-			publisher.complete();
-		}).onComplete(completionType -> onCompleteCalled.set(true)));
+		observable.subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+				publisher.complete();
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				onCompleteCalled.set(true);
+			}
+		});
 
 		publisher.publish(1);
 

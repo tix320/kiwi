@@ -7,18 +7,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
 import com.github.tix320.skimp.api.thread.Threads;
 
 /**
  * @author Tigran Sargsyan on 08-Apr-20.
  */
-public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
+public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 
 	private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(
 			Threads::daemon);
+
+	private static final SourceCompleted SOURCE_COMPLETED_BY_TIMEOUT = new SourceCompleted(
+			"SOURCE_COMPLETED_BY_TIMEOUT");
 
 	private final Observable<? extends T> observable;
 
@@ -28,6 +31,10 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 
 	public GetOnTimeoutObservable(Observable<? extends T> observable, Duration timeout,
 								  Supplier<? extends T> newItemFactory) {
+		if (timeout.isNegative()) {
+			throw new IllegalArgumentException(timeout.toString());
+		}
+
 		this.observable = observable;
 		this.timeout = timeout;
 		this.newItemFactory = newItemFactory;
@@ -37,67 +44,72 @@ public class GetOnTimeoutObservable<T> implements MonoObservable<T> {
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicBoolean published = new AtomicBoolean(false);
 
-		observable.toMono().subscribe(new Subscriber<T>() {
+		Object lock = new Object();
 
-			private volatile boolean unsubscribed = false;
+		final AbstractSubscriber<T> newSubscriber = new AbstractSubscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(new Subscription() {
-					@Override
-					public boolean isCompleted() {
-						return subscription.isCompleted();
-					}
-
-					@Override
-					public void unsubscribe() {
-						unsubscribed = true;
-						subscription.unsubscribe();
-					}
-				});
+			public void onSubscribe() {
+				subscriber.onSubscribe(subscription());
 			}
 
 			@Override
-			public boolean onPublish(T item) {
-				if (published.compareAndSet(false, true)) {
-					boolean needMore = subscriber.onPublish(item);
-					if (!needMore) {
-						unsubscribed = true;
+			public void onPublish(T item) {
+				synchronized (lock) {
+					if (published.compareAndSet(false, true)) {
+						subscriber.onPublish(item);
 					}
 				}
-				return false;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (unsubscribed) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
-				} else {
-					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-				}
-			}
-		});
+			public void onComplete(Completion completion) {
+				synchronized (lock) {
+					if (completion instanceof TimeoutUnsubscription timeoutUnsubscription) {
+						T item = timeoutUnsubscription.data();
 
-		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-
-		SCHEDULER.schedule(() -> {
-			try {
-				if (published.compareAndSet(false, true)) {
-					BasePublisher.runAsync(() -> {
 						try {
-							subscriber.onPublish(newItemFactory.get());
-							subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
-						} catch (Throwable e) {
-							if (BasePublisher.ENABLE_ASYNC_STACKTRACE) {
-								ExceptionUtils.appendStacktraceToThrowable(e, stackTrace);
-							}
-							throw e;
+							subscriber.onPublish(item);
 						}
-					});
+						catch (Throwable e) {
+							ExceptionUtils.applyToUncaughtExceptionHandler(e);
+						}
+
+						subscriber.onComplete(SOURCE_COMPLETED_BY_TIMEOUT);
+					}
+					else {
+						subscriber.onComplete(completion);
+					}
 				}
-			} catch (Throwable t) {
-				ExceptionUtils.applyToUncaughtExceptionHandler(t);
 			}
-		}, timeout.toMillis(), TimeUnit.MILLISECONDS);
+		};
+
+		observable.toMono().subscribe(newSubscriber);
+
+		schedule(timeout.toMillis(), () -> BasePublisher.runAsync(() -> {
+			synchronized (lock) {
+				if (published.compareAndSet(false, true)) {
+					T item = newItemFactory.get();
+					newSubscriber.subscription().cancelImmediately(new TimeoutUnsubscription(item));
+				}
+			}
+
+		}));
+	}
+
+	private void schedule(long millisDelay, Runnable runnable) {
+		try {
+			SCHEDULER.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
+		}
+		catch (Throwable e) {
+			ExceptionUtils.applyToUncaughtExceptionHandler(e);
+		}
+	}
+
+	private static final class TimeoutUnsubscription extends Unsubscription {
+
+		public TimeoutUnsubscription(Object data) {
+			super(data);
+		}
 	}
 }

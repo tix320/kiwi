@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.github.tix320.kiwi.observable.Observable;
 
-public final class ReadOnlyObjectStock<T> implements ReadOnlyStock<T> {
+public final class ReadOnlyObjectStock<T> implements Stock<T> {
 
 	private final Stock<T> stock;
 

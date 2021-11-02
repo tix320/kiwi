@@ -3,7 +3,7 @@ package com.github.tix320.kiwi.property;
 
 import com.github.tix320.kiwi.observable.Observable;
 
-public final class ReadOnlyObjectProperty<T> implements ReadOnlyProperty<T> {
+public final class ReadOnlyObjectProperty<T> implements Property<T> {
 
 	private final Property<T> property;
 

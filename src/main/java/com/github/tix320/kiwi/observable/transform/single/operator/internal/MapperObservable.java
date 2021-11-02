@@ -7,7 +7,7 @@ import com.github.tix320.kiwi.observable.*;
 /**
  * @author Tigran Sargsyan on 24-Feb-19
  */
-public final class MapperObservable<S, R> implements TransformObservable<S, R> {
+public final class MapperObservable<S, R> extends Observable<R> {
 
 	private final Observable<S> observable;
 
@@ -20,20 +20,20 @@ public final class MapperObservable<S, R> implements TransformObservable<S, R> {
 
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
-		observable.subscribe(new Subscriber<S>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(S item) {
-				return subscriber.onPublish(mapper.apply(item));
+			public void onPublish(S item) {
+				subscriber.onPublish(mapper.apply(item));
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				subscriber.onComplete(completionType);
+			public void onComplete(Completion completion) {
+				subscriber.onComplete(completion);
 			}
 		});
 	}
