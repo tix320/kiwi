@@ -94,14 +94,14 @@ final class PublisherSubscription<I> implements Subscription {
 	}
 
 	private CompletableFuture<Void> doPublish(I value) {
-		return BasePublisher.runAsync(() -> realSubscriber.onPublish(value));
+		return BasePublisher.runAsync(() -> realSubscriber.publish(value));
 	}
 
 	private CompletableFuture<Void> doComplete(Completion completion) {
 		subscriberCompletion.setPerformed();
 		return BasePublisher.runAsync(() -> {
 			publisher.removeSubscription(this);
-			realSubscriber.onComplete(completion);
+			realSubscriber.complete(completion);
 		});
 	}
 

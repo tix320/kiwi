@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.tix320.kiwi.observable.AbstractSubscriber;
 import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.skimp.api.object.None;
@@ -27,14 +28,14 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe() {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 			}
 
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				called.add("onPublish");
 				subscription().cancel(Unsubscription.DEFAULT);
 			}
@@ -59,15 +60,15 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe() {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
 			}
 
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				called.add("onPublish");
 			}
 
@@ -90,15 +91,15 @@ public class UntilObservableTest {
 
 		List<String> called = new ArrayList<>();
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new AbstractSubscriber<>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
 			@Override
-			public void onSubscribe() {
+			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
 				publisher.publish(10);
 			}
 
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				called.add("onPublish");
 				subscription().cancel(Unsubscription.DEFAULT);
 			}

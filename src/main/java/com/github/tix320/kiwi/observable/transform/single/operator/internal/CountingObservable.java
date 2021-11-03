@@ -29,22 +29,22 @@ public final class CountingObservable<T> extends Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong limit = new AtomicLong(count);
-		observable.subscribe(new AbstractSubscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 
 			@Override
-			public void onSubscribe() {
-				subscriber.onSubscribe(subscription());
+			public void onSubscribe(Subscription subscription) {
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				long remaining = limit.decrementAndGet();
 				if (remaining > 0) {
-					subscriber.onPublish(item);
+					subscriber.publish(item);
 				}
 				else {
 					try {
-						subscriber.onPublish(item);
+						subscriber.publish(item);
 					}
 					catch (Throwable e) {
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
@@ -57,10 +57,10 @@ public final class CountingObservable<T> extends Observable<T> {
 			@Override
 			public void onComplete(Completion completion) {
 				if (completion == LIMIT_UNSUBSCRIPTION) {
-					subscriber.onComplete(SOURCE_COMPLETED_BY_LIMIT);
+					subscriber.complete(SOURCE_COMPLETED_BY_LIMIT);
 				}
 				else {
-					subscriber.onComplete(completion);
+					subscriber.complete(completion);
 				}
 			}
 		});

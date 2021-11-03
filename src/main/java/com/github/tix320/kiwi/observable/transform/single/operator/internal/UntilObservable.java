@@ -1,7 +1,6 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -29,20 +28,20 @@ public final class UntilObservable<T> extends Observable<T> {
 			private volatile Subscription untilSubscription;
 		};
 
-		observable.subscribe(new SharedSubscriber<>() {
+		observable.subscribe(new Subscriber<>() {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+				subscriber.setSubscription(subscription);
 
-				until.subscribe(new SharedSubscriber<Object>() {
+				until.subscribe(new Subscriber<Object>() {
 					@Override
 					public void onSubscribe(Subscription subscription) {
 						context.untilSubscription = subscription;
 					}
 
 					@Override
-					public void onPublish(Object item) {
+					public void onNext(Object item) {
 
 					}
 
@@ -58,9 +57,9 @@ public final class UntilObservable<T> extends Observable<T> {
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				synchronized (lock) {
-					subscriber.onPublish(item);
+					subscriber.publish(item);
 				}
 			}
 
@@ -68,11 +67,11 @@ public final class UntilObservable<T> extends Observable<T> {
 			public void onComplete(Completion completion) {
 				synchronized (lock) {
 					if (completion == UNTIL_UNSUBSCRIPTION) {
-						subscriber.onComplete(SOURCE_COMPLETED_VIA_UNTIL);
+						subscriber.complete(SOURCE_COMPLETED_VIA_UNTIL);
 					}
 					else { // Normal source completed or user unsubscribed
 						context.untilSubscription.cancel();
-						subscriber.onComplete(completion);
+						subscriber.complete(completion);
 					}
 				}
 			}

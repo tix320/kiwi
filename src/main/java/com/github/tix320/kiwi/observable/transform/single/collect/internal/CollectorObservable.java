@@ -24,11 +24,11 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(S item) {
+			public void onNext(S item) {
 				objects.add(item);
 			}
 
@@ -36,13 +36,13 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 			public void onComplete(Completion completion) {
 				if (completion instanceof SourceCompletion) {
 					try {
-						subscriber.onPublish(collect(objects.stream()));
+						subscriber.publish(collect(objects.stream()));
 					}
 					catch (Throwable e) {
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
 				}
-				subscriber.onComplete(completion);
+				subscriber.complete(completion);
 			}
 		});
 	}

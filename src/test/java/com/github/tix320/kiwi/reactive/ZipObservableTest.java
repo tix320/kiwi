@@ -60,7 +60,7 @@ public class ZipObservableTest {
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Tuple<Integer, Integer> o) {
+			public void onNext(Tuple<Integer, Integer> o) {
 				actual.add(List.of(o.first(), o.second()));
 			}
 
@@ -95,7 +95,7 @@ public class ZipObservableTest {
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Tuple<Integer, Integer> o) {
+			public void onNext(Tuple<Integer, Integer> o) {
 				actual.add(List.of(o.first(), o.second()));
 			}
 
@@ -134,7 +134,7 @@ public class ZipObservableTest {
 
 		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Tuple<Integer, Integer> o) {
+			public void onNext(Tuple<Integer, Integer> o) {
 				actual.add(List.of(o.first(), o.second()));
 			}
 

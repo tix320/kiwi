@@ -42,7 +42,7 @@ public class MonoObservableTest {
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
 		observable.subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 			}
 

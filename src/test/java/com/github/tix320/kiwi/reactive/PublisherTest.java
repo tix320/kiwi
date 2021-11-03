@@ -42,7 +42,7 @@ public class PublisherTest {
 
 		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 				subscription().cancel();
 			}
@@ -72,7 +72,7 @@ public class PublisherTest {
 
 		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item * 20);
 			}
 		};
@@ -107,7 +107,7 @@ public class PublisherTest {
 		Observable<Integer> observable = publisher.asObservable();
 		observable.subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 				publisher.complete();
 			}
