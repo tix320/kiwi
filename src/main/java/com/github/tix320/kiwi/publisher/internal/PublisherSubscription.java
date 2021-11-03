@@ -34,18 +34,6 @@ final class PublisherSubscription<I> implements Subscription {
 		return cursor.get();
 	}
 
-	public void markSourceCompleted() {
-		synchronized (publisher) {
-			if (this.subscriberCompletion == null) {
-				this.subscriberCompletion = new SubscriberCompletion(publisher.getPublishCount() - 1,
-						publisher.getCompletion());
-
-				tryDoAction();
-			}
-		}
-
-	}
-
 	public void tryDoAction() {
 		if (publisher.isFrozen()) {
 			return;
@@ -63,10 +51,7 @@ final class PublisherSubscription<I> implements Subscription {
 			else {
 				final int lastItemIndex = subscriberCompletion.lastItemIndex();
 				if (cursor.get() > lastItemIndex) {
-					subscriberCompletion.setPerformed();
-					doComplete(subscriberCompletion.completion()).whenComplete((unused, unused1) -> {
-						actionInProgress.set(false);
-					});
+					doComplete(subscriberCompletion.completion()).whenComplete((unused, unused1) -> actionInProgress.set(false));
 				}
 				else {
 					final I value = publisher.getNthPublish(cursor.getAndIncrement());
@@ -87,6 +72,8 @@ final class PublisherSubscription<I> implements Subscription {
 			}
 			else {
 				if (publisher.isCompleted()) {
+					this.subscriberCompletion = new SubscriberCompletion(publisher.getPublishCount() - 1,
+							publisher.getCompletion());
 					doComplete(SourceCompletion.DEFAULT).whenComplete((unused, unused1) -> actionInProgress.set(false));
 				}
 				else {
@@ -100,19 +87,7 @@ final class PublisherSubscription<I> implements Subscription {
 	public void cancel(Unsubscription unsubscription) {
 		synchronized (publisher) {
 			if (this.subscriberCompletion == null) {
-				this.subscriberCompletion = new SubscriberCompletion(publisher.getPublishCount() - 1, unsubscription);
-
-				tryDoAction();
-			}
-		}
-	}
-
-	@Override
-	public void cancelImmediately(Unsubscription unsubscription) {
-		synchronized (publisher) {
-			if (this.subscriberCompletion == null) {
 				this.subscriberCompletion = new SubscriberCompletion(cursor.get() - 1, unsubscription);
-
 				tryDoAction();
 			}
 		}
@@ -123,6 +98,7 @@ final class PublisherSubscription<I> implements Subscription {
 	}
 
 	private CompletableFuture<Void> doComplete(Completion completion) {
+		subscriberCompletion.setPerformed();
 		return BasePublisher.runAsync(() -> {
 			publisher.removeSubscription(this);
 			realSubscriber.onComplete(completion);
@@ -157,6 +133,11 @@ final class PublisherSubscription<I> implements Subscription {
 
 		public void setPerformed() {
 			this.performed = true;
+		}
+
+		@Override
+		public String toString() {
+			return "SubscriberCompletion{" + "lastItemIndex=" + lastItemIndex + ", completion=" + completion + ", performed=" + performed + '}';
 		}
 	}
 

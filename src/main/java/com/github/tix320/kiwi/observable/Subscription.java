@@ -16,16 +16,4 @@ public interface Subscription {
 	default void cancel() {
 		cancel(Unsubscription.DEFAULT);
 	}
-
-	/**
-	 * Immediately unsubscribe from observable passing {@link Unsubscription} instance.
-	 */
-	void cancelImmediately(Unsubscription unsubscription);
-
-	/**
-	 * Immediately unsubscribe from observable.
-	 */
-	default void cancelImmediately() {
-		cancelImmediately(Unsubscription.DEFAULT);
-	}
 }

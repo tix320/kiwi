@@ -8,6 +8,7 @@ import java.util.Set;
 import com.github.tix320.kiwi.observable.ObservableCandidate;
 import com.github.tix320.skimp.api.collection.BiMap;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.function.CheckedRunnable;
 
 public interface Property<T> extends ObservableCandidate<T> {
 
@@ -69,37 +70,42 @@ public interface Property<T> extends ObservableCandidate<T> {
 
 	// ---------- Atomic helper ----------
 
-	static void updateAtomic(FreezeableProperty property, Runnable runnable) {
+	static void updateAtomic(FreezeableProperty property, CheckedRunnable runnable) {
 		updateAtomic(runnable, List.of(property));
 	}
 
-	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, Runnable runnable) {
+	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, CheckedRunnable runnable) {
 		updateAtomic(runnable, List.of(property1, property2));
 	}
 
 	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, FreezeableProperty property3,
-							 Runnable runnable) {
+							 CheckedRunnable runnable) {
 		updateAtomic(runnable, List.of(property1, property2, property3));
 	}
 
-	static void updateAtomic(Collection<FreezeableProperty> properties, Runnable runnable) {
+	static void updateAtomic(Collection<FreezeableProperty> properties, CheckedRunnable runnable) {
 		updateAtomic(runnable, properties);
 	}
 
-	private static void updateAtomic(Runnable runnable, Collection<FreezeableProperty> properties) {
+	private static void updateAtomic(CheckedRunnable runnable, Collection<FreezeableProperty> properties) {
 		for (FreezeableProperty property : properties) {
 			property.freeze();
 		}
 
+		Throwable ex = null;
 		try {
 			runnable.run();
 		}
 		catch (Throwable e) {
-			ExceptionUtils.applyToUncaughtExceptionHandler(e);
+			ex = e;
 		}
 
 		for (FreezeableProperty property : properties) {
 			property.unfreeze();
+		}
+
+		if (ex != null) {
+			ExceptionUtils.sneakyThrow(ex);
 		}
 	}
 }

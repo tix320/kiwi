@@ -25,7 +25,7 @@ public class SkipObservableTest {
 	}
 
 	@Test
-	public void completeBeforeSkipAll() {
+	public void completeBeforeSkipAll() throws InterruptedException {
 		List<Integer> expected = List.of();
 		List<Integer> actual = new ArrayList<>();
 		Publisher<Integer> publisher = Publisher.simple();
@@ -42,7 +42,11 @@ public class SkipObservableTest {
 
 		publisher.publish(4);
 		publisher.publish(5);
+
+		Thread.sleep(200);
+
 		subscriber.subscription().cancel();
+
 		publisher.publish(7);
 
 		assertEquals(expected, actual);

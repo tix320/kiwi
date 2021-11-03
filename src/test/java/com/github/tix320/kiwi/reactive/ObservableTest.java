@@ -417,7 +417,7 @@ public class ObservableTest {
 			public void onPublish(Integer item) {
 				actual.add(item);
 				if (item.equals(2)) {
-					subscription().cancelImmediately();
+					subscription().cancel();
 				}
 			}
 
@@ -462,11 +462,11 @@ public class ObservableTest {
 
 		publisher.publish(1);
 		publisher.publish(2);
+		Thread.sleep(100);
 		subscriber.subscription().cancel();
 		publisher.publish(3);
+		Thread.sleep(100);
 		subscriber.subscription().cancel();
-
-		Thread.sleep(500);
 
 		assertEquals(expected, actual);
 	}

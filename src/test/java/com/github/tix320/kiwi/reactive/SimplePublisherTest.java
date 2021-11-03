@@ -41,6 +41,8 @@ public class SimplePublisherTest {
 		publisher.publish(6);
 		publisher.publish(7);
 
+		Thread.sleep(200);
+
 		subscriber.subscription().cancel();
 
 		publisher.publish(8);

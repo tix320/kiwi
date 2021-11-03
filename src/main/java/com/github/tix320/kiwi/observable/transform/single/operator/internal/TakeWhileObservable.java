@@ -38,7 +38,7 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 					subscriber.onPublish(item);
 				}
 				else {
-					subscription().cancelImmediately(PREDICATE_UNSUBSCRIPTION);
+					subscription().cancel(PREDICATE_UNSUBSCRIPTION);
 				}
 			}
 

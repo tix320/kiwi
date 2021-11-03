@@ -52,12 +52,12 @@ public class PropertyAtomicContextTest {
 		property1.setValue(3);
 		property2.setValue(4);
 
-		 Property.updateAtomic(property1, property2, () -> {
-			 property1.setValue(4);
-			 property1.setValue(5);
-			 property2.setValue(6);
-			 property2.setValue(7);
-		 });
+		Property.updateAtomic(property1, property2, () -> {
+			property1.setValue(4);
+			property1.setValue(5);
+			property2.setValue(6);
+			property2.setValue(7);
+		});
 
 		property1.setValue(8);
 		property2.setValue(9);
@@ -71,7 +71,7 @@ public class PropertyAtomicContextTest {
 	public void stockTest() throws InterruptedException {
 		List<IllegalStateException> exceptions = new ArrayList<>();
 
-		Set<Integer> expected = Set.of(3, 4, 5, 6);
+		Set<Integer> expected = Set.of(3, 4, 5, 6, 8);
 		Set<Integer> actual = new ConcurrentSkipListSet<>();
 
 		ObjectStock<Integer> stock = Stock.forObject();
@@ -84,58 +84,57 @@ public class PropertyAtomicContextTest {
 			}
 		});
 
-		 Property.updateAtomic(stock, () -> {
-			 stock.add(4);
+		Property.updateAtomic(stock, () -> {
+			stock.add(4);
 
 
-			 FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
-				 @Override
-				 public void onPublish(Integer item) {
-					 if (item == 4) {
-						 exceptions.add(new IllegalStateException());
-					 }
-				 }
-			 };
+			FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+				@Override
+				public void onPublish(Integer item) {
+					if (item == 4) {
+						exceptions.add(new IllegalStateException());
+					}
+				}
+			};
 
-			 stock.asObservable().subscribe(subscriber);
+			stock.asObservable().subscribe(subscriber);
 
-			 subscriber.subscription().cancel();
+			Thread.sleep(200);
 
-			 stock.add(5);
+			subscriber.subscription().cancel();
 
-			 FlexibleSubscriber<Integer> subscriber2 = new FlexibleSubscriber<>() {
-				 @Override
-				 public void onPublish(Integer integer) {
-					 if (integer == 4 || integer == 5) {
-						 exceptions.add(new IllegalStateException());
-					 }
-				 }
-			 };
+			stock.add(5);
 
-			 stock.asObservable().subscribe(subscriber2);
+			FlexibleSubscriber<Integer> subscriber2 = new FlexibleSubscriber<>() {
+				@Override
+				public void onPublish(Integer integer) {
+					if (integer == 4 || integer == 5) {
+						actual.add(8);
+					}
+				}
+			};
 
-			 subscriber2.subscription().cancel();
+			stock.asObservable().subscribe(subscriber2);
 
+			stock.asObservable().subscribe(integer -> {
+				if (integer == 5) {
+					actual.add(5);
+				}
+			});
 
-			 stock.asObservable().subscribe(integer -> {
-				 if (integer == 5) {
-					 actual.add(5);
-				 }
-			 });
+			stock.add(6);
 
-			 stock.add(6);
+			stock.asObservable().subscribe(integer -> {
+				if (integer == 6) {
+					actual.add(integer);
+				}
+			});
+		});
 
-			 stock.asObservable().subscribe(integer -> {
-				 if (integer == 6) {
-					 actual.add(integer);
-				 }
-			 });
-		 });
-
-		Thread.sleep(100);
+		Thread.sleep(200);
 
 		assertEquals(expected, actual);
-		assertEquals(3, exceptions.size());
+		assertEquals(0, exceptions.size());
 	}
 
 	@Test

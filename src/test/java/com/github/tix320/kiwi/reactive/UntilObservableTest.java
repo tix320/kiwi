@@ -36,7 +36,7 @@ public class UntilObservableTest {
 			@Override
 			public void onPublish(Integer item) {
 				called.add("onPublish");
-				subscription().cancelImmediately(Unsubscription.DEFAULT);
+				subscription().cancel(Unsubscription.DEFAULT);
 			}
 
 			@Override
@@ -100,7 +100,7 @@ public class UntilObservableTest {
 			@Override
 			public void onPublish(Integer item) {
 				called.add("onPublish");
-				subscription().cancelImmediately(Unsubscription.DEFAULT);
+				subscription().cancel(Unsubscription.DEFAULT);
 			}
 
 			@Override

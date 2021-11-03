@@ -50,7 +50,7 @@ public final class UntilObservable<T> extends Observable<T> {
 					public void onComplete(Completion completion) {
 						if (completion instanceof SourceCompletion) {
 							synchronized (lock) {
-								subscription.cancelImmediately(UNTIL_UNSUBSCRIPTION);
+								subscription.cancel(UNTIL_UNSUBSCRIPTION);
 							}
 						}
 					}
@@ -71,7 +71,7 @@ public final class UntilObservable<T> extends Observable<T> {
 						subscriber.onComplete(SOURCE_COMPLETED_VIA_UNTIL);
 					}
 					else { // Normal source completed or user unsubscribed
-						context.untilSubscription.cancelImmediately();
+						context.untilSubscription.cancel();
 						subscriber.onComplete(completion);
 					}
 				}

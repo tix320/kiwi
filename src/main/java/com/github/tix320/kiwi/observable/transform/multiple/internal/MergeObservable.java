@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.observable.transform.multiple.internal;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
@@ -34,26 +35,25 @@ public final class MergeObservable<T> extends Observable<T> {
 
 		AtomicInteger completedCount = new AtomicInteger(0);
 
+		AtomicBoolean userUnsubscribed = new AtomicBoolean(false);
+
 		Subscription generalSubscription = new Subscription() {
 
 			@Override
 			public void cancel(Unsubscription unsubscription) {
-				throw new UnsupportedOperationException(); // TODO
-			}
-
-			@Override
-			public void cancelImmediately(Unsubscription unsubscription) {
 				synchronized (lock) {
 					int subscriptionsSize = subscriptions.size();
 					for (int i = 0; i < subscriptionsSize - 1; i++) {
 						Subscription subscription = subscriptions.get(i);
 						UserUnsubscription userUnsubscription = new UserUnsubscription();
 
-						subscription.cancelImmediately(userUnsubscription);
+						subscription.cancel(userUnsubscription);
 					}
 
 					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
-					lastSubscription.cancelImmediately(new UserUnsubscription(unsubscription));
+					lastSubscription.cancel(new UserUnsubscription(unsubscription));
+
+					userUnsubscribed.set(true);
 				}
 			}
 		};
@@ -74,8 +74,10 @@ public final class MergeObservable<T> extends Observable<T> {
 				public void onPublish(T item) {
 					Objects.requireNonNull(item,
 							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
-
 					synchronized (lock) {
+						if (userUnsubscribed.get()) {
+							return;
+						}
 						subscriber.onPublish(item);
 					}
 				}

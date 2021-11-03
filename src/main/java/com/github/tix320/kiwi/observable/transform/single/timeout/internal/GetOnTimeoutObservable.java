@@ -90,7 +90,7 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 			synchronized (lock) {
 				if (published.compareAndSet(false, true)) {
 					T item = newItemFactory.get();
-					newSubscriber.subscription().cancelImmediately(new TimeoutUnsubscription(item));
+					newSubscriber.subscription().cancel(new TimeoutUnsubscription(item));
 				}
 			}
 

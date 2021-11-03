@@ -57,6 +57,50 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	}
 
 	/**
+	 * Subscribe to observable and consume items asynchronously.
+	 *
+	 * @param consumer for processing items
+	 */
+	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer) {
+		subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onSubscribe() {
+				onSubscribe.accept(subscription());
+			}
+
+			@Override
+			public void onPublish(T item) {
+				consumer.accept(item);
+			}
+		});
+	}
+
+	/**
+	 * Subscribe to observable and consume items asynchronously.
+	 *
+	 * @param consumer for processing items
+	 */
+	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer,
+								Consumer<Completion> onComplete) {
+		subscribe(new Subscriber<T>() {
+			@Override
+			public void onSubscribe(Subscription subscription) {
+				onSubscribe.accept(subscription);
+			}
+
+			@Override
+			public void onPublish(T item) {
+				consumer.accept(item);
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				onComplete.accept(completion);
+			}
+		});
+	}
+
+	/**
 	 * Subscribe to observable and handle every item, consumer must return boolean value,
 	 * which indicates that need more elements or not.
 	 *
@@ -68,7 +112,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 			public void onPublish(T item) {
 				boolean needMore = consumer.accept(item);
 				if (!needMore) {
-					subscription().cancelImmediately();
+					subscription().cancel();
 				}
 			}
 		});
@@ -484,8 +528,8 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	@SafeVarargs
 	public static <T> Observable<List<T>> zip(Observable<? extends T>... observables) {
-	    List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
-	    return new ZipObservable<>(list);
+		List<Observable<? extends T>> list = new ArrayList<>(Arrays.asList(observables));
+		return new ZipObservable<>(list);
 	}
 
 	/**
@@ -498,11 +542,11 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return observable
 	 */
 	public static <T> Observable<List<T>> zip(Iterable<? extends Observable<? extends T>> observables) {
-	    List<Observable<? extends T>> list = new ArrayList<>();
-	    for (Observable<? extends T> observable : observables) {
-	        list.add(observable);
-	    }
-	    return new ZipObservable<>(list);
+		List<Observable<? extends T>> list = new ArrayList<>();
+		for (Observable<? extends T> observable : observables) {
+			list.add(observable);
+		}
+		return new ZipObservable<>(list);
 	}
 
 	/**
@@ -517,9 +561,9 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	@SuppressWarnings("all")
 	public static <A, B> Observable<Tuple<A, B>> zip(Observable<? extends A> observable1,
-	                                                 Observable<? extends B> observable2) {
-	    ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
-	    return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
+													 Observable<? extends B> observable2) {
+		ZipObservable<List<?>> zipObservable = new ZipObservable<>((List) List.of(observable1, observable2));
+		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
 
 

@@ -39,22 +39,17 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 			@Override
 			public void cancel(Unsubscription unsubscription) {
-				throw new UnsupportedOperationException(); // TODO
-			}
-
-			@Override
-			public void cancelImmediately(Unsubscription unsubscription) {
 				synchronized (lock) {
 					int subscriptionsSize = subscriptions.size();
 					for (int i = 0; i < subscriptionsSize - 1; i++) {
 						Subscription subscription = subscriptions.get(i);
 						UserUnsubscription userUnsubscription = new UserUnsubscription();
 
-						subscription.cancelImmediately(userUnsubscription);
+						subscription.cancel(userUnsubscription);
 					}
 
 					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
-					lastSubscription.cancelImmediately(new UserUnsubscription(unsubscription));
+					lastSubscription.cancel(new UserUnsubscription(unsubscription));
 				}
 			}
 		};

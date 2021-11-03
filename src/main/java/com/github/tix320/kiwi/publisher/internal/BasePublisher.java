@@ -88,7 +88,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 			completion = sourceCompletion;
 
 			if (!isFrozen) {
-				subscriptions.forEach(PublisherSubscription::markSourceCompleted);
+				subscriptions.forEach(PublisherSubscription::tryDoAction);
 				subscriptions.clear();
 			}
 		}

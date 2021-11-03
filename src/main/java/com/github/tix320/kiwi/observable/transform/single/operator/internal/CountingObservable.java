@@ -50,7 +50,7 @@ public final class CountingObservable<T> extends Observable<T> {
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
 					}
 
-					subscription().cancelImmediately(LIMIT_UNSUBSCRIPTION);
+					subscription().cancel(LIMIT_UNSUBSCRIPTION);
 				}
 			}
 

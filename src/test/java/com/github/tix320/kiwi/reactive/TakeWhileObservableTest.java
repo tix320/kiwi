@@ -45,7 +45,11 @@ public class TakeWhileObservableTest {
 
 		publisher.publish(3);
 		publisher.publish(4);
+
+		Thread.sleep(200);
+
 		subscriber.subscription().cancel();
+
 		publisher.publish(5);
 
 		Thread.sleep(100);

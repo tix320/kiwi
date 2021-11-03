@@ -36,7 +36,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
-				subscription().cancelImmediately(ONCE_UNSUBSCRIPTION);
+				subscription().cancel(ONCE_UNSUBSCRIPTION);
 			}
 
 			@Override
