@@ -8,7 +8,7 @@ public abstract class FlexibleSubscriber<T> extends Subscriber<T> {
 
 	@Override
 	public void onSubscribe(Subscription subscription) {
-		// No-op
+		subscription.request(Long.MAX_VALUE);
 	}
 
 	@Override

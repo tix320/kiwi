@@ -39,6 +39,29 @@ public final class MergeObservable<T> extends Observable<T> {
 		Subscription generalSubscription = new Subscription() {
 
 			@Override
+			public void request(long n) {
+				synchronized (lock) {
+					if (n == Long.MAX_VALUE) {
+						for (Subscription subscription : subscriptions) {
+							subscription.request(n);
+						}
+					}
+					else {
+						long perObservable = n / observablesCount;
+						long mod = n % observablesCount;
+
+						for (int i = 0; i < observablesCount - 1; i++) {
+							Subscription subscription = subscriptions.get(i);
+							subscription.request(perObservable);
+						}
+
+						Subscription lastSubscription = subscriptions.get(observablesCount - 1);
+						lastSubscription.request(perObservable + mod);
+					}
+				}
+			}
+
+			@Override
 			public void cancel(Unsubscription unsubscription) {
 				synchronized (lock) {
 					int subscriptionsSize = subscriptions.size();

@@ -28,18 +28,14 @@ public abstract class Subscriber<T> {
 
 	public final void publish(T item) {
 		Subscription subscription = this.subscription;
-		try{
-			assert subscription != INITIAL_STATE && subscription != COMPLETED_STATE;
-		}catch (AssertionError e){
-			System.out.println(subscription + " " + item);
-		}
+		assert subscription != INITIAL_STATE && subscription != COMPLETED_STATE;
 		onNext(item);
 	}
 
 	public final void complete(Completion completion) {
 		subscriptionUpdater.updateAndGet(this, s -> {
 			if (s == INITIAL_STATE) {
-				throw new IllegalStateException("Subscription does not subscribed yet");
+				throw new IllegalStateException("Cannot complete subscriber, because it does not subscribed yet.");
 			}
 			else if (s == COMPLETED_STATE) {
 				throw new IllegalStateException("Subscriber already completed");
@@ -74,6 +70,11 @@ public abstract class Subscriber<T> {
 	private static final class InitialSubscriptionImpl implements Subscription {
 
 		@Override
+		public void request(long n) {
+			throw new IllegalStateException("Not subscribed yet");
+		}
+
+		@Override
 		public void cancel(Unsubscription unsubscription) {
 			throw new IllegalStateException("Not subscribed yet");
 		}
@@ -85,6 +86,11 @@ public abstract class Subscriber<T> {
 	}
 
 	private static final class CompletedSubscriptionImpl implements Subscription {
+
+		@Override
+		public void request(long n) {
+			throw new IllegalStateException("Subscription already completed");
+		}
 
 		@Override
 		public void cancel(Unsubscription unsubscription) {

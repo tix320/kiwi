@@ -37,6 +37,15 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 		Subscription generalSubscription = new Subscription() {
 
 			@Override
+			public void request(long n) { // TODO request based on last items distributive, consider MAX case
+				synchronized (lock) {
+					for (Subscription subscription : subscriptions) {
+						subscription.request(Long.MAX_VALUE);
+					}
+				}
+			}
+
+			@Override
 			public void cancel(Unsubscription unsubscription) {
 				synchronized (lock) {
 					int subscriptionsSize = subscriptions.size();

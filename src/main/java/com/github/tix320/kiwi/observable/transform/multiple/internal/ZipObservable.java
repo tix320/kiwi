@@ -46,6 +46,15 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 		Subscription generalSubscription = new Subscription() {
 
 			@Override
+			public void request(long n) {
+				synchronized (lock) {
+					for (Subscription subscription : subscriptions) {
+						subscription.request(n);
+					}
+				}
+			}
+
+			@Override
 			public void cancel(Unsubscription unsubscription) {
 				synchronized (lock) {
 					int subscriptionsSize = subscriptions.size();

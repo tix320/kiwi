@@ -194,15 +194,21 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
-			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber);
+			int initialCursor;
+			synchronized (BasePublisher.this) {
+				initialCursor = BasePublisher.this.resolveInitialCursorOnSubscribe() + cleanCount;
+			}
+
+			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber,
+					initialCursor);
+
 			subscriber.setSubscription(subscription);
 
 			synchronized (BasePublisher.this) {
 				subscriptions.add(subscription);
-				int initialCursor = BasePublisher.this.resolveInitialCursorOnSubscribe() + cleanCount;
-				subscription.changeCursor(initialCursor);
-				subscription.tryDoAction();
 			}
+
+			subscription.tryDoAction();
 		}
 	}
 }
