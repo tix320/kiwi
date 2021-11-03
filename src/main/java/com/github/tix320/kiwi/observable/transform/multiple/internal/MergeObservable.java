@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
@@ -59,26 +58,26 @@ public final class MergeObservable<T> extends Observable<T> {
 		};
 
 		for (Observable<? extends T> observable : observables) {
-			observable.subscribe(new SharedSubscriber<T>() {
+			observable.subscribe(new Subscriber<T>() {
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
 					subscriptions.add(subscription);
 
 					if (subscriptions.size() == observablesCount) {
-						subscriber.onSubscribe(generalSubscription);
+						subscriber.setSubscription(generalSubscription);
 					}
 				}
 
 				@Override
-				public void onPublish(T item) {
+				public void onNext(T item) {
 					Objects.requireNonNull(item,
 							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
 					synchronized (lock) {
 						if (userUnsubscribed.get()) {
 							return;
 						}
-						subscriber.onPublish(item);
+						subscriber.publish(item);
 					}
 				}
 
@@ -87,12 +86,12 @@ public final class MergeObservable<T> extends Observable<T> {
 					synchronized (lock) {
 						if (completion instanceof UserUnsubscription userUnsubscription) {
 							if (userUnsubscription.perform) {
-								subscriber.onComplete(userUnsubscription.unsubscription);
+								subscriber.complete(userUnsubscription.unsubscription);
 							}
 						}
 						else if (completion instanceof SourceCompletion) {
 							if (completedCount.incrementAndGet() == observablesCount) {
-								subscriber.onComplete(ALL_COMPLETED);
+								subscriber.complete(ALL_COMPLETED);
 							}
 						}
 						else {

@@ -414,7 +414,7 @@ public class ObservableTest {
 
 		observable.subscribe(new FlexibleSubscriber<Integer>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 				if (item.equals(2)) {
 					subscription().cancel();
@@ -449,7 +449,7 @@ public class ObservableTest {
 		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 			}
 

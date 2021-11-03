@@ -8,7 +8,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 public final class ZipObservable<T> extends Observable<List<T>> {
 
@@ -66,19 +65,19 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<? extends T> observable = observables.get(i);
 			int index = i;
-			observable.subscribe(new SharedSubscriber<T>() {
+			observable.subscribe(new Subscriber<T>() {
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
 					subscriptions.add(subscription);
 
 					if (subscriptions.size() == observablesCount) {
-						subscriber.onSubscribe(generalSubscription);
+						subscriber.setSubscription(generalSubscription);
 					}
 				}
 
 				@Override
-				public void onPublish(T item) {
+				public void onNext(T item) {
 					synchronized (lock) {
 
 						Queue<T> queue = queues.get(index);
@@ -106,7 +105,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 									}
 								}
 
-								subscriber.onPublish(zip);
+								subscriber.publish(zip);
 
 								if (needCompleteAll) {
 									subscriptions.forEach(subscription -> subscription.cancel(
@@ -122,16 +121,16 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 					synchronized (lock) {
 						if (completion instanceof UserUnsubscription userUnsubscription) {
 							if (userUnsubscription.perform) {
-								subscriber.onComplete(userUnsubscription.unsubscription);
+								subscriber.complete(userUnsubscription.unsubscription);
 							}
 						}
 						else {
 							completed[index] = true;
 							if (completedCount.incrementAndGet() == observablesCount) {
-								subscriber.onComplete(ALL_COMPLETED);
+								subscriber.complete(ALL_COMPLETED);
 							}
 							else if (completion instanceof SourceCompletion && queues.get(index).isEmpty()) {
-								subscriber.onComplete(ALL_COMPLETED);
+								subscriber.complete(ALL_COMPLETED);
 							}
 						}
 					}

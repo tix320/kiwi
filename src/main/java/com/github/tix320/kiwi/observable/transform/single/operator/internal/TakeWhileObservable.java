@@ -25,17 +25,17 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new AbstractSubscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 
 			@Override
-			public void onSubscribe() {
-				subscriber.onSubscribe(subscription());
+			public void onSubscribe(Subscription subscription) {
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				if (filter.test(item)) {
-					subscriber.onPublish(item);
+					subscriber.publish(item);
 				}
 				else {
 					subscription().cancel(PREDICATE_UNSUBSCRIPTION);
@@ -45,10 +45,10 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 			@Override
 			public void onComplete(Completion completion) {
 				if (completion == PREDICATE_UNSUBSCRIPTION) {
-					subscriber.onComplete(SOURCE_COMPLETED_BY_PREDICATE);
+					subscriber.complete(SOURCE_COMPLETED_BY_PREDICATE);
 				}
 				else {
-					subscriber.onComplete(completion);
+					subscriber.complete(completion);
 				}
 			}
 		});

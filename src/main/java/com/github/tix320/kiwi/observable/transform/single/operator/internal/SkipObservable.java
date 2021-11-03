@@ -27,20 +27,20 @@ public final class SkipObservable<T> extends Observable<T> {
 		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				long remaining = mustSkip.decrementAndGet();
 				if (remaining < 0) {
-					subscriber.onPublish(item);
+					subscriber.publish(item);
 				}
 			}
 
 			@Override
 			public void onComplete(Completion completion) {
-				subscriber.onComplete(completion);
+				subscriber.complete(completion);
 			}
 		});
 	}

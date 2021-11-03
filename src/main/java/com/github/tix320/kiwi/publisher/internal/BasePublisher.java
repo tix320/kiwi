@@ -195,7 +195,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
 			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber);
-			subscriber.onSubscribe(subscription);
+			subscriber.setSubscription(subscription);
 
 			synchronized (BasePublisher.this) {
 				subscriptions.add(subscription);

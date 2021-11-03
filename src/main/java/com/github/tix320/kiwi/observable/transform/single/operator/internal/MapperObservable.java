@@ -23,17 +23,17 @@ public final class MapperObservable<S, R> extends Observable<R> {
 		observable.subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.onSubscribe(subscription);
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(S item) {
-				subscriber.onPublish(mapper.apply(item));
+			public void onNext(S item) {
+				subscriber.publish(mapper.apply(item));
 			}
 
 			@Override
 			public void onComplete(Completion completion) {
-				subscriber.onComplete(completion);
+				subscriber.complete(completion);
 			}
 		});
 	}

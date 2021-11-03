@@ -36,7 +36,7 @@ public class TakeWhileObservableTest {
 
 		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(Integer item) {
+			public void onNext(Integer item) {
 				actual.add(item);
 			}
 		};

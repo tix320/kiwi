@@ -50,7 +50,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	public final void subscribe(Consumer<? super T> consumer) {
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				consumer.accept(item);
 			}
 		});
@@ -64,12 +64,12 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer) {
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onSubscribe() {
-				onSubscribe.accept(subscription());
+			public void onSubscribe(Subscription subscription) {
+				onSubscribe.accept(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				consumer.accept(item);
 			}
 		});
@@ -89,7 +89,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				consumer.accept(item);
 			}
 
@@ -109,7 +109,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	public final void conditionalSubscribe(ConditionalConsumer<T> consumer) {
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				boolean needMore = consumer.accept(item);
 				if (!needMore) {
 					subscription().cancel();

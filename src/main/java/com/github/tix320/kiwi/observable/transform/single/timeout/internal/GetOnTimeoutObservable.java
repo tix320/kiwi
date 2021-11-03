@@ -46,18 +46,18 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 
 		Object lock = new Object();
 
-		final AbstractSubscriber<T> newSubscriber = new AbstractSubscriber<>() {
+		final Subscriber<T> newSubscriber = new Subscriber<>() {
 
 			@Override
-			public void onSubscribe() {
-				subscriber.onSubscribe(subscription());
+			public void onSubscribe(Subscription subscription) {
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				synchronized (lock) {
 					if (published.compareAndSet(false, true)) {
-						subscriber.onPublish(item);
+						subscriber.publish(item);
 					}
 				}
 			}
@@ -69,16 +69,16 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 						T item = timeoutUnsubscription.data();
 
 						try {
-							subscriber.onPublish(item);
+							subscriber.publish(item);
 						}
 						catch (Throwable e) {
 							ExceptionUtils.applyToUncaughtExceptionHandler(e);
 						}
 
-						subscriber.onComplete(SOURCE_COMPLETED_BY_TIMEOUT);
+						subscriber.complete(SOURCE_COMPLETED_BY_TIMEOUT);
 					}
 					else {
-						subscriber.onComplete(completion);
+						subscriber.complete(completion);
 					}
 				}
 			}

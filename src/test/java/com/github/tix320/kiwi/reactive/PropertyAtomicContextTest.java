@@ -90,7 +90,7 @@ public class PropertyAtomicContextTest {
 
 			FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 				@Override
-				public void onPublish(Integer item) {
+				public void onNext(Integer item) {
 					if (item == 4) {
 						exceptions.add(new IllegalStateException());
 					}
@@ -107,7 +107,7 @@ public class PropertyAtomicContextTest {
 
 			FlexibleSubscriber<Integer> subscriber2 = new FlexibleSubscriber<>() {
 				@Override
-				public void onPublish(Integer integer) {
+				public void onNext(Integer integer) {
 					if (integer == 4 || integer == 5) {
 						actual.add(8);
 					}

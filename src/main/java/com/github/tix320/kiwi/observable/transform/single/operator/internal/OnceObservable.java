@@ -20,17 +20,17 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new AbstractSubscriber<>() {
+		observable.subscribe(new Subscriber<T>() {
 
 			@Override
-			public void onSubscribe() {
-				subscriber.onSubscribe(subscription());
+			public void onSubscribe(Subscription subscription) {
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
-			public void onPublish(T item) {
+			public void onNext(T item) {
 				try {
-					subscriber.onPublish(item);
+					subscriber.publish(item);
 				}
 				catch (Throwable e) {
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
@@ -42,10 +42,10 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 			@Override
 			public void onComplete(Completion completion) {
 				if (completion == ONCE_UNSUBSCRIPTION) {
-					subscriber.onComplete(SOURCE_COMPLETED_BY_ONCE);
+					subscriber.complete(SOURCE_COMPLETED_BY_ONCE);
 				}
 				else {
-					subscriber.onComplete(completion);
+					subscriber.complete(completion);
 				}
 			}
 		});
