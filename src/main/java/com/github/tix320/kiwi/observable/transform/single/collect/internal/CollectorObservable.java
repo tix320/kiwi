@@ -21,7 +21,7 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new ConcurrentLinkedQueue<>();
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>()  {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);

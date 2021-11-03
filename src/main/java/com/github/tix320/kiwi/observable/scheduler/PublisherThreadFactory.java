@@ -1,4 +1,4 @@
-package com.github.tix320.kiwi.publisher.internal;
+package com.github.tix320.kiwi.observable.scheduler;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;

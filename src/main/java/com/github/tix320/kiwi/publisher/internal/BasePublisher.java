@@ -9,17 +9,11 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
-import com.github.tix320.skimp.api.function.CheckedRunnable;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
 public abstract class BasePublisher<T> extends Publisher<T> {
-
-	private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 2, TimeUnit.MINUTES,
-			new SynchronousQueue<>(), new PublisherThreadFactory());
-
 
 	private final List<PublisherSubscription<T>> subscriptions;
 
@@ -179,17 +173,6 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		}
 	}
 
-	public static CompletableFuture<Void> runAsync(CheckedRunnable runnable) {
-		return CompletableFuture.runAsync(() -> {
-			try {
-				runnable.run();
-			}
-			catch (Throwable e) {
-				ExceptionUtils.applyToUncaughtExceptionHandler(e);
-			}
-		}, EXECUTOR);
-	}
-
 	private final class PublisherObservable extends Observable<T> {
 
 		@Override
@@ -208,7 +191,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 				subscriptions.add(subscription);
 			}
 
-			subscription.tryDoAction();
+			subscription.startWork();
 		}
 	}
 }

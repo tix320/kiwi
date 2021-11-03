@@ -9,7 +9,8 @@ public final class UntilObservable<T> extends Observable<T> {
 
 	private static final Unsubscription UNTIL_UNSUBSCRIPTION = new Unsubscription();
 
-	private static final SourceCompletion SOURCE_COMPLETED_VIA_UNTIL = new SourceCompletion("SOURCE_COMPLETED_VIA_UNTIL");
+	private static final SourceCompletion SOURCE_COMPLETED_VIA_UNTIL = new SourceCompletion(
+			"SOURCE_COMPLETED_VIA_UNTIL");
 
 	private final Observable<T> observable;
 

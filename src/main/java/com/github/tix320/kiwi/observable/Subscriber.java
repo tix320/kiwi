@@ -1,6 +1,10 @@
 package com.github.tix320.kiwi.observable;
 
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
+import com.github.tix320.kiwi.observable.scheduler.Scheduler;
 
 public abstract class Subscriber<T> {
 
@@ -8,18 +12,44 @@ public abstract class Subscriber<T> {
 	private static final AtomicReferenceFieldUpdater<Subscriber, Subscription> subscriptionUpdater = AtomicReferenceFieldUpdater.newUpdater(
 			Subscriber.class, Subscription.class, "subscription");
 
+	@SuppressWarnings("rawtypes")
+	private static final AtomicIntegerFieldUpdater<Subscriber> actionInProgressUpdater = AtomicIntegerFieldUpdater.newUpdater(
+			Subscriber.class, "actionInProgress");
+
 	private static final Subscription INITIAL_STATE = new InitialSubscriptionImpl();
 	private static final Subscription COMPLETED_STATE = new CompletedSubscriptionImpl();
 
+	private final Scheduler scheduler;
+
 	private volatile Subscription subscription = INITIAL_STATE;
 
+	/**
+	 * For validation, when assertion is enabled
+	 */
+	private volatile int actionInProgress = 0;
+
+	protected Subscriber(Scheduler scheduler) {
+		this.scheduler = scheduler;
+	}
+
+	public Subscriber() {
+		this(DefaultScheduler.get());
+	}
+
+	public final Scheduler getScheduler() {
+		return scheduler;
+	}
+
 	public final void setSubscription(Subscription subscription) {
+		changeActionInProgress(0, 1);
 		boolean changed = subscriptionUpdater.compareAndSet(this, INITIAL_STATE, subscription);
 		if (!changed) {
-			throw new IllegalStateException("Subscription already set");
+			throw new SubscriberIllegalStateException("Subscription already set");
 		}
 
 		onSubscribe(subscription);
+
+		changeActionInProgress(1, 0);
 	}
 
 	public final Subscription subscription() {
@@ -27,24 +57,31 @@ public abstract class Subscriber<T> {
 	}
 
 	public final void publish(T item) {
+		changeActionInProgress(0, 1);
 		Subscription subscription = this.subscription;
 		assert subscription != INITIAL_STATE && subscription != COMPLETED_STATE;
 		onNext(item);
+
+		changeActionInProgress(1, 0);
 	}
 
 	public final void complete(Completion completion) {
+		changeActionInProgress(0, 1);
 		subscriptionUpdater.updateAndGet(this, s -> {
 			if (s == INITIAL_STATE) {
-				throw new IllegalStateException("Cannot complete subscriber, because it does not subscribed yet.");
+				throw new SubscriberIllegalStateException(
+						"Cannot complete subscriber, because it does not subscribed yet.");
 			}
 			else if (s == COMPLETED_STATE) {
-				throw new IllegalStateException("Subscriber already completed");
+				throw new SubscriberIllegalStateException("Subscriber already completed");
 			}
 
 			return COMPLETED_STATE;
 		});
 
 		onComplete(completion);
+
+		changeActionInProgress(1, 0);
 	}
 
 	/**
@@ -67,16 +104,24 @@ public abstract class Subscriber<T> {
 	 */
 	protected abstract void onComplete(Completion completion);
 
+	private void changeActionInProgress(int expected, int update) {
+		boolean changed = actionInProgressUpdater.compareAndSet(this, expected, update);
+		if (!changed) {
+			throw new SubscriberIllegalStateException(
+					"Not serially signal, tried change is: %s -> %s".formatted(expected, update));
+		}
+	}
+
 	private static final class InitialSubscriptionImpl implements Subscription {
 
 		@Override
 		public void request(long n) {
-			throw new IllegalStateException("Not subscribed yet");
+			throw new SubscriberIllegalStateException("Not subscribed yet");
 		}
 
 		@Override
 		public void cancel(Unsubscription unsubscription) {
-			throw new IllegalStateException("Not subscribed yet");
+			throw new SubscriberIllegalStateException("Not subscribed yet");
 		}
 
 		@Override
@@ -89,7 +134,7 @@ public abstract class Subscriber<T> {
 
 		@Override
 		public void request(long n) {
-			throw new IllegalStateException("Subscription already completed");
+			throw new SubscriberIllegalStateException("Subscription already completed");
 		}
 
 		@Override
@@ -99,6 +144,12 @@ public abstract class Subscriber<T> {
 
 		@Override
 		public void cancel() {
+		}
+	}
+
+	private static final class SubscriberIllegalStateException extends IllegalStateException {
+		public SubscriberIllegalStateException(String s) {
+			super(s);
 		}
 	}
 }

@@ -26,12 +26,17 @@ final class PublisherSubscription<I> implements Subscription {
 		this.publisher = publisher;
 		this.realSubscriber = realSubscriber;
 		this.cursor = new AtomicInteger(initialCursor);
-		this.actionInProgress = new AtomicBoolean(false);
+		this.actionInProgress = new AtomicBoolean(true);
 		this.subscriberCompletion = null;
 	}
 
 	public int cursor() {
 		return cursor.get();
+	}
+
+	public void startWork() {
+		this.actionInProgress.set(false);
+		tryDoAction();
 	}
 
 	public void tryDoAction() {
@@ -144,7 +149,7 @@ final class PublisherSubscription<I> implements Subscription {
 		if (dem != 0) {
 			int cursor = this.cursor.getAndIncrement();
 			final I value = publisher.getNthPublish(cursor);
-			return BasePublisher.runAsync(() -> realSubscriber.publish(value)).thenApply(unused -> true);
+			return realSubscriber.getScheduler().schedule(() -> realSubscriber.publish(value)).thenApply(unused -> true);
 		}
 		else {
 			return CompletableFuture.completedFuture(false);
@@ -153,10 +158,10 @@ final class PublisherSubscription<I> implements Subscription {
 
 	private CompletableFuture<Void> doComplete(Completion completion) {
 		subscriberCompletion.setPerformed();
-		return BasePublisher.runAsync(() -> {
-			publisher.removeSubscription(this);
-			realSubscriber.complete(completion);
-		});
+
+		publisher.removeSubscription(this);
+
+		return realSubscriber.getScheduler().schedule(() -> realSubscriber.complete(completion));
 	}
 
 	private static final class SubscriberCompletion {

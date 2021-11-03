@@ -28,7 +28,7 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
@@ -60,7 +60,7 @@ public class UntilObservableTest {
 
 		List<String> called = Collections.synchronizedList(new ArrayList<>());
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");
@@ -91,7 +91,7 @@ public class UntilObservableTest {
 
 		List<String> called = new ArrayList<>();
 
-		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<Integer>() {
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				called.add("onSubscribe");

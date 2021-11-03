@@ -2,7 +2,10 @@ package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import java.util.function.Function;
 
-import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
