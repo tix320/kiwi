@@ -1,19 +1,24 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
-public final class CombineLatestObservable<T> extends Observable<List<T>> {
+/**
+ * @author Tigran Sargsyan on 24-Feb-19
+ */
+public final class MergeObservable<T> extends Observable<T> {
 
-	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("COMBINE_LATEST_ALL_COMPLETED");
+	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("MERGE_ALL_COMPLETED");
 
 	private final List<Observable<? extends T>> observables;
 
-	public CombineLatestObservable(List<Observable<? extends T>> observables) {
+	public MergeObservable(List<Observable<? extends T>> observables) {
 		if (observables.size() == 0) {
 			throw new IllegalArgumentException();
 		}
@@ -21,19 +26,16 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 	}
 
 	@Override
-	public void subscribe(Subscriber<? super List<T>> subscriber) {
+	public void subscribe(Subscriber<? super T> subscriber) {
 		int observablesCount = observables.size();
 
 		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
-		@SuppressWarnings("unchecked")
-		T[] lastItems = (T[]) new Object[observablesCount];
-
 		Object lock = new Object();
 
-		AtomicInteger readyCount = new AtomicInteger(0);
-
 		AtomicInteger completedCount = new AtomicInteger(0);
+
+		AtomicBoolean userUnsubscribed = new AtomicBoolean(false);
 
 		Subscription generalSubscription = new Subscription() {
 
@@ -50,13 +52,13 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
 					lastSubscription.cancel(new UserUnsubscription(unsubscription));
+
+					userUnsubscribed.set(true);
 				}
 			}
 		};
 
-		for (int i = 0; i < observables.size(); i++) {
-			Observable<? extends T> observable = observables.get(i);
-			int index = i;
+		for (Observable<? extends T> observable : observables) {
 			observable.subscribe(new SharedSubscriber<T>() {
 
 				@Override
@@ -70,21 +72,13 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 				@Override
 				public void onPublish(T item) {
+					Objects.requireNonNull(item,
+							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
 					synchronized (lock) {
-						int ready = readyCount.get();
-
-						lastItems[index] = item;
-						if (ready != observablesCount) {
-							ready = readyCount.incrementAndGet();
-
-							if (ready != observablesCount) {
-								return;
-							}
+						if (userUnsubscribed.get()) {
+							return;
 						}
-
-						List<T> combined = List.of(lastItems);
-
-						subscriber.onPublish(combined);
+						subscriber.onPublish(item);
 					}
 				}
 

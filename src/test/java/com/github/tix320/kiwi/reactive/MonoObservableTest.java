@@ -6,8 +6,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.MonoObservable;
-import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
@@ -39,8 +40,17 @@ public class MonoObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 		MonoObservable<Integer> observable = publisher.asObservable().toMono();
-		observable.subscribe(
-				Subscriber.<Integer>builder().onPublish(actual::add).onComplete((completionType) -> actual.add(7)));
+		observable.subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(7);
+			}
+		});
 
 		publisher.publish(3);
 

@@ -3,14 +3,13 @@ package com.github.tix320.kiwi.reactive;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +22,6 @@ public class ObservableTest {
 
 	@Test
 	public void emptyTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Observable<Integer> empty = Observable.empty();
 
 		empty.subscribe(integer -> {
@@ -44,7 +42,6 @@ public class ObservableTest {
 
 	@Test
 	public void ofTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(32, 32, 32);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -61,89 +58,88 @@ public class ObservableTest {
 		assertEquals(expected, actual);
 	}
 
-	@Test
-	public void concatTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
-		Set<Integer> expected = Set.of(10, 20, 25, 50);
-		Set<Integer> actual = new ConcurrentSkipListSet<>();
+	// @Test
+	// public void concatTest() throws InterruptedException {
+	// 	System.out.println(Thread.currentThread().getStackTrace()[1]);
+	// 	Set<Integer> expected = Set.of(10, 20, 25, 50);
+	// 	Set<Integer> actual = new ConcurrentSkipListSet<>();
+	//
+	// 	Observable<Integer> observable1 = Observable.of(10);
+	//
+	// 	Observable<Integer> observable2 = Observable.of(20);
+	//
+	// 	Publisher<Integer> publisher = Publisher.simple();
+	//
+	// 	Observable<Integer> observable3 = publisher.asObservable();
+	//
+	// 	Observable.concat(observable1, observable2, observable3).conditionalSubscribe(actual::add);
+	//
+	// 	publisher.publish(25);
+	//
+	// 	publisher.publish(50);
+	//
+	// 	Thread.sleep(100);
+	//
+	// 	assertEquals(expected, actual);
+	// }
 
-		Observable<Integer> observable1 = Observable.of(10);
-
-		Observable<Integer> observable2 = Observable.of(20);
-
-		Publisher<Integer> publisher = Publisher.simple();
-
-		Observable<Integer> observable3 = publisher.asObservable();
-
-		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(actual::add);
-
-		publisher.publish(25);
-
-		publisher.publish(50);
-
-		Thread.sleep(100);
-
-		assertEquals(expected, actual);
-	}
-
-	@Test
-	public void concatWithDecoratorTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
-		Set<Integer> canBe = Set.of(10, 20, 30, 40, 50, 60, 70, 80);
-		Set<Integer> actual = Collections.synchronizedSet(new HashSet<>());
-
-		Observable<Integer> observable1 = Observable.of(10, 20, 30);
-
-		Observable<Integer> observable2 = Observable.of(40, 50, 60);
-
-		Publisher<Integer> publisher = Publisher.simple();
-
-		Observable<Integer> observable3 = publisher.asObservable();
-
-		Observable.concat(observable1, observable2, observable3).take(7).subscribe(actual::add);
-
-		publisher.publish(70);
-		publisher.publish(80);
-
-		Thread.sleep(100);
-
-		assertEquals(7, actual.size());
-		for (Integer integer : actual) {
-			assertTrue(canBe.contains(integer));
-		}
-	}
-
-	@Test
-	public void concatOnCompleteTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
-		AtomicReference<String> actual = new AtomicReference<>("");
-
-		Observable<Integer> observable1 = Observable.of(10);
-
-		Observable<Integer> observable2 = Observable.of(20);
-
-		Publisher<Integer> publisher = Publisher.simple();
-
-		Observable<Integer> observable3 = publisher.asObservable();
-
-		Observable.concat(observable1, observable2, observable3)
-				.join(integer -> integer + "", ",")
-				.subscribe(actual::set);
-
-		publisher.publish(25);
-
-		publisher.publish(50);
-
-		publisher.complete();
-
-		Thread.sleep(100);
-
-		assertEquals(Set.of("10", "20", "25", "50"), new HashSet<>(Arrays.asList(actual.get().split(","))));
-	}
+	// @Test
+	// public void concatWithDecoratorTest() throws InterruptedException {
+	// 	System.out.println(Thread.currentThread().getStackTrace()[1]);
+	// 	Set<Integer> canBe = Set.of(10, 20, 30, 40, 50, 60, 70, 80);
+	// 	Set<Integer> actual = Collections.synchronizedSet(new HashSet<>());
+	//
+	// 	Observable<Integer> observable1 = Observable.of(10, 20, 30);
+	//
+	// 	Observable<Integer> observable2 = Observable.of(40, 50, 60);
+	//
+	// 	Publisher<Integer> publisher = Publisher.simple();
+	//
+	// 	Observable<Integer> observable3 = publisher.asObservable();
+	//
+	// 	Observable.concat(observable1, observable2, observable3).take(7).subscribe(actual::add);
+	//
+	// 	publisher.publish(70);
+	// 	publisher.publish(80);
+	//
+	// 	Thread.sleep(100);
+	//
+	// 	assertEquals(7, actual.size());
+	// 	for (Integer integer : actual) {
+	// 		assertTrue(canBe.contains(integer));
+	// 	}
+	// }
+	//
+	// @Test
+	// public void concatOnCompleteTest() throws InterruptedException {
+	// 	System.out.println(Thread.currentThread().getStackTrace()[1]);
+	// 	AtomicReference<String> actual = new AtomicReference<>("");
+	//
+	// 	Observable<Integer> observable1 = Observable.of(10);
+	//
+	// 	Observable<Integer> observable2 = Observable.of(20);
+	//
+	// 	Publisher<Integer> publisher = Publisher.simple();
+	//
+	// 	Observable<Integer> observable3 = publisher.asObservable();
+	//
+	// 	Observable.concat(observable1, observable2, observable3)
+	// 			.join(integer -> integer + "", ",")
+	// 			.subscribe(actual::set);
+	//
+	// 	publisher.publish(25);
+	//
+	// 	publisher.publish(50);
+	//
+	// 	publisher.complete();
+	//
+	// 	Thread.sleep(100);
+	//
+	// 	assertEquals(Set.of("10", "20", "25", "50"), new HashSet<>(Arrays.asList(actual.get().split(","))));
+	// }
 
 	@Test
 	public void mapTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<String> expected1 = List.of("10lol", "20lol", "25lol");
 		List<String> expected2 = List.of("20wtf");
 
@@ -175,7 +171,6 @@ public class ObservableTest {
 
 	@Test
 	public void untilTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20, 25);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -209,7 +204,6 @@ public class ObservableTest {
 
 	@Test
 	public void awaitTest() {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -231,7 +225,7 @@ public class ObservableTest {
 			return null;
 		});
 
-		assertTimeout(Duration.ofSeconds(5), () -> {
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
 			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
 		});
 
@@ -240,7 +234,6 @@ public class ObservableTest {
 
 	@Test
 	public void awaitBeforeTakeTest() {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40);
 		List<Integer> actual = new ArrayList<>();
 
@@ -262,7 +255,7 @@ public class ObservableTest {
 			return null;
 		});
 
-		assertTimeout(Duration.ofSeconds(5), () -> {
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
 			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
 		});
 
@@ -271,7 +264,6 @@ public class ObservableTest {
 
 	@Test
 	public void awaitWithCompletedTest() {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(20, 40, 50);
 		List<Integer> actual = new ArrayList<>();
 
@@ -294,7 +286,7 @@ public class ObservableTest {
 			return null;
 		});
 
-		assertTimeout(Duration.ofSeconds(5), () -> {
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
 			observable.map(integer -> integer * 2).peek(actual::add).await();
 		});
 
@@ -303,7 +295,6 @@ public class ObservableTest {
 
 	@Test
 	public void blockWithCompleteTest() {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20, 25);
 		List<Integer> actual = new ArrayList<>();
 
@@ -326,7 +317,7 @@ public class ObservableTest {
 			return null;
 		});
 
-		assertTimeout(Duration.ofSeconds(5), () -> {
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
 			observable.map(actual::add).await();
 		});
 
@@ -335,7 +326,6 @@ public class ObservableTest {
 
 	@Test
 	public void blockWithZipTest() {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(10, 20);
 		List<Integer> actual = new ArrayList<>();
 
@@ -361,19 +351,18 @@ public class ObservableTest {
 			return null;
 		});
 
-		assertTimeout(Duration.ofSeconds(5), () -> {
-			Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
-				actual.add(integerIntegerTuple.first());
-				actual.add(integerIntegerTuple.second());
-			}).await();
-		});
+		 assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+		 	Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
+		 		actual.add(integerIntegerTuple.first());
+		 		actual.add(integerIntegerTuple.second());
+		 	}).await();
+		 });
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
 	public void getTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
@@ -387,14 +376,15 @@ public class ObservableTest {
 			}
 			publisher.publish(3);
 		});
-		Integer number = observable.map(integer -> integer + 5).get();
 
-		assertEquals(8, number);
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+			Integer number = observable.map(integer -> integer + 5).get(); // TODO, asserti mej assert kashxati?
+			assertEquals(8, number);
+		});
 	}
 
 	@Test
 	public void getWithBufferedTest() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		Publisher<Integer> publisher = Publisher.buffered(1);
 		Observable<Integer> observable = publisher.asObservable();
 
@@ -415,7 +405,6 @@ public class ObservableTest {
 
 	@Test
 	public void onCompleteOnUnsubscribe() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(1, 2, 15);
 		List<Integer> actual = new CopyOnWriteArrayList<>();
 
@@ -423,10 +412,20 @@ public class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.subscribe(Subscriber.<Integer>builder().onPublishConditional(object -> {
-			actual.add(object);
-			return !object.equals(2);
-		}).onComplete((completionType) -> actual.add(15)));
+		observable.subscribe(new FlexibleSubscriber<Integer>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+				if (item.equals(2)) {
+					subscription().cancel();
+				}
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(15);
+			}
+		});
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -440,7 +439,6 @@ public class ObservableTest {
 
 	@Test
 	public void doubleUnsubscribe() throws InterruptedException {
-		System.out.println(Thread.currentThread().getStackTrace()[1]);
 		List<Integer> expected = Arrays.asList(1, 2, 15);
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
@@ -448,18 +446,27 @@ public class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set)
-				.onPublish(actual::add)
-				.onComplete((completionType) -> actual.add(15)));
+		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(15);
+			}
+		};
+		observable.subscribe(subscriber);
 
 		publisher.publish(1);
 		publisher.publish(2);
-		subscriptionHolder.get().unsubscribe();
-		publisher.publish(3);
-		subscriptionHolder.get().unsubscribe();
-
 		Thread.sleep(100);
+		subscriber.subscription().cancel();
+		publisher.publish(3);
+		Thread.sleep(100);
+		subscriber.subscription().cancel();
 
 		assertEquals(expected, actual);
 	}

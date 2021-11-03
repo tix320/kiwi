@@ -6,13 +6,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
 /**
  * @author Tigran Sargsyan on 24-Mar-20.
  */
-public final class SetProperty<T> extends BaseProperty<Set<T>> {
+public final class SetProperty<T> extends AbstractMutableProperty<Set<T>> {
 
 	public SetProperty() {
 	}
@@ -22,7 +22,7 @@ public final class SetProperty<T> extends BaseProperty<Set<T>> {
 	}
 
 	@Override
-	public ReadOnlyProperty<Set<T>> toReadOnly() {
+	public Property<Set<T>> toReadOnly() {
 		return new ReadOnlySetProperty<>(this);
 	}
 

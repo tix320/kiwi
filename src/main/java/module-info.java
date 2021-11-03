@@ -4,5 +4,4 @@ module com.github.tix.kiwi {
 	exports com.github.tix320.kiwi.observable;
 	exports com.github.tix320.kiwi.property;
 	exports com.github.tix320.kiwi.publisher;
-
 }

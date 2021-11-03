@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.property.FreezeableProperty;
-import com.github.tix320.kiwi.property.ReadOnlyStock;
+import com.github.tix320.kiwi.property.MutableStock;
 import com.github.tix320.kiwi.property.Stock;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
 import com.github.tix320.kiwi.publisher.UnlimitBufferedPublisher;
@@ -12,11 +12,11 @@ import com.github.tix320.kiwi.publisher.UnlimitBufferedPublisher;
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
  */
-public abstract class BaseStock<T> implements Stock<T>, FreezeableProperty {
+public abstract class AbstractMutableStock<T> implements MutableStock<T>, FreezeableProperty {
 
 	private final UnlimitBufferedPublisher<T> publisher;
 
-	public BaseStock() {
+	public AbstractMutableStock() {
 		this.publisher = new UnlimitBufferedPublisher<>();
 	}
 
@@ -31,7 +31,7 @@ public abstract class BaseStock<T> implements Stock<T>, FreezeableProperty {
 	}
 
 	@Override
-	public abstract ReadOnlyStock<T> toReadOnly();
+	public abstract Stock<T> toReadOnly();
 
 	@Override
 	public final List<T> list() {

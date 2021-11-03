@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ConcatObservableTest {
+public class MergeObservableTest {
 
 	@Test
-	public void concatWithUnsubscribing() throws InterruptedException {
+	public void mergeWithUnsubscribing() throws InterruptedException {
 		Set<Integer> maybe = Set.of(3, 5, 6, 9, 8);
 		Set<Integer> actual = new CopyOnWriteArraySet<>();
 
@@ -24,7 +24,7 @@ public class ConcatObservableTest {
 
 		Observable<Integer> observable3 = publisher.asObservable();
 
-		Observable.concat(observable1, observable2, observable3).conditionalSubscribe(number -> {
+		Observable.merge(observable1, observable2, observable3).conditionalSubscribe(number -> {
 			actual.add(number);
 			return actual.size() < 4;
 		});
@@ -33,7 +33,7 @@ public class ConcatObservableTest {
 
 		Thread.sleep(100);
 
-		assertEquals(4, actual.size());
+		assertEquals(4, actual.size()); // FIXME expected 4 , actual 5
 		for (Integer integer : actual) {
 			assertTrue(maybe.contains(integer));
 		}

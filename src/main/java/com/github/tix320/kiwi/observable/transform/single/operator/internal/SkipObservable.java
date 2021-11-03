@@ -2,12 +2,12 @@ package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.github.tix320.kiwi.observable.CompletionType;
+import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 
-public class SkipObservable<T> implements Observable<T> {
+public final class SkipObservable<T> extends Observable<T> {
 
 	private final Observable<T> observable;
 
@@ -24,26 +24,23 @@ public class SkipObservable<T> implements Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong mustSkip = new AtomicLong(count);
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(T item) {
+			public void onPublish(T item) {
 				long remaining = mustSkip.decrementAndGet();
-				if (remaining >= 0) {
-					return true;
-				}
-				else {
-					return subscriber.onPublish(item);
+				if (remaining < 0) {
+					subscriber.onPublish(item);
 				}
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				subscriber.onComplete(completionType);
+			public void onComplete(Completion completion) {
+				subscriber.onComplete(completion);
 			}
 		});
 	}

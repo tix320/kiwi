@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
-public final class ReadOnlyListProperty<T> implements ReadOnlyProperty<List<T>> {
+public final class ReadOnlyListProperty<T> implements Property<List<T>> {
 
 	private final ListProperty<T> property;
 

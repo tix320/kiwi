@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.UnlimitBufferedPublisher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,7 +45,8 @@ public class UnlimitBufferedPublisherTest {
 		assertEquals(expected2, actual2);
 	}
 
-	@Test //TODO
+	@Test
+	@Disabled("Review")
 	public void concurrentPublishFromBufferAnyPublish() throws InterruptedException {
 		int chunkSize = 100000;
 		List<Integer> expectedPart1 = IntStream.rangeClosed(1, chunkSize).boxed().collect(Collectors.toList());
@@ -74,7 +76,6 @@ public class UnlimitBufferedPublisherTest {
 
 		Thread.sleep(5000);
 
-		System.out.println(actual.size());
 		assertEquals(chunkSize * 2, actual.size());
 		assertEquals(expectedPart1, actual.subList(0, chunkSize));
 

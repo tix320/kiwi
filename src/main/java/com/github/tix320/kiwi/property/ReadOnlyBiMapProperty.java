@@ -9,7 +9,7 @@ import com.github.tix320.skimp.api.collection.UnmodifiableBiMap;
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public final class ReadOnlyBiMapProperty<K, V> implements ReadOnlyProperty<BiMap<K, V>> {
+public final class ReadOnlyBiMapProperty<K, V> implements Property<BiMap<K, V>> {
 
 	private final BiMapProperty<K, V> property;
 

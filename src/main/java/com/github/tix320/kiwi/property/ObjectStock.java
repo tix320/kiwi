@@ -1,8 +1,8 @@
 package com.github.tix320.kiwi.property;
 
-import com.github.tix320.kiwi.property.internal.BaseStock;
+import com.github.tix320.kiwi.property.internal.AbstractMutableStock;
 
-public final class ObjectStock<T> extends BaseStock<T> {
+public final class ObjectStock<T> extends AbstractMutableStock<T> {
 
 	@Override
 	public ReadOnlyObjectStock<T> toReadOnly() {

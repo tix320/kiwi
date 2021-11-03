@@ -1,17 +1,21 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
-public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
+public final class ZipObservable<T> extends Observable<List<T>> {
+
+	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("ZIP_ALL_COMPLETED");
+
+	private static final Unsubscription UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE = new Unsubscription(
+			"UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE");
 
 	private final List<Observable<? extends T>> observables;
 
@@ -24,120 +28,130 @@ public final class ZipObservable<T> implements TransformObservable<T, List<T>> {
 
 	@Override
 	public void subscribe(Subscriber<? super List<T>> subscriber) {
+		int observablesCount = observables.size();
+
 		List<Queue<T>> queues = new CopyOnWriteArrayList<>();
 		for (int i = 0; i < observables.size(); i++) {
 			queues.add(new ConcurrentLinkedQueue<>());
 		}
 
-		AtomicBoolean atLeastOneObservableCompleted = new AtomicBoolean(false);
-		AtomicBoolean completed = new AtomicBoolean(false);
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
 
-		Consumer<CompletionType> cleanup = (completionType) -> {
-			synchronized (subscriber) {
-				boolean changed = completed.compareAndSet(false, true);
-				if (changed) {
-					subscriptions.forEach(Subscription::unsubscribe);
-					queues.forEach(Collection::clear);
-					queues.clear();
-					subscriber.onComplete(completionType);
+		AtomicInteger readyCount = new AtomicInteger(0);
+
+		Object lock = new Object();
+
+		AtomicInteger completedCount = new AtomicInteger(0);
+		boolean[] completed = new boolean[observablesCount];
+
+		Subscription generalSubscription = new Subscription() {
+
+			@Override
+			public void cancel(Unsubscription unsubscription) {
+				synchronized (lock) {
+					int subscriptionsSize = subscriptions.size();
+					for (int i = 0; i < subscriptionsSize - 1; i++) {
+						Subscription subscription = subscriptions.get(i);
+						UserUnsubscription userUnsubscription = new UserUnsubscription();
+
+						subscription.cancel(userUnsubscription);
+					}
+
+					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
+					lastSubscription.cancel(new UserUnsubscription(unsubscription));
 				}
 			}
 		};
-
-		Subscription subscription = new Subscription() {
-			@Override
-			public boolean isCompleted() {
-				return completed.get();
-			}
-
-			@Override
-			public void unsubscribe() {
-				cleanup.accept(CompletionType.UNSUBSCRIPTION);
-			}
-		};
-		subscriber.onSubscribe(subscription);
 
 		for (int i = 0; i < observables.size(); i++) {
-			if (completed.get()) {
-				break;
-			}
 			Observable<? extends T> observable = observables.get(i);
-			Queue<T> queue = queues.get(i);
-			observable.subscribe(new Subscriber<T>() {
-
-				private volatile Subscription subscription;
+			int index = i;
+			observable.subscribe(new SharedSubscriber<T>() {
 
 				@Override
-				public boolean onSubscribe(Subscription subscription) {
-					this.subscription = subscription;
-					return subscriptions.add(subscription);
-				}
+				public void onSubscribe(Subscription subscription) {
+					subscriptions.add(subscription);
 
-				@Override
-				public boolean onPublish(T item) {
-					synchronized (subscriber) {
-						if (completed.get()) {
-							return false;
-						}
-
-						queue.add(item);
-						for (Queue<T> q : queues) {
-							if (q.isEmpty()) {
-								return true;
-							}
-						}
-
-						List<T> combinedObjects = new ArrayList<>(queues.size());
-						for (Queue<T> q : queues) {
-							combinedObjects.add(q.poll());
-						}
-
-						boolean needMore = subscriber.onPublish(combinedObjects);
-
-						if (!needMore) {
-							cleanup.accept(CompletionType.UNSUBSCRIPTION);
-							return false;
-						}
-
-						boolean needComplete = false;
-
-						if (atLeastOneObservableCompleted.get()) {
-							for (int j = 0; j < queues.size(); j++) {
-								Queue<T> q = queues.get(j);
-								Subscription subscription = subscriptions.get(j);
-								if (subscription.isCompleted() && q.isEmpty()) {
-									needComplete = true;
-									break;
-								}
-							}
-						}
-
-						if (needComplete) {
-							subscriptions.remove(subscription);
-							cleanup.accept(CompletionType.SOURCE_COMPLETED);
-							return false;
-						}
-
-						return true;
+					if (subscriptions.size() == observablesCount) {
+						subscriber.onSubscribe(generalSubscription);
 					}
 				}
 
 				@Override
-				public void onComplete(CompletionType completionType) {
-					synchronized (subscriber) {
-						boolean needComplete = false;
-						if (completionType == CompletionType.SOURCE_COMPLETED) {
-							if (atLeastOneObservableCompleted.compareAndSet(false, true) && queue.isEmpty()) {
-								needComplete = true;
+				public void onPublish(T item) {
+					synchronized (lock) {
+
+						Queue<T> queue = queues.get(index);
+
+						boolean isEmpty = queue.isEmpty();
+						queue.add(item);
+
+						if (isEmpty) {
+							int count = readyCount.incrementAndGet();
+
+							if (count == observablesCount) {
+								boolean needCompleteAll = false;
+
+								List<T> zip = new ArrayList<>(observablesCount);
+								for (int j = 0; j < queues.size(); j++) {
+									Queue<T> q = queues.get(j);
+									zip.add(q.remove());
+
+									if (q.isEmpty()) {
+										readyCount.decrementAndGet();
+
+										if (completed[j]) {
+											needCompleteAll = true;
+										}
+									}
+								}
+
+								subscriber.onPublish(zip);
+
+								if (needCompleteAll) {
+									subscriptions.forEach(subscription -> subscription.cancel(
+											UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE));
+								}
 							}
 						}
-						if (needComplete) {
-							cleanup.accept(CompletionType.SOURCE_COMPLETED);
+					}
+				}
+
+				@Override
+				public void onComplete(Completion completion) {
+					synchronized (lock) {
+						if (completion instanceof UserUnsubscription userUnsubscription) {
+							if (userUnsubscription.perform) {
+								subscriber.onComplete(userUnsubscription.unsubscription);
+							}
+						}
+						else {
+							completed[index] = true;
+							if (completedCount.incrementAndGet() == observablesCount) {
+								subscriber.onComplete(ALL_COMPLETED);
+							}
+							else if (completion instanceof SourceCompletion && queues.get(index).isEmpty()) {
+								subscriber.onComplete(ALL_COMPLETED);
+							}
 						}
 					}
 				}
 			});
+		}
+	}
+
+	private static final class UserUnsubscription extends Unsubscription {
+		private final boolean perform;
+		private final Unsubscription unsubscription;
+
+		public UserUnsubscription() {
+			this.perform = false;
+			this.unsubscription = null;
+		}
+
+		private UserUnsubscription(Unsubscription unsubscription) {
+			this.perform = true;
+			this.unsubscription = unsubscription;
 		}
 	}
 }

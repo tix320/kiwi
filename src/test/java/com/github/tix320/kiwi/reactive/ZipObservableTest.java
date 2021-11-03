@@ -2,8 +2,9 @@ package com.github.tix320.kiwi.reactive;
 
 import java.util.*;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
 import com.github.tix320.skimp.api.collection.Tuple;
@@ -57,10 +58,17 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = new SinglePublisher<>(4);
 
-		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
-						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
+		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Tuple<Integer, Integer> o) {
+				actual.add(List.of(o.first(), o.second()));
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(Collections.singletonList(25));
+			}
+		});
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -71,7 +79,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(200);
+		Thread.sleep(300);
 
 		assertEquals(expected, actual);
 	}
@@ -85,10 +93,17 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = new SinglePublisher<>(4);
 
-		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
-						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
+		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Tuple<Integer, Integer> o) {
+				actual.add(List.of(o.first(), o.second()));
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(Collections.singletonList(25));
+			}
+		});
 
 		publisher1.publish(6);
 		publisher2.publish(7);
@@ -101,7 +116,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(100);
+		Thread.sleep(300);
 
 		assertEquals(expected, actual);
 	}
@@ -117,10 +132,17 @@ public class ZipObservableTest {
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = Publisher.simple();
 
-		Observable.zip(publisher1.asObservable(), publisher2.asObservable())
-				.subscribe(Subscriber.<Tuple<Integer, Integer>>builder().onPublish(
-						o -> actual.add(List.of(o.first(), o.second())))
-						.onComplete((completionType) -> actual.add(Collections.singletonList(25))));
+		Observable.zip(publisher1.asObservable(), publisher2.asObservable()).subscribe(new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Tuple<Integer, Integer> o) {
+				actual.add(List.of(o.first(), o.second()));
+			}
+
+			@Override
+			public void onComplete(Completion completion) {
+				actual.add(Collections.singletonList(25));
+			}
+		});
 
 		publisher1.publish(1);
 		publisher1.publish(2);
@@ -131,7 +153,7 @@ public class ZipObservableTest {
 
 		publisher2.publish(20);
 
-		Thread.sleep(100);
+		Thread.sleep(500);
 
 		assertEquals(expected, actual);
 	}

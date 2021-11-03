@@ -6,7 +6,11 @@ import com.github.tix320.skimp.api.exception.ExceptionUtils;
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class OnceObservable<T> implements MonoObservable<T> {
+public final class OnceObservable<T> extends MonoObservable<T> {
+
+	private static final Unsubscription ONCE_UNSUBSCRIPTION = new Unsubscription("ONCE_UNSUBSCRIPTION");
+
+	private static final SourceCompletion SOURCE_COMPLETED_BY_ONCE = new SourceCompletion("SOURCE_COMPLETED_BY_ONCE");
 
 	private final Observable<T> observable;
 
@@ -16,49 +20,32 @@ public final class OnceObservable<T> implements MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>() {
-
-			private volatile boolean unsubscribed = false;
+		observable.subscribe(new AbstractSubscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(new Subscription() {
-					@Override
-					public boolean isCompleted() {
-						return subscription.isCompleted();
-					}
-
-					@Override
-					public void unsubscribe() {
-						unsubscribed = true;
-						subscription.unsubscribe();
-					}
-				});
+			public void onSubscribe() {
+				subscriber.onSubscribe(subscription());
 			}
 
 			@Override
-			public boolean onPublish(T item) {
+			public void onPublish(T item) {
 				try {
-					boolean needMore = subscriber.onPublish(item);
-
-					if (!needMore) {
-						unsubscribed = true;
-					}
+					subscriber.onPublish(item);
 				}
 				catch (Throwable e) {
 					ExceptionUtils.applyToUncaughtExceptionHandler(e);
 				}
 
-				return false;
+				subscription().cancel(ONCE_UNSUBSCRIPTION);
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (unsubscribed) {
-					subscriber.onComplete(CompletionType.UNSUBSCRIPTION);
+			public void onComplete(Completion completion) {
+				if (completion == ONCE_UNSUBSCRIPTION) {
+					subscriber.onComplete(SOURCE_COMPLETED_BY_ONCE);
 				}
 				else {
-					subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+					subscriber.onComplete(completion);
 				}
 			}
 		});

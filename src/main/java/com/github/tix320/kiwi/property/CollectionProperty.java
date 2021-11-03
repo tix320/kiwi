@@ -5,10 +5,10 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import com.github.tix320.kiwi.property.internal.BaseProperty;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.skimp.api.collection.UnmodifiableIterator;
 
-public final class CollectionProperty<T> extends BaseProperty<Collection<T>> {
+public final class CollectionProperty<T> extends AbstractMutableProperty<Collection<T>> {
 
 	public CollectionProperty() {
 	}

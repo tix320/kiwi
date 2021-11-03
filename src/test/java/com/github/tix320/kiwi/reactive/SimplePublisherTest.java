@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Test;
 
@@ -31,13 +29,21 @@ public class SimplePublisherTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		observable.subscribe(Subscriber.<Integer>builder().onSubscribe(subscriptionHolder::set).onPublish(actual::add));
+		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
+			@Override
+			public void onPublish(Integer item) {
+				actual.add(item);
+			}
+		};
+
+		observable.subscribe(subscriber);
 
 		publisher.publish(6);
 		publisher.publish(7);
 
-		subscriptionHolder.get().unsubscribe();
+		Thread.sleep(200);
+
+		subscriber.subscription().cancel();
 
 		publisher.publish(8);
 

@@ -5,11 +5,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
  */
-public abstract class CollectorObservable<S, R> implements TransformObservable<S, R> {
+public abstract class CollectorObservable<S, R> extends Observable<R> {
 
 	private final Observable<S> observable;
 
@@ -20,24 +21,28 @@ public abstract class CollectorObservable<S, R> implements TransformObservable<S
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new ConcurrentLinkedQueue<>();
-		observable.subscribe(new Subscriber<S>() {
+		observable.subscribe(new Subscriber<>() {
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				return subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 			}
 
 			@Override
-			public boolean onPublish(S item) {
+			public void onPublish(S item) {
 				objects.add(item);
-				return true;
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				if (completionType == CompletionType.SOURCE_COMPLETED) {
-					subscriber.onPublish(collect(objects.stream()));
+			public void onComplete(Completion completion) {
+				if (completion instanceof SourceCompletion) {
+					try {
+						subscriber.onPublish(collect(objects.stream()));
+					}
+					catch (Throwable e) {
+						ExceptionUtils.applyToUncaughtExceptionHandler(e);
+					}
 				}
-				subscriber.onComplete(completionType);
+				subscriber.onComplete(completion);
 			}
 		});
 	}

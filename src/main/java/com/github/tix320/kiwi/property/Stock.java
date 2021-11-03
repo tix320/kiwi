@@ -1,12 +1,12 @@
 package com.github.tix320.kiwi.property;
 
-public interface Stock<T> extends ObservableStock<T> {
+import java.util.List;
 
-	void add(T value);
+import com.github.tix320.kiwi.observable.ObservableCandidate;
 
-	void close();
+public interface Stock<T> extends ObservableCandidate<T> {
 
-	ReadOnlyStock<T> toReadOnly();
+	List<T> list();
 
 	// ---------- Factory methods ----------
 

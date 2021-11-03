@@ -5,19 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.github.tix320.kiwi.observable.ObservableCandidate;
 import com.github.tix320.skimp.api.collection.BiMap;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.function.CheckedRunnable;
 
-public interface Property<T> extends ObservableProperty<T> {
+public interface Property<T> extends ObservableCandidate<T> {
 
-	void setValue(T value);
-
-	boolean compareAndSetValue(T expectedValue, T value);
-
-	void close();
-
-	boolean isClosed();
-
-	ReadOnlyProperty<T> toReadOnly();
+	T getValue();
 
 	// ---------- Factory methods ----------
 
@@ -75,20 +70,42 @@ public interface Property<T> extends ObservableProperty<T> {
 
 	// ---------- Atomic helper ----------
 
-	static Committer updateAtomic(FreezeableProperty... properties) {
+	static void updateAtomic(FreezeableProperty property, CheckedRunnable runnable) {
+		updateAtomic(runnable, List.of(property));
+	}
+
+	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, CheckedRunnable runnable) {
+		updateAtomic(runnable, List.of(property1, property2));
+	}
+
+	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, FreezeableProperty property3,
+							 CheckedRunnable runnable) {
+		updateAtomic(runnable, List.of(property1, property2, property3));
+	}
+
+	static void updateAtomic(Collection<FreezeableProperty> properties, CheckedRunnable runnable) {
+		updateAtomic(runnable, properties);
+	}
+
+	private static void updateAtomic(CheckedRunnable runnable, Collection<FreezeableProperty> properties) {
 		for (FreezeableProperty property : properties) {
 			property.freeze();
 		}
 
-		return () -> {
-			for (FreezeableProperty property : properties) {
-				property.unfreeze();
-			}
-		};
-	}
+		Throwable ex = null;
+		try {
+			runnable.run();
+		}
+		catch (Throwable e) {
+			ex = e;
+		}
 
-	interface Committer {
+		for (FreezeableProperty property : properties) {
+			property.unfreeze();
+		}
 
-		void commit();
+		if (ex != null) {
+			ExceptionUtils.sneakyThrow(ex);
+		}
 	}
 }

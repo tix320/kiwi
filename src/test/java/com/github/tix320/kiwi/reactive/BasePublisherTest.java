@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BasePublisherTest {
 
 	@Test
-	public void bufferedCleanupTest() throws InterruptedException, NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
+	public void bufferedCleanupTest() throws InterruptedException, NoSuchFieldException, IllegalAccessException {
 		BufferedPublisher<Integer> publisher = Publisher.buffered(5);
 
 		Observable<Integer> observable = publisher.asObservable();
@@ -27,18 +27,16 @@ public class BasePublisherTest {
 			observable.subscribe(integer -> {
 				try {
 					Thread.sleep(200);
-				} catch (InterruptedException e) {
+				}
+				catch (InterruptedException e) {
 					throw new IllegalStateException(e);
 				}
 			});
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.publisher.internal.Item");
-		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);
-		valueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		List<Object> queue = (List<Object>) queueField.get(publisher);
 
@@ -60,19 +58,13 @@ public class BasePublisherTest {
 
 		List<Integer> expected = List.of(5, 6, 7, 8, 9, 10);
 
-		List<Integer> values = queue.stream().map(item -> {
-			try {
-				return (Integer) valueField.get(item);
-			} catch (IllegalAccessException e) {
-				throw new IllegalStateException();
-			}
-		}).collect(Collectors.toList());
+		List<Integer> values = queue.stream().map(item -> (Integer) item).collect(Collectors.toList());
 
 		assertEquals(expected, values);
 	}
 
 	@Test
-	public void bufferedDoubleCleanupTest() throws InterruptedException, NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
+	public void bufferedDoubleCleanupTest() throws InterruptedException, NoSuchFieldException, IllegalAccessException {
 		BufferedPublisher<Integer> publisher = Publisher.buffered(3);
 
 		Observable<Integer> observable = publisher.asObservable();
@@ -80,19 +72,17 @@ public class BasePublisherTest {
 		for (int i = 0; i < 10; i++) {
 			observable.subscribe(integer -> {
 				try {
-					Thread.sleep(200);
-				} catch (InterruptedException e) {
+					Thread.sleep(100);
+				}
+				catch (InterruptedException e) {
 					throw new IllegalStateException(e);
 				}
 			});
 		}
 
 		Field queueField = BasePublisher.class.getDeclaredField("queue");
-		Class<?> itemClass = Class.forName("com.github.tix320.kiwi.publisher.internal.Item");
-		Field valueField = itemClass.getDeclaredField("value");
 
 		queueField.setAccessible(true);
-		valueField.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		List<Object> queue = (List<Object>) queueField.get(publisher);
 
@@ -110,13 +100,7 @@ public class BasePublisherTest {
 
 		List<Integer> expected = List.of(3, 4, 5, 6);
 
-		List<Integer> values = queue.stream().map(item -> {
-			try {
-				return (Integer) valueField.get(item);
-			} catch (IllegalAccessException e) {
-				throw new IllegalStateException(e);
-			}
-		}).collect(Collectors.toList());
+		List<Integer> values = queue.stream().map(item -> (Integer) item).collect(Collectors.toList());
 
 		assertEquals(expected, values);
 
@@ -134,13 +118,7 @@ public class BasePublisherTest {
 
 		expected = List.of(9, 10, 11, 12);
 
-		values = queue.stream().map(item -> {
-			try {
-				return (Integer) valueField.get(item);
-			} catch (IllegalAccessException e) {
-				throw new IllegalStateException(e);
-			}
-		}).collect(Collectors.toList());
+		values = queue.stream().map(item -> (Integer) item).collect(Collectors.toList());
 
 		assertEquals(expected, values);
 	}

@@ -1,18 +1,16 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.github.tix320.kiwi.observable.CompletionType;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.internal.SharedSubscriber;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
-// TODO in case of user unsubscription, until subscription not deleted
-public final class UntilObservable<T> implements Observable<T> {
+public final class UntilObservable<T> extends Observable<T> {
+
+	private static final Unsubscription UNTIL_UNSUBSCRIPTION = new Unsubscription();
+
+	private static final SourceCompletion SOURCE_COMPLETED_VIA_UNTIL = new SourceCompletion("SOURCE_COMPLETED_VIA_UNTIL");
 
 	private final Observable<T> observable;
 
@@ -25,58 +23,56 @@ public final class UntilObservable<T> implements Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		AtomicReference<Subscription> subscriptionHolder = new AtomicReference<>();
-		AtomicBoolean untilCompleted = new AtomicBoolean(false);
+		Object lock = new Object();
 
-		until.subscribeOnComplete(completionType -> {
-			synchronized (subscriber) {
-				untilCompleted.set(true);
+		var context = new Object() {
+			private volatile Subscription untilSubscription;
+		};
 
-				Subscription subscription = subscriptionHolder.get();
-				if (subscription != null) {
-					subscription.unsubscribe();
-				}
-			}
-		});
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new SharedSubscriber<>() {
 
 			@Override
-			public boolean onSubscribe(Subscription subscription) {
-				synchronized (subscriber) {
-					boolean needRegister = subscriber.onSubscribe(subscription);
+			public void onSubscribe(Subscription subscription) {
+				subscriber.onSubscribe(subscription);
 
-					if (!needRegister) {
-						return false;
+				until.subscribe(new SharedSubscriber<Object>() {
+					@Override
+					public void onSubscribe(Subscription subscription) {
+						context.untilSubscription = subscription;
 					}
 
-					if (untilCompleted.get()) {
-						return false;
+					@Override
+					public void onPublish(Object item) {
+
 					}
 
-					subscriptionHolder.set(subscription);
-					return true;
-				}
+					@Override
+					public void onComplete(Completion completion) {
+						if (completion instanceof SourceCompletion) {
+							synchronized (lock) {
+								subscription.cancel(UNTIL_UNSUBSCRIPTION);
+							}
+						}
+					}
+				});
 			}
 
 			@Override
-			public boolean onPublish(T item) {
-				synchronized (subscriber) {
-					if (untilCompleted.get()) {
-						return false;
-					}
-
-					return subscriber.onPublish(item);
+			public void onPublish(T item) {
+				synchronized (lock) {
+					subscriber.onPublish(item);
 				}
 			}
 
 			@Override
-			public void onComplete(CompletionType completionType) {
-				synchronized (subscriber) {
-					if (untilCompleted.get()) {
-						subscriber.onComplete(CompletionType.SOURCE_COMPLETED);
+			public void onComplete(Completion completion) {
+				synchronized (lock) {
+					if (completion == UNTIL_UNSUBSCRIPTION) {
+						subscriber.onComplete(SOURCE_COMPLETED_VIA_UNTIL);
 					}
-					else {
-						subscriber.onComplete(completionType);
+					else { // Normal source completed or user unsubscribed
+						context.untilSubscription.cancel();
+						subscriber.onComplete(completion);
 					}
 				}
 			}
