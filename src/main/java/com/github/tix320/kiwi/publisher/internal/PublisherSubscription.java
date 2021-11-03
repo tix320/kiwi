@@ -3,8 +3,10 @@ package com.github.tix320.kiwi.publisher.internal;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 final class PublisherSubscription<I> implements Subscription {
 
@@ -18,16 +20,14 @@ final class PublisherSubscription<I> implements Subscription {
 
 	private volatile SubscriberCompletion subscriberCompletion;
 
-	public PublisherSubscription(BasePublisher<I> publisher, Subscriber<? super I> realSubscriber) {
+	private final AtomicLong demand = new AtomicLong(0);
+
+	public PublisherSubscription(BasePublisher<I> publisher, Subscriber<? super I> realSubscriber, int initialCursor) {
 		this.publisher = publisher;
 		this.realSubscriber = realSubscriber;
-		this.cursor = new AtomicInteger(0);
+		this.cursor = new AtomicInteger(initialCursor);
 		this.actionInProgress = new AtomicBoolean(false);
 		this.subscriberCompletion = null;
-	}
-
-	public void changeCursor(int n) {
-		cursor.set(n);
 	}
 
 	public int cursor() {
@@ -51,36 +51,74 @@ final class PublisherSubscription<I> implements Subscription {
 			else {
 				final int lastItemIndex = subscriberCompletion.lastItemIndex();
 				if (cursor.get() > lastItemIndex) {
-					doComplete(subscriberCompletion.completion()).whenComplete((unused, unused1) -> actionInProgress.set(false));
+					doComplete(subscriberCompletion.completion()).whenComplete((unused, ex) -> {
+						if (ex != null) {
+							ExceptionUtils.applyToUncaughtExceptionHandler(ex);
+						}
+
+						actionInProgress.set(false);
+					});
 				}
 				else {
-					final I value = publisher.getNthPublish(cursor.getAndIncrement());
-					doPublish(value).whenComplete((unused, unused1) -> {
+					doPublish().whenComplete((published, ex) -> {
+						if (ex != null) {
+							ExceptionUtils.applyToUncaughtExceptionHandler(ex);
+						}
 						actionInProgress.set(false);
-						tryDoAction();
+
+						if (published) {
+							tryDoAction();
+						}
 					});
 				}
 			}
 		}
 		else {
 			if (cursor.get() < publisher.getPublishCount()) {
-				final I value = publisher.getNthPublish(cursor.getAndIncrement());
-				doPublish(value).whenComplete((unused, unused1) -> {
+				doPublish().whenComplete((published, ex) -> {
+					if (ex != null) {
+						ExceptionUtils.applyToUncaughtExceptionHandler(ex);
+					}
 					actionInProgress.set(false);
-					tryDoAction();
+
+					if (published) {
+						tryDoAction();
+					}
 				});
 			}
 			else {
 				if (publisher.isCompleted()) {
 					this.subscriberCompletion = new SubscriberCompletion(publisher.getPublishCount() - 1,
 							publisher.getCompletion());
-					doComplete(SourceCompletion.DEFAULT).whenComplete((unused, unused1) -> actionInProgress.set(false));
+					doComplete(SourceCompletion.DEFAULT).whenComplete((unused, ex) -> {
+						if (ex != null) {
+							ExceptionUtils.applyToUncaughtExceptionHandler(ex);
+						}
+
+						actionInProgress.set(false);
+					});
 				}
 				else {
 					actionInProgress.set(false);
 				}
 			}
 		}
+	}
+
+	@Override
+	public void request(long n) {
+		if (n <= 0) {
+			throw new IllegalArgumentException(String.valueOf(n));
+		}
+
+		if (n == Long.MAX_VALUE) {
+			demand.set(-1);
+		}
+		else {
+			demand.addAndGet(n);
+		}
+
+		tryDoAction();
 	}
 
 	@Override
@@ -93,8 +131,24 @@ final class PublisherSubscription<I> implements Subscription {
 		}
 	}
 
-	private CompletableFuture<Void> doPublish(I value) {
-		return BasePublisher.runAsync(() -> realSubscriber.publish(value));
+	private CompletableFuture<Boolean> doPublish() {
+		long dem = demand.getAndUpdate(operand -> {
+			if (operand == 0 || operand == -1) {
+				return operand;
+			}
+			else {
+				return operand - 1;
+			}
+		});
+
+		if (dem != 0) {
+			int cursor = this.cursor.getAndIncrement();
+			final I value = publisher.getNthPublish(cursor);
+			return BasePublisher.runAsync(() -> realSubscriber.publish(value)).thenApply(unused -> true);
+		}
+		else {
+			return CompletableFuture.completedFuture(false);
+		}
 	}
 
 	private CompletableFuture<Void> doComplete(Completion completion) {
