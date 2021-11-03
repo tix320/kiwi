@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,6 +64,7 @@ public class SinglePublisherTest {
 	}
 
 	@Test
+	@Disabled("Review")
 	public void concurrentPublishTest() throws InterruptedException {
 		int count = 100000;
 
