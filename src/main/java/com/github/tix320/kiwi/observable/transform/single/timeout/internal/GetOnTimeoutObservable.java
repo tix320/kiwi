@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.kiwi.publisher.internal.BasePublisher;
+import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
 import com.github.tix320.skimp.api.exception.ExceptionUtils;
 import com.github.tix320.skimp.api.thread.Threads;
 
@@ -86,7 +86,7 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 
 		observable.toMono().subscribe(newSubscriber);
 
-		schedule(timeout.toMillis(), () -> BasePublisher.runAsync(() -> {
+		schedule(timeout.toMillis(), () -> DefaultScheduler.get().schedule(() -> {
 			synchronized (lock) {
 				if (published.compareAndSet(false, true)) {
 					T item = newItemFactory.get();

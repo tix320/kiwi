@@ -82,7 +82,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer,
 								Consumer<Completion> onComplete) {
-		subscribe(new Subscriber<T>() {
+		subscribe(new Subscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				onSubscribe.accept(subscription);
