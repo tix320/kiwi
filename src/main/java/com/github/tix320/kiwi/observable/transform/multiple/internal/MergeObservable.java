@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.signal.SignalManager;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
@@ -30,13 +31,13 @@ public final class MergeObservable<T> extends Observable<T> {
 
 		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
-		Object lock = new Object();
-
 		AtomicInteger completedCount = new AtomicInteger(0);
 
 		AtomicBoolean userUnsubscribed = new AtomicBoolean(false);
 
 		Subscription generalSubscription = new Subscription() {
+
+			private final Object lock = new Object();
 
 			@Override
 			public void request(long n) {
@@ -80,8 +81,11 @@ public final class MergeObservable<T> extends Observable<T> {
 			}
 		};
 
+		SignalManager signalManager = subscriber.getSignalManager();
+		signalManager.increaseTokensCount(observablesCount - 1);
+
 		for (Observable<? extends T> observable : observables) {
-			observable.subscribe(new Subscriber<T>() {
+			observable.subscribe(new Subscriber<T>(signalManager) {
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
@@ -96,30 +100,26 @@ public final class MergeObservable<T> extends Observable<T> {
 				public void onNext(T item) {
 					Objects.requireNonNull(item,
 							"Null values not allowed in " + CombineLatestObservable.class.getSimpleName());
-					synchronized (lock) {
-						if (userUnsubscribed.get()) {
-							return;
-						}
-						subscriber.publish(item);
+					if (userUnsubscribed.get()) {
+						return;
 					}
+					subscriber.publish(item);
 				}
 
 				@Override
 				public void onComplete(Completion completion) {
-					synchronized (lock) {
-						if (completion instanceof UserUnsubscription userUnsubscription) {
-							if (userUnsubscription.perform) {
-								subscriber.complete(userUnsubscription.unsubscription);
-							}
+					if (completion instanceof UserUnsubscription userUnsubscription) {
+						if (userUnsubscription.perform) {
+							subscriber.complete(userUnsubscription.unsubscription);
 						}
-						else if (completion instanceof SourceCompletion) {
-							if (completedCount.incrementAndGet() == observablesCount) {
-								subscriber.complete(ALL_COMPLETED);
-							}
+					}
+					else if (completion instanceof SourceCompletion) {
+						if (completedCount.incrementAndGet() == observablesCount) {
+							subscriber.complete(ALL_COMPLETED);
 						}
-						else {
-							throw new IllegalStateException(completion.toString());
-						}
+					}
+					else {
+						throw new IllegalStateException(completion.toString());
 					}
 				}
 			});

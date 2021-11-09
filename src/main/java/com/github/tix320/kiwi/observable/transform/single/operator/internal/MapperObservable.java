@@ -23,7 +23,7 @@ public final class MapperObservable<S, R> extends Observable<R> {
 
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>(subscriber.getSignalManager()) {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);

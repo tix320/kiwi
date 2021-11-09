@@ -62,40 +62,6 @@ public class PublisherTest {
 	}
 
 	@Test
-	public void unsubscribeFromOtherSubscriptionOnPublishTest() throws InterruptedException {
-		Publisher<Integer> publisher = Publisher.simple();
-
-		Set<Integer> expected = Set.of(10, 20, 50);
-		Set<Integer> actual = new ConcurrentSkipListSet<>();
-
-		Observable<Integer> observable = publisher.asObservable();
-
-		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
-			@Override
-			public void onNext(Integer item) {
-				actual.add(item * 20);
-			}
-		};
-
-		observable.subscribe(integer -> {
-			actual.add(integer * 10);
-			subscriber.subscription().cancel();
-		});
-
-		observable.subscribe(subscriber);
-
-		publisher.publish(1);
-
-		Thread.sleep(100);
-
-		publisher.publish(5);
-
-		Thread.sleep(100);
-
-		assertEquals(expected, actual);
-	}
-
-	@Test
 	public void completeOnPublishTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 

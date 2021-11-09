@@ -1,7 +1,6 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -20,7 +19,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<T>(subscriber.getSignalManager()) {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -32,11 +31,9 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 				try {
 					subscriber.publish(item);
 				}
-				catch (Throwable e) {
-					ExceptionUtils.applyToUncaughtExceptionHandler(e);
+				finally {
+					subscription().cancel(ONCE_UNSUBSCRIPTION);
 				}
-
-				subscription().cancel(ONCE_UNSUBSCRIPTION);
 			}
 
 			@Override

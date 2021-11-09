@@ -64,7 +64,6 @@ public class SinglePublisherTest {
 	}
 
 	@Test
-	@Disabled("Review")
 	public void concurrentPublishTest() throws InterruptedException {
 		int count = 100000;
 

@@ -46,7 +46,7 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 
 		Object lock = new Object();
 
-		final Subscriber<T> newSubscriber = new Subscriber<>() {
+		final Subscriber<T> newSubscriber = new Subscriber<>(subscriber.getSignalManager()) {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -72,7 +72,7 @@ public class GetOnTimeoutObservable<T> extends MonoObservable<T> {
 							subscriber.publish(item);
 						}
 						catch (Throwable e) {
-							ExceptionUtils.applyToUncaughtExceptionHandler(e);
+							// TODO call OnError
 						}
 
 						subscriber.complete(SOURCE_COMPLETED_BY_TIMEOUT);
