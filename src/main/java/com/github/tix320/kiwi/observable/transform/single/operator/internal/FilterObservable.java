@@ -23,7 +23,7 @@ public final class FilterObservable<T> extends Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>(subscriber.getSignalManager()) {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);

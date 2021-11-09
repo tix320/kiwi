@@ -21,7 +21,7 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new ConcurrentLinkedQueue<>();
-		observable.subscribe(new Subscriber<>()  {
+		observable.subscribe(new Subscriber<>(subscriber.getSignalManager()) {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);
@@ -40,6 +40,7 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 					}
 					catch (Throwable e) {
 						ExceptionUtils.applyToUncaughtExceptionHandler(e);
+						 // TODO call OnError
 					}
 				}
 				subscriber.complete(completion);

@@ -1,10 +1,7 @@
 package com.github.tix320.kiwi.observable;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,9 +19,9 @@ import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToLis
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.*;
 import com.github.tix320.kiwi.observable.transform.single.timeout.internal.GetOnTimeoutObservable;
+import com.github.tix320.kiwi.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.publisher.MonoPublisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
-import com.github.tix320.kiwi.publisher.UnlimitBufferedPublisher;
 import com.github.tix320.skimp.api.collection.Tuple;
 import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
 
@@ -82,7 +79,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer,
 								Consumer<Completion> onComplete) {
-		subscribe(new Subscriber<>() {
+		subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				onSubscribe.accept(subscription);
@@ -449,14 +446,17 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	}
 
 	/**
-	 * Return observable, which will be produce items from given iterable and then immediately completed.
+	 * Return observable, which will be produce items from given collection and then immediately completed.
 	 *
-	 * @param iterable to publish
-	 * @param <T>      type of objects
+	 * @param collection to publish
+	 * @param <T>        type of objects
 	 * @return observable
 	 */
-	public static <T> Observable<T> of(Iterable<T> iterable) {
-		UnlimitBufferedPublisher<T> publisher = new UnlimitBufferedPublisher<>(iterable);
+	public static <T> Observable<T> of(Collection<T> collection) {
+		BufferedPublisher<T> publisher = new BufferedPublisher<>(collection.size());
+		for (T item : collection) {
+			publisher.publish(item);
+		}
 		publisher.complete();
 		return publisher.asObservable();
 	}
@@ -470,7 +470,10 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	@SafeVarargs
 	public static <T> Observable<T> of(T... values) {
-		UnlimitBufferedPublisher<T> publisher = new UnlimitBufferedPublisher<>(Arrays.asList(values));
+		BufferedPublisher<T> publisher = new BufferedPublisher<>(values.length);
+		for (T value : values) {
+			publisher.publish(value);
+		}
 		publisher.complete();
 		return publisher.asObservable();
 	}

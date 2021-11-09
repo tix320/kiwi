@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class CombineLatestObservableTest {
 
 	@Test
-	@Disabled("Until signal serialization")
 	public void simpleTest() throws InterruptedException {
 		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4), new Tuple<>(3, 4));
 		List<Tuple<Integer, Integer>> actual = new ArrayList<>();
@@ -46,7 +45,6 @@ public class CombineLatestObservableTest {
 	}
 
 	@Test
-	@Disabled("Until signal serialization")
 	public void oneCompleteTest() throws InterruptedException {
 		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(1, 2), new Tuple<>(1, 4), new Tuple<>(3, 4));
 		List<Tuple<Integer, Integer>> actual = Collections.synchronizedList(new ArrayList<>());
@@ -67,6 +65,6 @@ public class CombineLatestObservableTest {
 
 		Thread.sleep(500);
 
-		assertEquals(expected, actual);  // FIXME  expected: <[[1,2], [1,4], [3,4]]> but was: <[[1,2], [3,2], [3,4]]>
+		assertEquals(expected, actual);
 	}
 }

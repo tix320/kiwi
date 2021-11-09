@@ -378,7 +378,7 @@ public class ObservableTest {
 		});
 
 		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			Integer number = observable.map(integer -> integer + 5).get(); // TODO, asserti mej assert kashxati?
+			Integer number = observable.map(integer -> integer + 5).get();
 			assertEquals(8, number);
 		});
 	}

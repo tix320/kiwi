@@ -25,7 +25,7 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<T>(subscriber.getSignalManager()) {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {

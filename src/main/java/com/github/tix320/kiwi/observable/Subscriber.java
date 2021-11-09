@@ -3,8 +3,7 @@ package com.github.tix320.kiwi.observable;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
-import com.github.tix320.kiwi.observable.scheduler.Scheduler;
+import com.github.tix320.kiwi.observable.signal.SignalManager;
 
 public abstract class Subscriber<T> {
 
@@ -19,7 +18,7 @@ public abstract class Subscriber<T> {
 	private static final Subscription INITIAL_STATE = new InitialSubscriptionImpl();
 	private static final Subscription COMPLETED_STATE = new CompletedSubscriptionImpl();
 
-	private final Scheduler scheduler;
+	private final SignalManager signalManager;
 
 	private volatile Subscription subscription = INITIAL_STATE;
 
@@ -28,16 +27,12 @@ public abstract class Subscriber<T> {
 	 */
 	private volatile int actionInProgress = 0;
 
-	protected Subscriber(Scheduler scheduler) {
-		this.scheduler = scheduler;
+	protected Subscriber(SignalManager signalManager) {
+		this.signalManager = signalManager;
 	}
 
-	public Subscriber() {
-		this(DefaultScheduler.get());
-	}
-
-	public final Scheduler getScheduler() {
-		return scheduler;
+	public SignalManager getSignalManager() {
+		return signalManager;
 	}
 
 	public final void setSubscription(Subscription subscription) {
@@ -47,9 +42,12 @@ public abstract class Subscriber<T> {
 			throw new SubscriberIllegalStateException("Subscription already set");
 		}
 
-		onSubscribe(subscription);
-
-		changeActionInProgress(1, 0);
+		try {
+			onSubscribe(subscription);
+		}
+		finally {
+			changeActionInProgress(1, 0);
+		}
 	}
 
 	public final Subscription subscription() {
@@ -60,9 +58,13 @@ public abstract class Subscriber<T> {
 		changeActionInProgress(0, 1);
 		Subscription subscription = this.subscription;
 		assert subscription != INITIAL_STATE && subscription != COMPLETED_STATE;
-		onNext(item);
 
-		changeActionInProgress(1, 0);
+		try {
+			onNext(item);
+		}
+		finally {
+			changeActionInProgress(1, 0);
+		}
 	}
 
 	public final void complete(Completion completion) {
@@ -79,9 +81,12 @@ public abstract class Subscriber<T> {
 			return COMPLETED_STATE;
 		});
 
-		onComplete(completion);
-
-		changeActionInProgress(1, 0);
+		try {
+			onComplete(completion);
+		}
+		finally {
+			changeActionInProgress(1, 0);
+		}
 	}
 
 	/**

@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.signal.SignalManager;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -23,19 +24,20 @@ public final class UntilObservable<T> extends Observable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		Object lock = new Object();
-
 		var context = new Object() {
 			private volatile Subscription untilSubscription;
 		};
 
-		observable.subscribe(new Subscriber<>() {
+		SignalManager signalManager = subscriber.getSignalManager();
+		signalManager.increaseTokensCount(1);
+
+		observable.subscribe(new Subscriber<>(signalManager) {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);
 
-				until.subscribe(new Subscriber<Object>() {
+				until.subscribe(new Subscriber<Object>(signalManager) {
 					@Override
 					public void onSubscribe(Subscription subscription) {
 						context.untilSubscription = subscription;
@@ -49,9 +51,7 @@ public final class UntilObservable<T> extends Observable<T> {
 					@Override
 					public void onComplete(Completion completion) {
 						if (completion instanceof SourceCompletion) {
-							synchronized (lock) {
-								subscription.cancel(UNTIL_UNSUBSCRIPTION);
-							}
+							subscription.cancel(UNTIL_UNSUBSCRIPTION);
 						}
 					}
 				});
@@ -59,21 +59,17 @@ public final class UntilObservable<T> extends Observable<T> {
 
 			@Override
 			public void onNext(T item) {
-				synchronized (lock) {
-					subscriber.publish(item);
-				}
+				subscriber.publish(item);
 			}
 
 			@Override
 			public void onComplete(Completion completion) {
-				synchronized (lock) {
-					if (completion == UNTIL_UNSUBSCRIPTION) {
-						subscriber.complete(SOURCE_COMPLETED_VIA_UNTIL);
-					}
-					else { // Normal source completed or user unsubscribed
-						context.untilSubscription.cancel();
-						subscriber.complete(completion);
-					}
+				if (completion == UNTIL_UNSUBSCRIPTION) {
+					subscriber.complete(SOURCE_COMPLETED_VIA_UNTIL);
+				}
+				else { // Normal source completed or user unsubscribed
+					context.untilSubscription.cancel();
+					subscriber.complete(completion);
 				}
 			}
 		});

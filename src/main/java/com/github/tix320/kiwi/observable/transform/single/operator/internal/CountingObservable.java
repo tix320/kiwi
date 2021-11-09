@@ -29,7 +29,7 @@ public final class CountingObservable<T> extends Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong limit = new AtomicLong(count);
-		observable.subscribe(new Subscriber<T>() {
+		observable.subscribe(new Subscriber<T>(subscriber.getSignalManager()) {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -45,12 +45,9 @@ public final class CountingObservable<T> extends Observable<T> {
 				else {
 					try {
 						subscriber.publish(item);
-					}
-					catch (Throwable e) {
-						ExceptionUtils.applyToUncaughtExceptionHandler(e);
-					}
-
+					}finally {
 					subscription().cancel(LIMIT_UNSUBSCRIPTION);
+					}
 				}
 			}
 

@@ -24,7 +24,7 @@ public final class SkipObservable<T> extends Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong mustSkip = new AtomicLong(count);
-		observable.subscribe(new Subscriber<>() {
+		observable.subscribe(new Subscriber<>(subscriber.getSignalManager()) {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);

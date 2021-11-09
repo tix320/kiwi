@@ -1,10 +1,12 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.signal.SignalManager;
 
 public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
@@ -27,14 +29,16 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 		@SuppressWarnings("unchecked")
 		T[] lastItems = (T[]) new Object[observablesCount];
-
-		Object lock = new Object();
+		Object nullObj = new Object();
+		Arrays.fill(lastItems, nullObj);
 
 		AtomicInteger readyCount = new AtomicInteger(0);
 
 		AtomicInteger completedCount = new AtomicInteger(0);
 
 		Subscription generalSubscription = new Subscription() {
+
+			private final Object lock = new Object();
 
 			@Override
 			public void request(long n) { // TODO request based on last items distributive, consider MAX case
@@ -62,10 +66,13 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 			}
 		};
 
+		SignalManager signalManager = subscriber.getSignalManager();
+		signalManager.increaseTokensCount(observablesCount - 1);
+
 		for (int i = 0; i < observables.size(); i++) {
 			Observable<? extends T> observable = observables.get(i);
 			int index = i;
-			observable.subscribe(new Subscriber<T>() {
+			observable.subscribe(new Subscriber<T>(signalManager) {
 
 				@Override
 				public void onSubscribe(Subscription subscription) {
@@ -78,40 +85,43 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 				@Override
 				public void onNext(T item) {
-					synchronized (lock) {
-						int ready = readyCount.get();
+					int ready = readyCount.get();
 
-						lastItems[index] = item;
-						if (ready != observablesCount) {
+					T previousItem = lastItems[index];
+					lastItems[index] = item;
+					if (ready != observablesCount) {
+						if (previousItem == nullObj) {
 							ready = readyCount.incrementAndGet();
 
 							if (ready != observablesCount) {
 								return;
 							}
 						}
+						else {
+							return;
+						}
 
-						List<T> combined = List.of(lastItems);
-
-						subscriber.publish(combined);
 					}
+
+					List<T> combined = List.of(lastItems);
+
+					subscriber.publish(combined);
 				}
 
 				@Override
 				public void onComplete(Completion completion) {
-					synchronized (lock) {
-						if (completion instanceof UserUnsubscription userUnsubscription) {
-							if (userUnsubscription.perform) {
-								subscriber.complete(userUnsubscription.unsubscription);
-							}
+					if (completion instanceof UserUnsubscription userUnsubscription) {
+						if (userUnsubscription.perform) {
+							subscriber.complete(userUnsubscription.unsubscription);
 						}
-						else if (completion instanceof SourceCompletion) {
-							if (completedCount.incrementAndGet() == observablesCount) {
-								subscriber.complete(ALL_COMPLETED);
-							}
+					}
+					else if (completion instanceof SourceCompletion) {
+						if (completedCount.incrementAndGet() == observablesCount) {
+							subscriber.complete(ALL_COMPLETED);
 						}
-						else {
-							throw new IllegalStateException(completion.toString());
-						}
+					}
+					else {
+						throw new IllegalStateException(completion.toString());
 					}
 				}
 			});

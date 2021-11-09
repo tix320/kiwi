@@ -101,6 +101,6 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 	 * @return created publisher.
 	 */
 	public static <T> BufferedPublisher<T> buffered() {
-		return new UnlimitBufferedPublisher<>();
+		return new BufferedPublisher<>(Integer.MAX_VALUE);
 	}
 }
