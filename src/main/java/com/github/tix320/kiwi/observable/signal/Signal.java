@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.observable.signal;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract sealed class Signal permits RequestSignal, NextSignal, CancelSignal, CompleteSignal {
+public abstract sealed class Signal permits NextSignal, CancelSignal, CompleteSignal, ErrorSignal {
 
 	private static final AtomicLong orderGenerator = new AtomicLong(Long.MIN_VALUE);
 

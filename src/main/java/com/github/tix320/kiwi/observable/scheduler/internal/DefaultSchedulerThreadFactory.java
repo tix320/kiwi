@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class DefaultSchedulerThreadFactory implements ThreadFactory {
 
-	public static final String THREAD_GROUP_NAME = "Kiwi-Scheduler";
+	public static final String THREAD_GROUP_NAME = "Kiwi";
 
 	private static final ThreadGroup THREAD_GROUP = new ThreadGroup(THREAD_GROUP_NAME);
 

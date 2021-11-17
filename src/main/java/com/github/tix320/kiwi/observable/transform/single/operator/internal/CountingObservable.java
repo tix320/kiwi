@@ -52,6 +52,11 @@ public final class CountingObservable<T> extends Observable<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				if (completion == LIMIT_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_BY_LIMIT);

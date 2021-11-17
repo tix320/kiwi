@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-public class BufferedPublisherTest extends BaseTest {
+public class BufferedPublisherTest {
 
 	@Test
 	public void simpleTest() throws InterruptedException {

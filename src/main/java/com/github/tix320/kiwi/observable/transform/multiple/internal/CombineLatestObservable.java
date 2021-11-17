@@ -1,9 +1,10 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.kiwi.observable.signal.SignalManager;
@@ -12,11 +13,17 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("COMBINE_LATEST_ALL_COMPLETED");
 
+	private static final SourceCompletion COMPLETED_BY_ONE_WITH_NO_ITEMS = new SourceCompletion(
+			"COMPLETED_BY_ONE_WITH_NO_ITEMS");
+
+	@SuppressWarnings("unchecked")
+	private final T nullObj = (T) new Object();
+
 	private final List<Observable<? extends T>> observables;
 
 	public CombineLatestObservable(List<Observable<? extends T>> observables) {
-		if (observables.size() == 0) {
-			throw new IllegalArgumentException();
+		if (observables.isEmpty()) {
+			throw new IllegalArgumentException("Empty observables");
 		}
 		this.observables = List.copyOf(observables);
 	}
@@ -27,10 +34,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 		List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
-		@SuppressWarnings("unchecked")
-		T[] lastItems = (T[]) new Object[observablesCount];
-		Object nullObj = new Object();
-		Arrays.fill(lastItems, nullObj);
+		AtomicReferenceArray<T> lastItems = createStorage(observablesCount);
 
 		AtomicInteger readyCount = new AtomicInteger(0);
 
@@ -38,30 +42,23 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 		Subscription generalSubscription = new Subscription() {
 
-			private final Object lock = new Object();
+			@Override
+			protected void onRequest(long count) {
+				throw new UnsupportedOperationException("Currently bound request not supported on CombineLatest");
+			}
 
 			@Override
-			public void request(long n) { // TODO request based on last items distributive, consider MAX case
-				synchronized (lock) {
-					for (Subscription subscription : subscriptions) {
-						subscription.request(Long.MAX_VALUE);
-					}
+			protected void onUnboundRequest() {
+				for (Subscription subscription : subscriptions) {
+					subscription.requestUnbounded();
 				}
 			}
 
 			@Override
-			public void cancel(Unsubscription unsubscription) {
-				synchronized (lock) {
-					int subscriptionsSize = subscriptions.size();
-					for (int i = 0; i < subscriptionsSize - 1; i++) {
-						Subscription subscription = subscriptions.get(i);
-						UserUnsubscription userUnsubscription = new UserUnsubscription();
-
-						subscription.cancel(userUnsubscription);
-					}
-
-					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
-					lastSubscription.cancel(new UserUnsubscription(unsubscription));
+			protected void onCancel(Unsubscription unsubscription) {
+				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
+				for (Subscription subscription : subscriptions) {
+					subscription.cancel(userUnsubscription);
 				}
 			}
 		};
@@ -87,59 +84,82 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 				public void onNext(T item) {
 					int ready = readyCount.get();
 
-					T previousItem = lastItems[index];
-					lastItems[index] = item;
-					if (ready != observablesCount) {
-						if (previousItem == nullObj) {
-							ready = readyCount.incrementAndGet();
-
-							if (ready != observablesCount) {
-								return;
-							}
-						}
-						else {
-							return;
-						}
-
+					T previousItem = lastItems.getAndSet(index, item);
+					if (previousItem == nullObj) {
+						ready = readyCount.incrementAndGet();
 					}
 
-					List<T> combined = List.of(lastItems);
+					if (ready == observablesCount) {
+						List<T> combined = storageToList(lastItems);
 
-					subscriber.publish(combined);
+						subscriber.publish(combined);
+					}
+				}
+
+				@Override
+				protected void onError(Throwable error) {
+					for (Subscription subscription : subscriptions) {
+						subscription.cancel();
+					}
+					subscriber.completeWithError(error);
 				}
 
 				@Override
 				public void onComplete(Completion completion) {
-					if (completion instanceof UserUnsubscription userUnsubscription) {
-						if (userUnsubscription.perform) {
-							subscriber.complete(userUnsubscription.unsubscription);
+					if (completion instanceof SourceCompletion) {
+						if (lastItems.get(index) == nullObj) {
+							subscriber.complete(COMPLETED_BY_ONE_WITH_NO_ITEMS);
+							for (Subscription subscription : subscriptions) {
+								subscription.cancel();
+							}
+						}
+						else {
+							if (completedCount.incrementAndGet() == observablesCount) {
+								subscriber.complete(ALL_COMPLETED);
+							}
 						}
 					}
-					else if (completion instanceof SourceCompletion) {
-						if (completedCount.incrementAndGet() == observablesCount) {
+					else if (completedCount.incrementAndGet() == observablesCount) {
+						if (completion instanceof UserUnsubscription userUnsubscription) {
+							Unsubscription realUnsubscription = userUnsubscription.realUnsubscription();
+							subscriber.complete(realUnsubscription);
+						}
+						else {
 							subscriber.complete(ALL_COMPLETED);
 						}
-					}
-					else {
-						throw new IllegalStateException(completion.toString());
 					}
 				}
 			});
 		}
 	}
 
-	private static final class UserUnsubscription extends Unsubscription {
-		private final boolean perform;
-		private final Unsubscription unsubscription;
+	private AtomicReferenceArray<T> createStorage(int length) {
+		AtomicReferenceArray<T> storage = new AtomicReferenceArray<>(length);
 
-		public UserUnsubscription() {
-			this.perform = false;
-			this.unsubscription = null;
+		for (int i = 0; i < length; i++) {
+			storage.set(i, nullObj);
 		}
 
-		private UserUnsubscription(Unsubscription unsubscription) {
-			this.perform = true;
-			this.unsubscription = unsubscription;
+		return storage;
+	}
+
+	private List<T> storageToList(AtomicReferenceArray<T> storage) {
+		List<T> list = new ArrayList<>(storage.length());
+		for (int i = 0; i < storage.length(); i++) {
+			list.add(storage.get(i));
+		}
+
+		return list;
+	}
+
+	private static final class UserUnsubscription extends Unsubscription {
+
+		public UserUnsubscription(Unsubscription data) {
+			super(data);
+		}
+
+		public Unsubscription realUnsubscription() {
+			return data();
 		}
 	}
 }

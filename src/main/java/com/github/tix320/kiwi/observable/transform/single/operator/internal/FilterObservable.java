@@ -37,6 +37,11 @@ public final class FilterObservable<T> extends Observable<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				subscriber.complete(completion);
 			}

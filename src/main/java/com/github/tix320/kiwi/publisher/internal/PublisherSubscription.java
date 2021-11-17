@@ -7,9 +7,10 @@ import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.observable.demand.DemandStrategy;
 import com.github.tix320.kiwi.observable.demand.EmptyDemandStrategy;
+import com.github.tix320.kiwi.observable.demand.InfiniteDemandStrategy;
 import com.github.tix320.kiwi.observable.signal.*;
 
-public final class PublisherSubscription<T> implements Subscription {
+public final class PublisherSubscription<T> extends Subscription {
 
 	@SuppressWarnings("rawtypes")
 	private static final AtomicReferenceFieldUpdater<PublisherSubscription, DemandStrategy> demandStrategyUpdater = AtomicReferenceFieldUpdater.newUpdater(
@@ -55,20 +56,27 @@ public final class PublisherSubscription<T> implements Subscription {
 	}
 
 	@Override
-	public void request(long n) {
-		if (n <= 0) {
-			throw new IllegalArgumentException(String.valueOf(n));
+	protected void onRequest(long count) {
+		DemandStrategy previousStrategy = demandStrategyUpdater.getAndUpdate(PublisherSubscription.this,
+				strategy -> strategy.addBound(count));
+
+		if (previousStrategy.needMore()) {
+			//TODO must be invoked worker
 		}
-
-		RequestSignal requestSignal = new RequestSignal(n);
-
-		token.addSignal(requestSignal);
-
-		token.tryRunWorker();
 	}
 
 	@Override
-	public void cancel(Unsubscription unsubscription) {
+	protected void onUnboundRequest() {
+		DemandStrategy previousStrategy = demandStrategyUpdater.getAndSet(PublisherSubscription.this,
+				InfiniteDemandStrategy.INSTANCE);
+
+		if (previousStrategy.needMore()) {
+			//TODO must be invoked worker
+		}
+	}
+
+	@Override
+	protected void onCancel(Unsubscription unsubscription) {
 		CancelSignal cancelSignal = new CancelSignal(unsubscription);
 
 		token.addSignal(cancelSignal);
@@ -79,15 +87,6 @@ public final class PublisherSubscription<T> implements Subscription {
 	private final class PublisherSignalVisitor implements SignalVisitor {
 
 		@Override
-		public SignalVisitResult visit(RequestSignal requestSignal) {
-			long count = requestSignal.count();
-			demandStrategyUpdater.updateAndGet(PublisherSubscription.this,
-					demandStrategy1 -> demandStrategy1.applyNewValue(count));
-
-			return SignalVisitResult.CONTINUE;
-		}
-
-		@Override
 		public SignalVisitResult visit(NextSignal<?> nextSignal) {
 			boolean needMore = demandStrategy.needMore();
 			if (!needMore) {
@@ -96,7 +95,12 @@ public final class PublisherSubscription<T> implements Subscription {
 
 			//noinspection unchecked
 			T casted = (T) nextSignal.getItem();
-			realSubscriber.publish(casted);
+			try {
+				realSubscriber.publish(casted);
+			}
+			catch (Subscriber.UserCallbackException e) {
+				token.addSignal(new ErrorSignal(e.getCause()));
+			}
 			return SignalVisitResult.CONTINUE;
 		}
 
@@ -111,6 +115,13 @@ public final class PublisherSubscription<T> implements Subscription {
 		@Override
 		public SignalVisitResult visit(CompleteSignal completeSignal) {
 			realSubscriber.complete(completeSignal.completion());
+
+			return SignalVisitResult.COMPLETE;
+		}
+
+		@Override
+		public SignalVisitResult visit(ErrorSignal errorSignal) {
+			realSubscriber.completeWithError(errorSignal.error());
 
 			return SignalVisitResult.COMPLETE;
 		}

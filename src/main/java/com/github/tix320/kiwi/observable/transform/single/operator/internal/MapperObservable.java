@@ -35,6 +35,11 @@ public final class MapperObservable<S, R> extends Observable<R> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				subscriber.complete(completion);
 			}

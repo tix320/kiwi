@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.kiwi.observable.signal.SignalManager;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author : Tigran Sargsyan
@@ -18,7 +19,7 @@ public abstract class FlexibleSubscriber<T> extends Subscriber<T> {
 
 	@Override
 	public void onSubscribe(Subscription subscription) {
-		subscription.request(Long.MAX_VALUE);
+		subscription.requestUnbounded();
 	}
 
 	@Override
@@ -27,7 +28,18 @@ public abstract class FlexibleSubscriber<T> extends Subscriber<T> {
 	}
 
 	@Override
+	protected void onError(Throwable error) {
+		ExceptionUtils.applyToUncaughtExceptionHandler(new UnhandledObservableException(error));
+	}
+
+	@Override
 	public void onComplete(Completion completion) {
 		// No-op
+	}
+
+	private static final class UnhandledObservableException extends RuntimeException {
+		public UnhandledObservableException(Throwable cause) {
+			super(cause);
+		}
 	}
 }

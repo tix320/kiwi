@@ -43,6 +43,11 @@ public final class TakeWhileObservable<T> extends Observable<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				if (completion == PREDICATE_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_BY_PREDICATE);

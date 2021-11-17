@@ -37,6 +37,11 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				if (completion == ONCE_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_BY_ONCE);

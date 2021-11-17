@@ -15,15 +15,27 @@ public final class FiniteDemandStrategy implements DemandStrategy {
 
 	@Override
 	public boolean needMore() {
-		return countUpdater.getAndDecrement(this) != 0;
+		long valueBeforeUpdate = countUpdater.getAndUpdate(this, value -> {
+			if (value == 0) {
+				return 0;
+			}
+			else {
+				return value - 1;
+			}
+		});
+
+		return valueBeforeUpdate != 0;
 	}
 
 	@Override
-	public DemandStrategy applyNewValue(long count) {
-		if (count == Long.MAX_VALUE) {
+	public DemandStrategy addBound(long count) {
+		long current = countUpdater.get(this);
+		try {
+			long newVal = Math.addExact(current, count);
+			return new FiniteDemandStrategy(newVal);
+		}
+		catch (ArithmeticException e) {
 			return InfiniteDemandStrategy.INSTANCE;
 		}
-
-		return new FiniteDemandStrategy(countUpdater.get(this) + count);
 	}
 }

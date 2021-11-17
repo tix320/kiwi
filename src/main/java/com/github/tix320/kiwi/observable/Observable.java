@@ -14,11 +14,12 @@ import java.util.function.Supplier;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
+import com.github.tix320.kiwi.observable.transform.single.TimerObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.JoinObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToListObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.*;
-import com.github.tix320.kiwi.observable.transform.single.timeout.internal.GetOnTimeoutObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
 import com.github.tix320.kiwi.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.publisher.MonoPublisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
@@ -267,7 +268,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return new observable
 	 */
 	public final MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
-		return new GetOnTimeoutObservable<>(this, timeout, factory);
+		return new FirstOfAllObservable<>(List.of(this, new TimerObservable<>(timeout, factory)));
 	}
 	//endregion
 

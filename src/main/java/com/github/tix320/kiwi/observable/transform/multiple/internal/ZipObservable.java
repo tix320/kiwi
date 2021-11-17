@@ -2,26 +2,33 @@ package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.demand.DemandStrategy;
+import com.github.tix320.kiwi.observable.demand.EmptyDemandStrategy;
+import com.github.tix320.kiwi.observable.demand.InfiniteDemandStrategy;
 import com.github.tix320.kiwi.observable.signal.SignalManager;
 
 public final class ZipObservable<T> extends Observable<List<T>> {
 
 	private static final SourceCompletion ALL_COMPLETED = new SourceCompletion("ZIP_ALL_COMPLETED");
 
+	private static final SourceCompletion COMPLETED_BY_ONE_WITH_NO_ITEMS = new SourceCompletion(
+			"ZIP_COMPLETED_BY_ONE_WITH_NO_ITEMS");
+
 	private static final Unsubscription UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE = new Unsubscription(
 			"UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE");
+
+	@SuppressWarnings("unchecked")
+	private final T nullObj = (T) new Object();
 
 	private final List<Observable<? extends T>> observables;
 
 	public ZipObservable(List<Observable<? extends T>> observables) {
-		if (observables.size() == 0) {
-			throw new IllegalArgumentException();
+		if (observables.isEmpty()) {
+			throw new IllegalArgumentException("Empty observables");
 		}
 		this.observables = List.copyOf(observables);
 	}
@@ -30,42 +37,48 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 	public void subscribe(Subscriber<? super List<T>> subscriber) {
 		int observablesCount = observables.size();
 
-		List<Queue<T>> queues = new CopyOnWriteArrayList<>();
-		for (int i = 0; i < observables.size(); i++) {
-			queues.add(new ConcurrentLinkedQueue<>());
-		}
+		AtomicReferenceArray<SourceInfo<T>> sourceInfos = createStorage(observablesCount);
 
 		List<Subscription> subscriptions = new ArrayList<>(observables.size());
 
 		AtomicInteger readyCount = new AtomicInteger(0);
 
 		AtomicInteger completedCount = new AtomicInteger(0);
-		boolean[] completed = new boolean[observablesCount];
 
 		Subscription generalSubscription = new Subscription() {
 
+			private volatile DemandStrategy demandStrategy = EmptyDemandStrategy.INSTANCE;
+
 			@Override
-			public void request(long n) {
-				for (Subscription subscription : subscriptions) {
-					subscription.request(n);
+			protected void onRequest(long count) {
+				boolean wasNeedBeforeUpdate = demandStrategy.needMore();
+				//noinspection NonAtomicOperationOnVolatileField
+				demandStrategy = demandStrategy.addBound(count);
+
+				if (!wasNeedBeforeUpdate) {
+					for (Subscription subscription : subscriptions) {
+						subscription.request(1);
+					}
 				}
 			}
 
-			private final Object cancelLock = new Object();
+			@Override
+			protected void onUnboundRequest() {
+				boolean wasNeedBeforeUpdate = demandStrategy.needMore();
+				demandStrategy = InfiniteDemandStrategy.INSTANCE;
+
+				if (!wasNeedBeforeUpdate) {
+					for (Subscription subscription : subscriptions) {
+						subscription.request(1);
+					}
+				}
+			}
 
 			@Override
-			public void cancel(Unsubscription unsubscription) {
-				synchronized (cancelLock) {
-					int subscriptionsSize = subscriptions.size();
-					for (int i = 0; i < subscriptionsSize - 1; i++) {
-						Subscription subscription = subscriptions.get(i);
-						UserUnsubscription userUnsubscription = new UserUnsubscription();
-
-						subscription.cancel(userUnsubscription);
-					}
-
-					Subscription lastSubscription = subscriptions.get(subscriptionsSize - 1);
-					lastSubscription.cancel(new UserUnsubscription(unsubscription));
+			protected void onCancel(Unsubscription unsubscription) {
+				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
+				for (Subscription subscription : subscriptions) {
+					subscription.cancel(userUnsubscription);
 				}
 			}
 		};
@@ -90,54 +103,73 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 				@Override
 				public void onNext(T item) {
-					Queue<T> queue = queues.get(index);
+					SourceInfo<T> sourceInfo = sourceInfos.get(index);
 
-					boolean isEmpty = queue.isEmpty();
-					queue.add(item);
+					sourceInfo.item = item;
+					int count = readyCount.incrementAndGet();
 
-					if (isEmpty) {
-						int count = readyCount.incrementAndGet();
+					if (count == observablesCount) {
+						boolean needCompleteAll = false;
 
-						if (count == observablesCount) {
-							boolean needCompleteAll = false;
+						List<T> zip = new ArrayList<>(observablesCount);
 
-							List<T> zip = new ArrayList<>(observablesCount);
-							for (int j = 0; j < queues.size(); j++) {
-								Queue<T> q = queues.get(j);
-								zip.add(q.remove());
+						for (int j = 0; j < sourceInfos.length(); j++) {
+							SourceInfo<T> info = sourceInfos.get(j);
+							T queueItem = info.item;
+							zip.add(queueItem);
 
-								if (q.isEmpty()) {
-									readyCount.decrementAndGet();
-
-									if (completed[j]) {
-										needCompleteAll = true;
-									}
-								}
+							if (info.completed) {
+								needCompleteAll = true;
 							}
+						}
 
-							subscriber.publish(zip);
+						subscriber.publish(zip);
 
-							if (needCompleteAll) {
-								subscriptions.forEach(
-										subscription -> subscription.cancel(UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE));
+						if (needCompleteAll) {
+							for (Subscription subscription : subscriptions) {
+								subscription.cancel(UNSUBSCRIPTION_BECAUSE_OF_SOME_COMPLETE);
+							}
+						}
+						else {
+							readyCount.set(0);
+							for (Subscription subscription : subscriptions) {
+								subscription.request(1);
 							}
 						}
 					}
 				}
 
 				@Override
+				protected void onError(Throwable error) {
+					for (Subscription subscription : subscriptions) {
+						subscription.cancel();
+					}
+					subscriber.completeWithError(error);
+				}
+
+				@Override
 				public void onComplete(Completion completion) {
-					if (completion instanceof UserUnsubscription userUnsubscription) {
-						if (userUnsubscription.perform) {
-							subscriber.complete(userUnsubscription.unsubscription);
+					if (completion instanceof SourceCompletion) {
+						SourceInfo<T> sourceInfo = sourceInfos.get(index);
+						if (sourceInfo.item == nullObj) {
+							subscriber.complete(COMPLETED_BY_ONE_WITH_NO_ITEMS);
+							for (Subscription subscription : subscriptions) {
+								subscription.cancel();
+							}
+						}
+						else {
+							sourceInfo.completed = true;
+							if (completedCount.incrementAndGet() == observablesCount) {
+								subscriber.complete(ALL_COMPLETED);
+							}
 						}
 					}
-					else {
-						completed[index] = true;
-						if (completedCount.incrementAndGet() == observablesCount) {
-							subscriber.complete(ALL_COMPLETED);
+					else if (completedCount.incrementAndGet() == observablesCount) {
+						if (completion instanceof UserUnsubscription userUnsubscription) {
+							Unsubscription realUnsubscription = userUnsubscription.realUnsubscription();
+							subscriber.complete(realUnsubscription);
 						}
-						else if (completion instanceof SourceCompletion && queues.get(index).isEmpty()) {
+						else {
 							subscriber.complete(ALL_COMPLETED);
 						}
 					}
@@ -146,18 +178,35 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 		}
 	}
 
-	private static final class UserUnsubscription extends Unsubscription {
-		private final boolean perform;
-		private final Unsubscription unsubscription;
+	private AtomicReferenceArray<SourceInfo<T>> createStorage(int length) {
+		AtomicReferenceArray<SourceInfo<T>> storage = new AtomicReferenceArray<>(length);
 
-		public UserUnsubscription() {
-			this.perform = false;
-			this.unsubscription = null;
+		for (int i = 0; i < length; i++) {
+			storage.set(i, new SourceInfo<>(nullObj, false));
 		}
 
-		private UserUnsubscription(Unsubscription unsubscription) {
-			this.perform = true;
-			this.unsubscription = unsubscription;
+		return storage;
+	}
+
+	private static final class SourceInfo<T> {
+		volatile T item;
+		volatile boolean completed;
+
+		public SourceInfo(T item, boolean completed) {
+			this.item = item;
+			this.completed = completed;
+		}
+	}
+
+
+	private static final class UserUnsubscription extends Unsubscription {
+
+		public UserUnsubscription(Unsubscription data) {
+			super(data);
+		}
+
+		public Unsubscription realUnsubscription() {
+			return data();
 		}
 	}
 }

@@ -4,6 +4,8 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import com.github.tix320.kiwi.observable.signal.SignalManager;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.thread.tracer.Tracer;
 
 public abstract class Subscriber<T> {
 
@@ -31,11 +33,11 @@ public abstract class Subscriber<T> {
 		this.signalManager = signalManager;
 	}
 
-	public SignalManager getSignalManager() {
+	public final SignalManager getSignalManager() {
 		return signalManager;
 	}
 
-	public final void setSubscription(Subscription subscription) {
+	public final void setSubscription(Subscription subscription) throws UserCallbackException {
 		changeActionInProgress(0, 1);
 		boolean changed = subscriptionUpdater.compareAndSet(this, INITIAL_STATE, subscription);
 		if (!changed) {
@@ -44,6 +46,12 @@ public abstract class Subscriber<T> {
 
 		try {
 			onSubscribe(subscription);
+		}
+		catch (UserCallbackException e) {
+			throw e;
+		}
+		catch (Throwable e) {
+			throw new UserCallbackException(e);
 		}
 		finally {
 			changeActionInProgress(1, 0);
@@ -54,13 +62,19 @@ public abstract class Subscriber<T> {
 		return this.subscription;
 	}
 
-	public final void publish(T item) {
+	public final void publish(T item) throws UserCallbackException {
 		changeActionInProgress(0, 1);
 		Subscription subscription = this.subscription;
 		assert subscription != INITIAL_STATE && subscription != COMPLETED_STATE;
 
 		try {
 			onNext(item);
+		}
+		catch (UserCallbackException e) {
+			throw e;
+		}
+		catch (Throwable e) {
+			throw new UserCallbackException(e);
 		}
 		finally {
 			changeActionInProgress(1, 0);
@@ -84,6 +98,35 @@ public abstract class Subscriber<T> {
 		try {
 			onComplete(completion);
 		}
+		catch (Throwable e) {
+			ExceptionUtils.applyToUncaughtExceptionHandler(new CompleteHandlerException(e));
+		}
+		finally {
+			changeActionInProgress(1, 0);
+		}
+	}
+
+	public final void completeWithError(Throwable error) {
+		changeActionInProgress(0, 1);
+		subscriptionUpdater.updateAndGet(this, s -> {
+			if (s == INITIAL_STATE) {
+				throw new SubscriberIllegalStateException(
+						"Cannot complete subscriber, because it does not subscribed yet.");
+			}
+			else if (s == COMPLETED_STATE) {
+				throw new SubscriberIllegalStateException("Subscriber already completed");
+			}
+
+			return COMPLETED_STATE;
+		});
+
+		Tracer.INSTANCE.injectFullStacktrace(error);
+		try {
+			onError(error);
+		}
+		catch (Throwable e) {
+			ExceptionUtils.applyToUncaughtExceptionHandler(new ErrorHandlerException(e));
+		}
 		finally {
 			changeActionInProgress(1, 0);
 		}
@@ -101,6 +144,14 @@ public abstract class Subscriber<T> {
 	protected abstract void onNext(T item);
 
 	/**
+	 * Handle subscription error.
+	 * After calling this method, no more methods will be called.
+	 *
+	 * @param error contains information about error.
+	 */
+	protected abstract void onError(Throwable error);
+
+	/**
 	 * Handle subscription completeness.
 	 * After calling this method, no more methods will be called.
 	 *
@@ -108,6 +159,12 @@ public abstract class Subscriber<T> {
 	 * @see Completion
 	 */
 	protected abstract void onComplete(Completion completion);
+
+	public static final class UserCallbackException extends RuntimeException {
+		private UserCallbackException(Throwable cause) {
+			super(cause);
+		}
+	}
 
 	private void changeActionInProgress(int expected, int update) {
 		boolean changed = actionInProgressUpdater.compareAndSet(this, expected, update);
@@ -117,44 +174,58 @@ public abstract class Subscriber<T> {
 		}
 	}
 
-	private static final class InitialSubscriptionImpl implements Subscription {
+	private static final class InitialSubscriptionImpl extends Subscription {
 
 		@Override
-		public void request(long n) {
+		protected void onRequest(long count) {
 			throw new SubscriberIllegalStateException("Not subscribed yet");
 		}
 
 		@Override
-		public void cancel(Unsubscription unsubscription) {
+		protected void onUnboundRequest() {
 			throw new SubscriberIllegalStateException("Not subscribed yet");
 		}
 
 		@Override
-		public void cancel() {
-			cancel(null);
+		protected void onCancel(Unsubscription unsubscription) {
+			throw new SubscriberIllegalStateException("Not subscribed yet");
 		}
 	}
 
-	private static final class CompletedSubscriptionImpl implements Subscription {
+	private static final class CompletedSubscriptionImpl extends Subscription {
+
 
 		@Override
-		public void request(long n) {
+		protected void onRequest(long count) {
 			throw new SubscriberIllegalStateException("Subscription already completed");
 		}
 
 		@Override
-		public void cancel(Unsubscription unsubscription) {
-
+		protected void onUnboundRequest() {
+			throw new SubscriberIllegalStateException("Subscription already completed");
 		}
 
 		@Override
-		public void cancel() {
+		protected void onCancel(Unsubscription unsubscription) {
+
 		}
 	}
 
 	private static final class SubscriberIllegalStateException extends IllegalStateException {
 		public SubscriberIllegalStateException(String s) {
 			super(s);
+		}
+	}
+
+	private static final class ErrorHandlerException extends RuntimeException {
+		public ErrorHandlerException(Throwable cause) {
+			super(cause);
+		}
+	}
+
+	private static final class CompleteHandlerException extends RuntimeException {
+		public CompleteHandlerException(Throwable cause) {
+			super(cause);
 		}
 	}
 }

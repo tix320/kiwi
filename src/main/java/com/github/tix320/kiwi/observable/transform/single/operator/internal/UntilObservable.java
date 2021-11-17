@@ -2,6 +2,8 @@ package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
 import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.kiwi.observable.signal.SignalManager;
+import com.github.tix320.skimp.api.exception.ExceptionUtils;
+import com.github.tix320.skimp.api.thread.tracer.Tracer;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -35,8 +37,6 @@ public final class UntilObservable<T> extends Observable<T> {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.setSubscription(subscription);
-
 				until.subscribe(new Subscriber<Object>(signalManager) {
 					@Override
 					public void onSubscribe(Subscription subscription) {
@@ -49,17 +49,31 @@ public final class UntilObservable<T> extends Observable<T> {
 					}
 
 					@Override
+					protected void onError(Throwable error) {
+						Tracer.INSTANCE.injectFullStacktrace(error);
+						ExceptionUtils.applyToUncaughtExceptionHandler(error);
+						subscription.cancel(UNTIL_UNSUBSCRIPTION);
+					}
+
+					@Override
 					public void onComplete(Completion completion) {
 						if (completion instanceof SourceCompletion) {
 							subscription.cancel(UNTIL_UNSUBSCRIPTION);
 						}
 					}
 				});
+
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
 			public void onNext(T item) {
 				subscriber.publish(item);
+			}
+
+			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
 			}
 
 			@Override

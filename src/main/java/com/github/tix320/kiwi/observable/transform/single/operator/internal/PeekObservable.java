@@ -36,6 +36,11 @@ public final class PeekObservable<T> extends Observable<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				subscriber.complete(completion);
 			}

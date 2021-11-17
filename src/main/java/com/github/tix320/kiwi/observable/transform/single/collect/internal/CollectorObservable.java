@@ -33,14 +33,18 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				subscriber.completeWithError(error);
+			}
+
+			@Override
 			public void onComplete(Completion completion) {
 				if (completion instanceof SourceCompletion) {
 					try {
 						subscriber.publish(collect(objects.stream()));
 					}
-					catch (Throwable e) {
-						ExceptionUtils.applyToUncaughtExceptionHandler(e);
-						 // TODO call OnError
+					catch (UserCallbackException e) {
+						subscriber.completeWithError(e);
 					}
 				}
 				subscriber.complete(completion);
