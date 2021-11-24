@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import com.github.tix320.kiwi.observable.*;
 import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
 import com.github.tix320.kiwi.observable.signal.*;
+import com.github.tix320.kiwi.observable.signal.SignalManager.SignalVisitResult;
 
 public class TimerObservable<T> extends MonoObservable<T> {
 
@@ -53,13 +54,13 @@ public class TimerObservable<T> extends MonoObservable<T> {
 					T item;
 					try {
 						item = itemFactory.get();
-						token.addSignal(new NextSignal<>(item));
+						token.addSignal(new PublishSignal<>(item));
 						token.addSignal(new CompleteSignal(SourceCompletion.DEFAULT));
 					}
 					catch (Throwable e) {
-						DelayObservableException delayObservableException = new DelayObservableException(
+						TimerObservableException timerObservableException = new TimerObservableException(
 								"Exception in provided object factory", e);
-						token.addSignal(new ErrorSignal(delayObservableException));
+						token.addSignal(new ErrorSignal(timerObservableException));
 					}
 					token.tryRunWorker();
 				});
@@ -80,12 +81,12 @@ public class TimerObservable<T> extends MonoObservable<T> {
 			token.tryRunWorker();
 		}
 
-		private final class SignalVisitorImpl implements SignalVisitor {
+		private final class SignalVisitorImpl implements SignalVisitor<SignalVisitResult> {
 
 			@Override
-			public SignalVisitResult visit(NextSignal<?> nextSignal) {
+			public SignalVisitResult visit(PublishSignal<?> publishSignal) {
 				//noinspection unchecked
-				T casted = (T) nextSignal.getItem();
+				T casted = (T) publishSignal.getItem();
 				subscriber.publish(casted);
 
 				return SignalVisitResult.CONTINUE;
@@ -114,8 +115,8 @@ public class TimerObservable<T> extends MonoObservable<T> {
 		}
 	}
 
-	private static final class DelayObservableException extends RuntimeException {
-		public DelayObservableException(String message, Throwable cause) {
+	private static final class TimerObservableException extends RuntimeException {
+		public TimerObservableException(String message, Throwable cause) {
 			super(message, cause);
 		}
 	}

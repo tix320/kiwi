@@ -4,5 +4,7 @@ public sealed interface DemandStrategy permits EmptyDemandStrategy, FiniteDemand
 
 	boolean needMore();
 
+	boolean next();
+
 	DemandStrategy addBound(long count);
 }

@@ -13,6 +13,11 @@ public final class EmptyDemandStrategy implements DemandStrategy {
 	}
 
 	@Override
+	public boolean next() {
+		return false;
+	}
+
+	@Override
 	public DemandStrategy addBound(long count) {
 		return new FiniteDemandStrategy(count);
 	}

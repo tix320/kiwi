@@ -15,6 +15,11 @@ public final class FiniteDemandStrategy implements DemandStrategy {
 
 	@Override
 	public boolean needMore() {
+		return countUpdater.get(this) != 0;
+	}
+
+	@Override
+	public boolean next() {
 		long valueBeforeUpdate = countUpdater.getAndUpdate(this, value -> {
 			if (value == 0) {
 				return 0;

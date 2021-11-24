@@ -51,7 +51,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 			@Override
 			protected void onRequest(long count) {
-				boolean wasNeedBeforeUpdate = demandStrategy.needMore();
+				boolean wasNeedBeforeUpdate = demandStrategy.next();
 				//noinspection NonAtomicOperationOnVolatileField
 				demandStrategy = demandStrategy.addBound(count);
 
@@ -64,7 +64,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 			@Override
 			protected void onUnboundRequest() {
-				boolean wasNeedBeforeUpdate = demandStrategy.needMore();
+				boolean wasNeedBeforeUpdate = demandStrategy.next();
 				demandStrategy = InfiniteDemandStrategy.INSTANCE;
 
 				if (!wasNeedBeforeUpdate) {

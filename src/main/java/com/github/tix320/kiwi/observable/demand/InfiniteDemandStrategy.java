@@ -13,6 +13,11 @@ public final class InfiniteDemandStrategy implements DemandStrategy {
 	}
 
 	@Override
+	public boolean next() {
+		return true;
+	}
+
+	@Override
 	public DemandStrategy addBound(long count) {
 		return this;
 	}

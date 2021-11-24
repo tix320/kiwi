@@ -6,8 +6,10 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.signal.CompleteSignal;
-import com.github.tix320.kiwi.observable.signal.NextSignal;
-import com.github.tix320.kiwi.publisher.internal.BasePublisher;
+import com.github.tix320.kiwi.observable.signal.PublishSignal;
+import com.github.tix320.kiwi.observable.signal.Signal;
+import com.github.tix320.kiwi.publisher.internal.FlowPublisher;
+import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
 import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
 
 /**
@@ -18,20 +20,22 @@ import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
  * @param <T> type of objects.
  * @author Tigran Sargsyan on 21-Feb-19
  */
-public final class BufferedPublisher<T> extends BasePublisher<T> {
+public final class ReplayPublisher<T> extends FlowPublisher<T> {
 
 	private final int bufferCapacity;
 
-	private final ConcurrentLinkedDeque<NextSignal<T>> buffer;
+	//private final ConcurrentLinkedDeque<NextSignal<T>> buffer;
 
-	public BufferedPublisher(int bufferCapacity) {
+	public ReplayPublisher(int bufferCapacity) {
 		this.bufferCapacity = bufferCapacity;
-		this.buffer = new ConcurrentLinkedDeque<>();
+		//this.buffer = new ConcurrentLinkedDeque<>();
 	}
 
 	public List<T> getBuffer() {
 		synchronized (lock) {
-			return buffer.stream().map(NextSignal::getItem).toList();
+			int startCursor = Math.max(0, queue.size() - bufferCapacity);
+			return queue.subList(startCursor, queue.size()).stream().map(PublishSignal::getItem).toList();
+			// buffer.stream().map(NextSignal::getItem).toList();
 		}
 	}
 
@@ -45,19 +49,27 @@ public final class BufferedPublisher<T> extends BasePublisher<T> {
 		return new FreezeStrategyImpl();
 	}
 
+	@Override
+	protected int initialCursor() {
+		return Math.max(0, queue.size() - bufferCapacity);
+	}
+
 	private final class NormalStrategyImpl extends NormalStrategy {
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
 			synchronized (lock) {
-				for (NextSignal<T> nextSignal : buffer) {
-					subscription.enqueue(nextSignal);
-				}
-				if (isCompleted()) {
-					subscription.enqueue(completion);
-				}
-				else {
+				//int startCursor = Math.max(0, queue.size() - bufferCapacity);
+				//for (int i = startCursor; i < queue.size(); i++) {
+				//	NextSignal<T> nextSignal = queue.get(i);
+				//	subscription.enqueue(nextSignal);
+				//}
+
+				//if (isCompleted()) {
+				//	subscription.enqueue(completion);
+				//}
+				//else {
 					subscriptions.add(subscription);
-				}
+				//}
 			}
 
 			subscriber.setSubscription(subscription);
@@ -67,21 +79,18 @@ public final class BufferedPublisher<T> extends BasePublisher<T> {
 
 		@Override
 		public void publish(T item) {
-			NextSignal<T> nextSignal = new NextSignal<>(item);
-			if (buffer.size() == bufferCapacity) {
-				buffer.removeFirst();
-			}
-			buffer.addLast(nextSignal);
+			PublishSignal<T> publishSignal = new PublishSignal<>(item);
+			queue.add(publishSignal);
 
 			for (PublisherSubscription<T> subscription : subscriptions) {
-				subscription.next(nextSignal);
+				subscription.doAction();
 			}
 		}
 
 		@Override
 		public void complete(SourceCompletion sourceCompletion) {
 			completion = new CompleteSignal(sourceCompletion);
-			subscriptions.forEach(subscription -> subscription.complete(completion));
+			subscriptions.forEach(PublisherSubscription::doAction);
 			subscriptions.clear();
 		}
 	}
@@ -125,7 +134,7 @@ public final class BufferedPublisher<T> extends BasePublisher<T> {
 
 			if (completionDuringFreeze != null) {
 				completion = new CompleteSignal(completionDuringFreeze);
-				subscriptions.forEach(subscription -> subscription.complete(completion));
+				subscriptions.forEach(PublisherSubscription::doAction);
 				subscriptions.clear();
 			}
 		}

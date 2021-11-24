@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
 import com.github.tix320.kiwi.observable.transform.single.TimerObservable;
@@ -19,9 +20,8 @@ import com.github.tix320.kiwi.observable.transform.single.collect.internal.JoinO
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToListObservable;
 import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.*;
-import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
-import com.github.tix320.kiwi.publisher.BufferedPublisher;
 import com.github.tix320.kiwi.publisher.MonoPublisher;
+import com.github.tix320.kiwi.publisher.ReplayPublisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
 import com.github.tix320.skimp.api.collection.Tuple;
 import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
@@ -229,11 +229,15 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 
 		AtomicBoolean isTimout = new AtomicBoolean(false);
 		this.toMono().subscribe(item -> {
-			boolean changed = isTimout.compareAndSet(false, true);
-			if (changed) {
-				consumer.accept(item);
+			try {
+				boolean changed = isTimout.compareAndSet(false, true);
+				if (changed) {
+					consumer.accept(item);
+				}
 			}
-			latch.countDown();
+			finally {
+				latch.countDown();
+			}
 		});
 
 		if (millis < 0) {
@@ -454,7 +458,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return observable
 	 */
 	public static <T> Observable<T> of(Collection<T> collection) {
-		BufferedPublisher<T> publisher = new BufferedPublisher<>(collection.size());
+		ReplayPublisher<T> publisher = new ReplayPublisher<>(collection.size());
 		for (T item : collection) {
 			publisher.publish(item);
 		}
@@ -471,7 +475,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	@SafeVarargs
 	public static <T> Observable<T> of(T... values) {
-		BufferedPublisher<T> publisher = new BufferedPublisher<>(values.length);
+		ReplayPublisher<T> publisher = new ReplayPublisher<>(values.length);
 		for (T value : values) {
 			publisher.publish(value);
 		}

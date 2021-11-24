@@ -22,7 +22,7 @@ public non-sealed class CancelSignal extends Signal {
 	}
 
 	@Override
-	public final SignalVisitor.SignalVisitResult accept(SignalVisitor signalVisitor) {
+	public final <R> R accept(SignalVisitor<R> signalVisitor) {
 		return signalVisitor.visit(this);
 	}
 }

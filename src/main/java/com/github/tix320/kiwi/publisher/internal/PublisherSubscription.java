@@ -1,5 +1,7 @@
 package com.github.tix320.kiwi.publisher.internal;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import com.github.tix320.kiwi.observable.Subscriber;
@@ -9,69 +11,84 @@ import com.github.tix320.kiwi.observable.demand.DemandStrategy;
 import com.github.tix320.kiwi.observable.demand.EmptyDemandStrategy;
 import com.github.tix320.kiwi.observable.demand.InfiniteDemandStrategy;
 import com.github.tix320.kiwi.observable.signal.*;
+import com.github.tix320.kiwi.observable.signal.SignalManager.SignalVisitResult;
 
 public final class PublisherSubscription<T> extends Subscription {
 
 	@SuppressWarnings("rawtypes")
-	private static final AtomicReferenceFieldUpdater<PublisherSubscription, DemandStrategy> demandStrategyUpdater = AtomicReferenceFieldUpdater.newUpdater(
+	private static final AtomicReferenceFieldUpdater<PublisherSubscription, DemandStrategy> DEMAND_STRATEGY = AtomicReferenceFieldUpdater.newUpdater(
 			PublisherSubscription.class, DemandStrategy.class, "demandStrategy");
+	private static final VarHandle WIP;
+
+	static {
+		try {
+			MethodHandles.Lookup lookup = MethodHandles.lookup();
+			WIP = lookup.findVarHandle(PublisherSubscription.class, "wip", boolean.class);
+		}
+		catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 
 	private final BasePublisher<T> publisher;
 
 	private final Subscriber<? super T> realSubscriber;
 
-	private volatile DemandStrategy demandStrategy = EmptyDemandStrategy.INSTANCE;
-
 	private final SignalManager.Token token;
 
-	public PublisherSubscription(BasePublisher<T> publisher, Subscriber<? super T> realSubscriber) {
+	private final PublisherCursor publisherCursor;
+
+	private final PublisherSignalVisitor publisherSignalVisitor = new PublisherSignalVisitor();
+
+	private volatile boolean wip;
+	private volatile DemandStrategy demandStrategy = EmptyDemandStrategy.INSTANCE;
+
+	public PublisherSubscription(BasePublisher<T> publisher, Subscriber<? super T> realSubscriber,
+								 PublisherCursor publisherCursor) {
 		this.publisher = publisher;
 		this.realSubscriber = realSubscriber;
 
-		this.token = realSubscriber.getSignalManager().createToken(new PublisherSignalVisitor());
+		this.token = realSubscriber.getSignalManager().createToken(new SignalManagerVisitor());
+		this.publisherCursor = publisherCursor;
 	}
 
 	public void start() {
 		token.start();
 	}
 
-	public void enqueue(NextSignal<T> nextSignal) {
-		token.addSignal(nextSignal);
-	}
+	public void doAction() {
+		boolean changed = WIP.compareAndSet(this, false, true);
+		if (changed) {
 
-	public void enqueue(CompleteSignal completeSignal) {
-		token.addSignal(completeSignal);
-	}
+			Signal signal = publisherCursor.get();
+			if (signal != null) {
+				signal.accept(publisherSignalVisitor);
+			}
 
-	public void next(NextSignal<T> nextSignal) {
-		token.addSignal(nextSignal);
-
-		token.tryRunWorker();
-	}
-
-	public void complete(CompleteSignal cancelSignal) {
-		token.addSignal(cancelSignal);
-
-		token.tryRunWorker();
+			boolean c = WIP.compareAndSet(this, true, false);
+			if (!c) {
+				throw new IllegalStateException();
+			}
+		}
 	}
 
 	@Override
 	protected void onRequest(long count) {
-		DemandStrategy previousStrategy = demandStrategyUpdater.getAndUpdate(PublisherSubscription.this,
+		DemandStrategy previousStrategy = DEMAND_STRATEGY.getAndUpdate(PublisherSubscription.this,
 				strategy -> strategy.addBound(count));
 
-		if (previousStrategy.needMore()) {
-			//TODO must be invoked worker
+		if (!previousStrategy.needMore()) {
+			doAction();// TODO why in if
 		}
 	}
 
 	@Override
 	protected void onUnboundRequest() {
-		DemandStrategy previousStrategy = demandStrategyUpdater.getAndSet(PublisherSubscription.this,
+		DemandStrategy previousStrategy = DEMAND_STRATEGY.getAndSet(PublisherSubscription.this,
 				InfiniteDemandStrategy.INSTANCE);
 
-		if (previousStrategy.needMore()) {
-			//TODO must be invoked worker
+		if (!previousStrategy.needMore()) {
+			doAction();// TODO why in if
 		}
 	}
 
@@ -84,23 +101,41 @@ public final class PublisherSubscription<T> extends Subscription {
 		token.tryRunWorker();
 	}
 
-	private final class PublisherSignalVisitor implements SignalVisitor {
+	private final class PublisherSignalVisitor extends AbstractSignalVisitor<Void> {
 
 		@Override
-		public SignalVisitResult visit(NextSignal<?> nextSignal) {
-			boolean needMore = demandStrategy.needMore();
-			if (!needMore) {
-				return SignalVisitResult.REQUEUE_AND_PAUSE;
+		public Void visit(PublishSignal<?> publishSignal) {
+			if (demandStrategy.next()) {
+				token.addSignal(publishSignal);
+				publisherCursor.moveForward();
 			}
 
+			return null;
+		}
+
+		@Override
+		public Void visit(CompleteSignal completeSignal) {
+			token.addSignal(completeSignal);
+			publisherCursor.moveForward();
+
+			return null;
+		}
+	}
+
+	private final class SignalManagerVisitor implements SignalVisitor<SignalVisitResult> {
+
+		@Override
+		public SignalVisitResult visit(PublishSignal<?> publishSignal) {
 			//noinspection unchecked
-			T casted = (T) nextSignal.getItem();
+			T casted = (T) publishSignal.getItem();
 			try {
 				realSubscriber.publish(casted);
+				doAction();
 			}
 			catch (Subscriber.UserCallbackException e) {
 				token.addSignal(new ErrorSignal(e.getCause()));
 			}
+
 			return SignalVisitResult.CONTINUE;
 		}
 

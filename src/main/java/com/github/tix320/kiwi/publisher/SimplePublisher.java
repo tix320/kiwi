@@ -3,14 +3,17 @@ package com.github.tix320.kiwi.publisher;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.signal.CompleteSignal;
-import com.github.tix320.kiwi.observable.signal.NextSignal;
+import com.github.tix320.kiwi.observable.signal.PublishSignal;
+import com.github.tix320.kiwi.observable.signal.Signal;
 import com.github.tix320.kiwi.publisher.internal.BasePublisher;
+import com.github.tix320.kiwi.publisher.internal.FlowPublisher;
+import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
 import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
 
 /**
  * @author Tigran Sargsyan on 21-Feb-19
  */
-public final class SimplePublisher<T> extends BasePublisher<T> {
+public final class SimplePublisher<T> extends FlowPublisher<T> {
 
 	public SimplePublisher() {
 		super();
@@ -22,12 +25,12 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 			@Override
 			public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
 				synchronized (lock) {
-					if (isCompleted()) {
-						subscription.enqueue(completion);
-					}
-					else {
+					//if (isCompleted()) {
+					//	subscription.enqueue(completion);
+					//}
+					//else {
 						subscriptions.add(subscription);
-					}
+					//}
 				}
 
 				subscriber.setSubscription(subscription);
@@ -37,16 +40,18 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 
 			@Override
 			public void publish(T item) {
-				NextSignal<T> nextSignal = new NextSignal<>(item);
+				PublishSignal<T> publishSignal = new PublishSignal<>(item);
+				queue.add(publishSignal);
+
 				for (PublisherSubscription<T> subscription : subscriptions) {
-					subscription.next(nextSignal);
+					subscription.doAction();
 				}
 			}
 
 			@Override
 			public void complete(SourceCompletion sourceCompletion) {
 				completion = new CompleteSignal(sourceCompletion);
-				subscriptions.forEach(subscription -> subscription.complete(completion));
+				subscriptions.forEach(PublisherSubscription::doAction);
 				subscriptions.clear();
 			}
 		};
@@ -80,10 +85,15 @@ public final class SimplePublisher<T> extends BasePublisher<T> {
 			protected void restore() {
 				if (completionDuringFreeze != null) {
 					completion = new CompleteSignal(completionDuringFreeze);
-					subscriptions.forEach(subscription -> subscription.complete(completion));
+					subscriptions.forEach(PublisherSubscription::doAction);
 					subscriptions.clear();
 				}
 			}
 		};
+	}
+
+	@Override
+	protected int initialCursor() {
+		return queue.size();
 	}
 }

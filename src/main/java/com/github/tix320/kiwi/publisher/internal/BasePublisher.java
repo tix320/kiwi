@@ -89,6 +89,8 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	protected abstract FreezeStrategy getFreezeStrategy();
 
+	protected abstract PublisherCursor publishIterator();
+
 	public final boolean isFrozen() {
 		return manageStrategy instanceof FreezeStrategy;
 	}
@@ -103,7 +105,8 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
-			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber);
+			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber,
+					publishIterator());
 
 			manageStrategy.subscribe(subscriber, subscription);
 		}
@@ -126,14 +129,6 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	protected abstract class NormalStrategy implements ManageStrategy<T> {
 
-		@Override
-		public abstract void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription);
-
-		@Override
-		public abstract void publish(T item);
-
-		@Override
-		public abstract void complete(SourceCompletion sourceCompletion);
 	}
 
 	protected abstract class FreezeStrategy implements ManageStrategy<T> {

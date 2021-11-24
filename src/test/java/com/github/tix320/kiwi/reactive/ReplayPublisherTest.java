@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-public class BufferedPublisherTest {
+public class ReplayPublisherTest {
 
 	@Test
 	public void simpleTest() throws InterruptedException {

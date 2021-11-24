@@ -1,16 +1,12 @@
 package com.github.tix320.kiwi.observable.signal;
 
-public interface SignalVisitor {
+public interface SignalVisitor<R> {
 
-	SignalVisitResult visit(NextSignal<?> nextSignal);
+	R visit(PublishSignal<?> publishSignal);
 
-	SignalVisitResult visit(CancelSignal cancelSignal);
+	R visit(CancelSignal cancelSignal);
 
-	SignalVisitResult visit(CompleteSignal completeSignal);
+	R visit(CompleteSignal completeSignal);
 
-	SignalVisitResult visit(ErrorSignal errorSignal);
-
-	enum SignalVisitResult {
-		CONTINUE, REQUEUE_AND_PAUSE, COMPLETE
-	}
+	R visit(ErrorSignal errorSignal);
 }

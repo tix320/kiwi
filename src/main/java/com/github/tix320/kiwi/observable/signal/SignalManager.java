@@ -60,7 +60,7 @@ public final class SignalManager {
 		});
 	}
 
-	public Token createToken(SignalVisitor signalVisitor) {
+	public Token createToken(SignalVisitor<SignalVisitResult> signalVisitor) {
 		stateUpdater.updateAndGet(this, currentState -> {
 			if (currentState.tokensCreated == currentState.registrationsCount) {
 				throw new IllegalStateException("Tokens not available");
@@ -86,7 +86,7 @@ public final class SignalManager {
 		if (changed) {
 			DefaultScheduler.get().schedule(() -> {
 				QueueItem queueItem;
-				loop:
+
 				while ((queueItem = signalQueue.poll()) != null) {
 
 					Signal signal = queueItem.signal;
@@ -94,16 +94,12 @@ public final class SignalManager {
 					if (owner.isCompleted()) {
 						continue;
 					}
-					SignalVisitor visitor = owner.getSignalVisitor();
+					SignalVisitor<SignalVisitResult> visitor = owner.getSignalVisitor();
 
 					try {
-						SignalVisitor.SignalVisitResult visitResult = signal.accept(visitor);
+						SignalVisitResult visitResult = signal.accept(visitor);
 						switch (visitResult) {
 							case CONTINUE -> {
-							}
-							case REQUEUE_AND_PAUSE -> {
-								signalQueue.add(queueItem);
-								break loop;
 							}
 							case COMPLETE -> owner.complete();
 						}
@@ -120,14 +116,16 @@ public final class SignalManager {
 					throw new IllegalStateException();
 				}
 
-				if (queueItem == null) { // loop is break because of queue was empty
-					QueueItem peek = signalQueue.peek();
-					if (peek != null) { // in case another wanted to start a worker, but could not because of the flag status
-						tryRunWorker();
-					}
+				QueueItem peek = signalQueue.peek();
+				if (peek != null) { // in case another wanted to start a worker, but could not because of the flag status
+					tryRunWorker();
 				}
 			});
 		}
+	}
+
+	public enum SignalVisitResult {
+		CONTINUE, COMPLETE
 	}
 
 	public interface Token {
@@ -144,10 +142,10 @@ public final class SignalManager {
 	}
 
 	private static final class Owner {
-		private final SignalVisitor signalVisitor;
+		private final SignalVisitor<SignalVisitResult> signalVisitor;
 		private volatile boolean completed;
 
-		private Owner(SignalVisitor signalVisitor) {
+		private Owner(SignalVisitor<SignalVisitResult> signalVisitor) {
 			this.signalVisitor = signalVisitor;
 		}
 
@@ -159,7 +157,7 @@ public final class SignalManager {
 			return completed;
 		}
 
-		public SignalVisitor getSignalVisitor() {
+		public SignalVisitor<SignalVisitResult> getSignalVisitor() {
 			return signalVisitor;
 		}
 	}
@@ -177,7 +175,7 @@ public final class SignalManager {
 
 		private final Owner owner;
 
-		private TokenImpl(SignalVisitor signalVisitor) {
+		private TokenImpl(SignalVisitor<SignalVisitResult> signalVisitor) {
 			this.owner = new Owner(signalVisitor);
 		}
 

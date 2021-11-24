@@ -16,11 +16,11 @@ public non-sealed class CompleteSignal extends Signal {
 
 	@Override
 	public int defaultPriority() {
-		return NextSignal.DEFAULT_PRIORITY;
+		return PublishSignal.DEFAULT_PRIORITY;
 	}
 
 	@Override
-	public final SignalVisitor.SignalVisitResult accept(SignalVisitor signalVisitor) {
+	public final <R> R accept(SignalVisitor<R> signalVisitor) {
 		return signalVisitor.visit(this);
 	}
 }

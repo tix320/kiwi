@@ -6,7 +6,7 @@ import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.property.FreezeableProperty;
 import com.github.tix320.kiwi.property.MutableStock;
 import com.github.tix320.kiwi.property.Stock;
-import com.github.tix320.kiwi.publisher.BufferedPublisher;
+import com.github.tix320.kiwi.publisher.ReplayPublisher;
 import com.github.tix320.kiwi.publisher.PublisherCompletedException;
 
 /**
@@ -14,10 +14,10 @@ import com.github.tix320.kiwi.publisher.PublisherCompletedException;
  */
 public abstract class AbstractMutableStock<T> implements MutableStock<T>, FreezeableProperty {
 
-	private final BufferedPublisher<T> publisher;
+	private final ReplayPublisher<T> publisher;
 
 	public AbstractMutableStock() {
-		this.publisher = new BufferedPublisher<>(Integer.MAX_VALUE);
+		this.publisher = new ReplayPublisher<>(Integer.MAX_VALUE);
 	}
 
 	@Override

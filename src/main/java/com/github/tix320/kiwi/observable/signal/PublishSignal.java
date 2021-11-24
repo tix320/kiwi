@@ -1,12 +1,14 @@
 package com.github.tix320.kiwi.observable.signal;
 
-public non-sealed class NextSignal<T> extends Signal {
+import com.github.tix320.kiwi.observable.signal.SignalManager.SignalVisitResult;
 
-	public static final int DEFAULT_PRIORITY = 50;
+public non-sealed class PublishSignal<T> extends Signal {
+
+	public static final int DEFAULT_PRIORITY = 100;
 
 	private final T item;
 
-	public NextSignal(T item) {this.item = item;}
+	public PublishSignal(T item) {this.item = item;}
 
 	public final T getItem() {
 		return item;
@@ -18,7 +20,7 @@ public non-sealed class NextSignal<T> extends Signal {
 	}
 
 	@Override
-	public final SignalVisitor.SignalVisitResult accept(SignalVisitor signalVisitor) {
+	public final <R> R accept(SignalVisitor<R> signalVisitor) {
 		return signalVisitor.visit(this);
 	}
 

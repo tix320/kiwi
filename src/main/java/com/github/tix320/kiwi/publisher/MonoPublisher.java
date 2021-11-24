@@ -5,8 +5,10 @@ import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.signal.CompleteSignal;
-import com.github.tix320.kiwi.observable.signal.NextSignal;
+import com.github.tix320.kiwi.observable.signal.PublishSignal;
+import com.github.tix320.kiwi.observable.signal.Signal;
 import com.github.tix320.kiwi.publisher.internal.BasePublisher;
+import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
 import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
 
 /**
@@ -15,7 +17,7 @@ import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
  */
 public final class MonoPublisher<T> extends BasePublisher<T> {
 
-	private volatile NextSignal<T> valueSignal;
+	private volatile PublishSignal<T> valueSignal;
 
 	public MonoPublisher() {
 	}
@@ -41,19 +43,56 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 		return new FreezeStrategyImpl();
 	}
 
+	@Override
+	protected PublisherCursor publishIterator() {
+		return new PublisherCursor() {
+
+			volatile boolean receivedItem;
+			volatile boolean receivedCompleted;
+
+			@Override
+			public Signal get() {
+				synchronized (lock) {
+					if (!receivedItem) {
+						return valueSignal;
+					}
+					else {
+						if (!receivedCompleted) {
+							return completion;
+						}
+						else {
+							return null;
+						}
+					}
+				}
+			}
+
+			@Override
+			public void moveForward() {
+				if(receivedItem){
+					if(!receivedCompleted){
+						receivedCompleted = true;
+					}
+				}else {
+					receivedItem = true;
+				}
+			}
+		};
+	}
+
 	private final class NormalStrategyImpl extends NormalStrategy {
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
 			synchronized (lock) {
-				if (valueSignal != null) {
-					subscription.enqueue(valueSignal);
-				}
-				if (isCompleted()) {
-					subscription.enqueue(completion);
-				}
-				else {
-					subscriptions.add(subscription);
-				}
+				//if (valueSignal != null) {
+				//	subscription.enqueue(valueSignal);
+				//}
+				//if (isCompleted()) {
+				//	subscription.enqueue(completion);
+				//}
+				//else {
+				subscriptions.add(subscription);
+				//}
 			}
 
 			subscriber.setSubscription(subscription);
@@ -63,11 +102,10 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 
 		@Override
 		public void publish(T item) {
-			NextSignal<T> nextSignal = new NextSignal<>(item);
-			valueSignal = nextSignal;
+			valueSignal = new PublishSignal<>(item);
 
 			for (PublisherSubscription<T> subscription : subscriptions) {
-				subscription.next(nextSignal);
+				subscription.doAction();
 			}
 
 			MonoPublisher.this.complete(SourceCompletion.DEFAULT);
@@ -76,7 +114,7 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 		@Override
 		public void complete(SourceCompletion sourceCompletion) {
 			completion = new CompleteSignal(sourceCompletion);
-			subscriptions.forEach(subscription -> subscription.complete(completion));
+			subscriptions.forEach(PublisherSubscription::doAction);
 			subscriptions.clear();
 		}
 	}
@@ -118,7 +156,7 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 
 			if (completionDuringFreeze != null) {
 				completion = new CompleteSignal(completionDuringFreeze);
-				subscriptions.forEach(subscription -> subscription.complete(completion));
+				subscriptions.forEach(PublisherSubscription::doAction);
 				subscriptions.clear();
 			}
 		}

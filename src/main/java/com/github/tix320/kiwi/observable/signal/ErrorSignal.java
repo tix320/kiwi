@@ -20,7 +20,7 @@ public non-sealed class ErrorSignal extends Signal {
 	}
 
 	@Override
-	public SignalVisitor.SignalVisitResult accept(SignalVisitor signalVisitor) {
+	public final <R> R accept(SignalVisitor<R> signalVisitor) {
 		return signalVisitor.visit(this);
 	}
 }

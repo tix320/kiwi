@@ -8,14 +8,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.publisher.BufferedPublisher;
+import com.github.tix320.kiwi.publisher.ReplayPublisher;
 import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UnlimitBufferedPublisherTest {
+public class UnlimitReplayPublisherTest {
 
 	@Test
 	public void simpleTest() throws InterruptedException {
@@ -52,7 +52,7 @@ public class UnlimitBufferedPublisherTest {
 		List<Integer> expectedPart1 = IntStream.rangeClosed(1, chunkSize).boxed().collect(Collectors.toList());
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 
-		BufferedPublisher<Integer> publisher = Publisher.buffered();
+		ReplayPublisher<Integer> publisher = Publisher.buffered();
 
 		Observable<Integer> observable = publisher.asObservable();
 
