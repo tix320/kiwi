@@ -1,63 +1,88 @@
 package com.github.tix320.kiwi.publisher.internal;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Unsubscription;
+import com.github.tix320.kiwi.observable.demand.DemandStrategy;
+import com.github.tix320.kiwi.observable.demand.EmptyDemandStrategy;
+import com.github.tix320.kiwi.observable.demand.InfiniteDemandStrategy;
+import com.github.tix320.kiwi.observable.signal.CancelSignal;
 import com.github.tix320.kiwi.observable.signal.CompleteSignal;
+import com.github.tix320.kiwi.observable.signal.ErrorSignal;
+import com.github.tix320.kiwi.observable.signal.Signal;
+import com.github.tix320.kiwi.observable.signal.SignalSynchronizer;
 import com.github.tix320.kiwi.publisher.Publisher;
-import com.github.tix320.kiwi.publisher.PublisherCompletedException;
+import com.github.tix320.kiwi.publisher.PublisherClosedException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
 public abstract class BasePublisher<T> extends Publisher<T> {
 
-	protected final List<PublisherSubscription<T>> subscriptions;
+	private final List<PublisherSubscription> subscriptions;
+	protected final Object lock;
 
-	private final NormalStrategy NORMAL_STRATEGY;
-	private final FreezeStrategy FREEZE_STRATEGY;
-	private volatile ManageStrategy<T> manageStrategy;
-
-	protected volatile CompleteSignal completion;
-
-	protected final Object lock = new Object();
+	private volatile CompleteSignal completion;
+	private volatile ErrorSignal abortion;
 
 	protected BasePublisher() {
 		this.subscriptions = new CopyOnWriteArrayList<>();
-		NORMAL_STRATEGY = getNormalStrategy();
-		FREEZE_STRATEGY = getFreezeStrategy();
-		this.manageStrategy = NORMAL_STRATEGY;
+		this.lock = new Object();
 		this.completion = null;
 	}
 
 	@Override
 	public final void publish(T object) {
 		synchronized (lock) {
-			if (isCompleted()) {
-				throw new PublisherCompletedException("Publisher is completed, you can not publish items.");
+			if (isClosed()) {
+				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
 			}
 
-			manageStrategy.publish(object);
+			onPublish(object);
+
+			subscriptions.forEach(PublisherSubscription::doAction);
+
 		}
 	}
 
 	@Override
 	public final void complete(SourceCompletion sourceCompletion) {
 		synchronized (lock) {
-			if (isCompleted()) {
-				return;
+			if (isClosed()) {
+				throw new PublisherClosedException("Publisher is already closed, completion is prohibited");
 			}
 
-			manageStrategy.complete(sourceCompletion);
+			completion = new CompleteSignal(sourceCompletion);
+
+			subscriptions.forEach(PublisherSubscription::doAction);
+			subscriptions.clear();
 		}
 	}
 
 	@Override
-	public final boolean isCompleted() {
-		return completion != null;
+	public final void abort(Throwable throwable) {
+		synchronized (lock) {
+			if (isClosed()) {
+				throw new PublisherClosedException("Publisher is already closed, abortion is prohibited");
+			}
+
+			abortion = new ErrorSignal(throwable);
+
+			subscriptions.forEach(PublisherSubscription::doAction);
+			subscriptions.clear();
+		}
+	}
+
+	@Override
+	public final boolean isClosed() {
+		return completion != null || abortion != null;
 	}
 
 	@Override
@@ -65,84 +90,119 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		return new PublisherObservable();
 	}
 
-	public final void freeze() {
-		synchronized (lock) {
-			if (isCompleted()) {
-				throw new PublisherCompletedException("Publisher completed, freeze not allowed");
-			}
-			if (!(manageStrategy instanceof FreezeStrategy)) {
-				manageStrategy = FREEZE_STRATEGY;
-			}
-		}
-	}
+	/**
+	 * Called inside a lock.
+	 */
+	protected abstract void onPublish(T item);
 
-	public final void unfreeze() {
-		synchronized (lock) {
-			if (manageStrategy instanceof FreezeStrategy freezeStrategy) {
-				freezeStrategy.restore();
-				manageStrategy = NORMAL_STRATEGY;
-			}
-		}
-	}
-
-	protected abstract NormalStrategy getNormalStrategy();
-
-	protected abstract FreezeStrategy getFreezeStrategy();
-
-	public final boolean isFrozen() {
-		return manageStrategy instanceof FreezeStrategy;
-	}
-
-	void removeSubscription(PublisherSubscription<T> subscription) {
-		synchronized (lock) {
-			this.subscriptions.remove(subscription);
-		}
-	}
+	protected abstract PublisherCursor createCursor();
 
 	private final class PublisherObservable extends Observable<T> {
 
 		@Override
 		public void subscribe(Subscriber<? super T> subscriber) {
-			PublisherSubscription<T> subscription = new PublisherSubscription<>(BasePublisher.this, subscriber);
+			var subscription = new PublisherSubscription(subscriber);
 
-			manageStrategy.subscribe(subscriber, subscription);
+			subscriber.setSubscription(subscription);
+
+			synchronized (lock) {
+				if (!isClosed()) {
+					subscriptions.add(subscription);
+				}
+			}
+
+			subscription.activate();
 		}
+
 	}
 
-	protected interface ManageStrategy<T> {
+	private final class PublisherSubscription extends Subscription {
 
-		void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription);
+		private final Subscriber<? super T> realSubscriber;
 
-		/**
-		 * Called inside a lock.
-		 */
-		void publish(T item);
+		private final SignalSynchronizer.Token token;
 
-		/**
-		 * Called inside a lock.
-		 */
-		void complete(SourceCompletion sourceCompletion);
-	}
+		private final PublisherCursor publisherCursor;
 
-	protected abstract class NormalStrategy implements ManageStrategy<T> {
+		private final AtomicBoolean ended = new AtomicBoolean(false);
+		private final AtomicInteger wip = new AtomicInteger(0);
+		private final AtomicReference<DemandStrategy> demandStrategy =
+			new AtomicReference<>(EmptyDemandStrategy.INSTANCE);
+
+		public PublisherSubscription(Subscriber<? super T> realSubscriber) {
+			this.realSubscriber = realSubscriber;
+			this.publisherCursor = createCursor();
+			this.token = realSubscriber.createToken();
+		}
+
+		public void activate() {
+			token.activate();
+		}
+
+		public void doAction() {
+			if (ended.get()) {
+				return;
+			}
+
+			int prevValue = wip.getAndIncrement();
+			if (prevValue != 0) {
+				return;
+			}
+
+			doActionInternal();
+
+			var newValue = wip.decrementAndGet();
+			if (newValue != 0) {
+				doAction();
+			}
+
+		}
+
+		private void doActionInternal() {
+			var demandStrategy = this.demandStrategy.get();
+			while (true) {
+				var hasPublish = publisherCursor.hasNext();
+				var demands = demandStrategy.needMore();
+
+				if (abortion != null) {
+					token.addSignal(abortion);
+					subscriptions.remove(this);
+					ended.set(true);
+					break;
+				} else if (completion != null && !hasPublish) {
+					token.addSignal(completion);
+					subscriptions.remove(this);
+					ended.set(true);
+					break;
+				} else if (hasPublish && demands) {
+					Signal signal = publisherCursor.next();
+					demandStrategy.decrement();
+					token.addSignal(signal);
+				} else {
+					break;
+				}
+			}
+		}
 
 		@Override
-		public abstract void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription);
+		protected void onRequest(long count) {
+			demandStrategy.getAndUpdate(strategy -> strategy.addBound(count));
+			doAction();
+		}
 
 		@Override
-		public abstract void publish(T item);
+		protected void onUnboundRequest() {
+			demandStrategy.getAndSet(InfiniteDemandStrategy.INSTANCE);
+			doAction();
+		}
 
 		@Override
-		public abstract void complete(SourceCompletion sourceCompletion);
+		protected void onCancel(Unsubscription unsubscription) {
+			CancelSignal cancelSignal = new CancelSignal(unsubscription);
+
+			token.addSignal(cancelSignal);
+		}
+
 	}
 
-	protected abstract class FreezeStrategy implements ManageStrategy<T> {
-
-		protected volatile SourceCompletion completionDuringFreeze;
-
-		/**
-		 * Called inside a lock.
-		 */
-		protected abstract void restore();
-	}
 }

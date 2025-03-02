@@ -24,7 +24,7 @@ public class GetOnTimoutObservableTest {
 
 		publisher.asObservable().getOnTimout(Duration.ofSeconds(2), () -> 5).subscribe(actual::add);
 
-		Thread.sleep(1000);
+		Thread.sleep(100);
 
 		publisher.publish(1);
 		publisher.publish(2);

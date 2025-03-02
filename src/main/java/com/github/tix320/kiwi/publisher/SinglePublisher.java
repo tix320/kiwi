@@ -1,136 +1,108 @@
 package com.github.tix320.kiwi.publisher;
 
-
-import java.util.Objects;
-
-import com.github.tix320.kiwi.observable.SourceCompletion;
-import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.signal.CompleteSignal;
-import com.github.tix320.kiwi.observable.signal.NextSignal;
+import com.github.tix320.kiwi.observable.signal.PublishSignal;
 import com.github.tix320.kiwi.publisher.internal.BasePublisher;
-import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
+import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
+import java.util.Objects;
 
 public final class SinglePublisher<T> extends BasePublisher<T> {
 
-	private volatile NextSignal<T> valueSignal;
+	private volatile PublishSignal<T> regularValue;
+	private volatile PublishSignal<T> valueDuringFreeze;
+	private volatile int freezeCounter = 0;
 
 	public SinglePublisher() {
 	}
 
 	public SinglePublisher(T initialValue) {
+		Objects.requireNonNull(initialValue);
 		publish(initialValue);
 	}
 
+	@Override
+	protected void onPublish(T item) {
+		Objects.requireNonNull(item);
+
+		var signal = new PublishSignal<>(item);
+		if (freezeCounter > 0) {
+			valueDuringFreeze = signal;
+		} else {
+			regularValue = signal;
+		}
+	}
+
+	@Override
+	protected PublisherCursor createCursor() {
+		return new PublisherCursor() {
+
+			private volatile PublishSignal<T> lastValue;
+
+			@Override
+			public boolean hasNext() {
+				var value = regularValue;
+				return value != null && value != lastValue;
+			}
+
+			@Override
+			public PublishSignal<T> next() {
+				var value = regularValue;
+				if (value == null || value == lastValue) {
+					return null;
+				}
+
+				lastValue = value;
+				return value;
+			}
+		};
+	}
+
+	public void freeze() {
+		synchronized (lock) {
+			freezeCounter++;
+		}
+	}
+
+	public void unfreeze() {
+		synchronized (lock) {
+			if (freezeCounter == 0) {
+				return;
+			}
+
+			freezeCounter--;
+
+			if (freezeCounter == 0) {
+				PublishSignal<T> ref = valueDuringFreeze;
+				valueDuringFreeze = null;
+				if (ref != null) {
+					publish(ref.getItem());
+				}
+			}
+		}
+
+	}
+
 	public boolean CASPublish(T expected, T newValue) {
-		Objects.requireNonNull(expected);
 		Objects.requireNonNull(newValue);
 
-		synchronized (this) {
-			T lastItem = valueSignal.getItem();
-			if (lastItem.equals(expected)) {
+		synchronized (lock) {
+			PublishSignal<T> valueSignal = regularValue;
+			T currentValue = valueSignal == null ? null : valueSignal.getItem();
+
+			if (Objects.equals(currentValue, expected)) {
 				publish(newValue);
 				return true;
-			}
-			else {
+			} else {
 				return false;
 			}
 		}
 	}
 
 	public T getValue() {
+		var valueSignal = regularValue;
 		if (valueSignal == null) {
 			return null;
 		}
 		return valueSignal.getItem();
 	}
 
-	@Override
-	protected BasePublisher<T>.NormalStrategy getNormalStrategy() {
-		return new NormalStrategyImpl();
-	}
-
-	@Override
-	protected BasePublisher<T>.FreezeStrategy getFreezeStrategy() {
-		return new FreezeStrategyImpl();
-	}
-
-	private final class NormalStrategyImpl extends NormalStrategy {
-		@Override
-		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
-			synchronized (lock) {
-				if (valueSignal != null) {
-					subscription.enqueue(valueSignal);
-				}
-				if (isCompleted()) {
-					subscription.enqueue(completion);
-				}
-				else {
-					subscriptions.add(subscription);
-				}
-			}
-
-			subscriber.setSubscription(subscription);
-
-			subscription.start();
-		}
-
-		@Override
-		public void publish(T item) {
-			NextSignal<T> nextSignal = new NextSignal<>(item);
-			valueSignal = nextSignal;
-
-			for (PublisherSubscription<T> subscription : subscriptions) {
-				subscription.next(nextSignal);
-			}
-		}
-
-		@Override
-		public void complete(SourceCompletion sourceCompletion) {
-			completion = new CompleteSignal(sourceCompletion);
-			subscriptions.forEach(subscription -> subscription.complete(completion));
-			subscriptions.clear();
-		}
-	}
-
-	private final class FreezeStrategyImpl extends FreezeStrategy {
-
-		private final NormalStrategy normalStrategy = new NormalStrategyImpl();
-
-		private volatile T valueDuringFreeze;
-
-		@Override
-		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
-			synchronized (lock) {
-				subscriptions.add(subscription);
-			}
-
-			subscriber.setSubscription(subscription);
-
-			subscription.start();
-		}
-
-		@Override
-		public void publish(T item) {
-			valueDuringFreeze = item;
-		}
-
-		@Override
-		public void complete(SourceCompletion sourceCompletion) {
-			completionDuringFreeze = sourceCompletion;
-		}
-
-		@Override
-		protected void restore() {
-			if (valueDuringFreeze != null) {
-				normalStrategy.publish(valueDuringFreeze);
-			}
-			valueDuringFreeze = null;
-
-			if (completionDuringFreeze != null) {
-				completion = new CompleteSignal(completionDuringFreeze);
-				subscriptions.forEach(subscription -> subscription.complete(completion));
-				subscriptions.clear();
-			}
-		}
-	}
 }

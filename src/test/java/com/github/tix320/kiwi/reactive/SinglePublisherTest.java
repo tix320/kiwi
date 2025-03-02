@@ -1,19 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
-import org.junit.jupiter.api.Disabled;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SinglePublisherTest {
 
@@ -65,20 +69,18 @@ public class SinglePublisherTest {
 
 	@Test
 	public void concurrentPublishTest() throws InterruptedException {
-		int count = 100000;
-
-		Set<Integer> expected = IntStream.range(0, count).boxed().collect(Collectors.toSet());
-		Set<Integer> actual = new ConcurrentSkipListSet<>();
+		List<Integer> actual = new CopyOnWriteArrayList<>();
 
 		SinglePublisher<Integer> publisher = new SinglePublisher<>(10);
 		Observable<Integer> observable = publisher.asObservable();
 		observable.subscribe(actual::add);
 
-		IntStream.range(0, count).parallel().forEach(publisher::publish);
+		IntStream.range(0, 100000).parallel().forEach(publisher::publish);
+		publisher.publish(15);
 
-		Thread.sleep(3000);
-		assertEquals(count, actual.size());
-		assertEquals(expected, actual);
+		Thread.sleep(7000);
+		assertEquals(15, publisher.getValue());
+		assertEquals(15, actual.get(actual.size() - 1));
 	}
 
 	@Test
@@ -94,8 +96,24 @@ public class SinglePublisherTest {
 
 		Stream.generate(() -> null).limit(count).parallel().forEach(value -> publisher.CASPublish(10, 72));
 
-		Thread.sleep(2000);
+		Thread.sleep(100);
 		assertEquals(2, actual.size());
 		assertEquals(expected, actual);
 	}
+
+	@Test
+	public void subscribeAlreadyClosed() throws InterruptedException {
+		Publisher<Integer> publisher = Publisher.single();
+		publisher.publish(3);
+		publisher.complete();
+
+		AtomicInteger holder = new AtomicInteger();
+
+		publisher.asObservable().subscribe(holder::set);
+
+		Thread.sleep(100);
+
+		assertEquals(3, holder.get());
+	}
+
 }

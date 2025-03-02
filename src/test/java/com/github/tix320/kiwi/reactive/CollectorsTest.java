@@ -39,7 +39,7 @@ public class CollectorsTest {
 		publisher.publish(2);
 		publisher.publish(3);
 
-		observable.toMap(integer -> integer, integer -> integer + "").subscribe(map -> map.forEach(actualMap::put));
+		observable.toMap(integer -> integer, integer -> integer + "").subscribe(actualMap::putAll);
 
 		assertEquals(Map.<Integer, String>of(), actualMap);
 

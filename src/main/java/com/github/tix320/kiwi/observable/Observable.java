@@ -1,7 +1,33 @@
 package com.github.tix320.kiwi.observable;
 
+import com.github.tix320.kiwi.observable.plain.StaticValueObservable;
+import com.github.tix320.kiwi.observable.plain.StaticValuesObservable;
+import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.UntilObservable;
+import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
+import com.github.tix320.kiwi.observable.transform.single.collect.internal.JoinObservable;
+import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToListObservable;
+import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.FilterObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.MapperObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.OnceObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.PeekObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.SkipObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.TakeLimitedObservable;
+import com.github.tix320.kiwi.observable.transform.single.operator.internal.TakeWhileObservable;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.publisher.SimplePublisher;
+import com.github.tix320.skimp.api.collection.Tuple;
+import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -10,20 +36,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
-import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
-import com.github.tix320.kiwi.observable.transform.multiple.internal.ZipObservable;
-import com.github.tix320.kiwi.observable.transform.single.collect.internal.JoinObservable;
-import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToListObservable;
-import com.github.tix320.kiwi.observable.transform.single.collect.internal.ToMapObservable;
-import com.github.tix320.kiwi.observable.transform.single.operator.internal.*;
-import com.github.tix320.kiwi.observable.transform.single.timeout.internal.GetOnTimeoutObservable;
-import com.github.tix320.kiwi.publisher.BufferedPublisher;
-import com.github.tix320.kiwi.publisher.MonoPublisher;
-import com.github.tix320.kiwi.publisher.SimplePublisher;
-import com.github.tix320.skimp.api.collection.Tuple;
-import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
 
 /**
  * @param <T> type of data.
@@ -134,7 +146,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 		return this;
 	}
 
-	//region await functions
+	//region awaits functions
 
 	/**
 	 * Blocks current thread until this observable will be completed.
@@ -228,11 +240,15 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 
 		AtomicBoolean isTimout = new AtomicBoolean(false);
 		this.toMono().subscribe(item -> {
-			boolean changed = isTimout.compareAndSet(false, true);
-			if (changed) {
-				consumer.accept(item);
+			try {
+				boolean changed = isTimout.compareAndSet(false, true);
+				if (changed) {
+					consumer.accept(item);
+				}
 			}
-			latch.countDown();
+			finally {
+				latch.countDown();
+			}
 		});
 
 		if (millis < 0) {
@@ -267,7 +283,22 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return new observable
 	 */
 	public final MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
-		return new GetOnTimeoutObservable<>(this, timeout, factory);
+		var publisher = Publisher.<T>simple();
+		DefaultScheduler.get()
+			.schedule(timeout.toMillis(), TimeUnit.MILLISECONDS,
+					  () -> {
+						  T item;
+						  try {
+							  item = factory.get();
+						  } catch (Throwable e) {
+							  publisher.abort(e);
+							  return;
+						  }
+
+						  publisher.publish(item);
+					  });
+
+		return new FirstOfAllObservable<>(List.of(this, publisher.asObservable()));
 	}
 	//endregion
 
@@ -293,7 +324,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return new observable
 	 */
 	public final Observable<T> take(long count) {
-		return new CountingObservable<>(this, count);
+		return new TakeLimitedObservable<>(this, count);
 	}
 
 	/**
@@ -440,9 +471,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return observable
 	 */
 	public static <T> MonoObservable<T> of(T value) {
-		MonoPublisher<T> monoPublisher = new MonoPublisher<>();
-		monoPublisher.publish(value);
-		return monoPublisher.asObservable();
+		return new StaticValueObservable<>(value);
 	}
 
 	/**
@@ -453,12 +482,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return observable
 	 */
 	public static <T> Observable<T> of(Collection<T> collection) {
-		BufferedPublisher<T> publisher = new BufferedPublisher<>(collection.size());
-		for (T item : collection) {
-			publisher.publish(item);
-		}
-		publisher.complete();
-		return publisher.asObservable();
+		return new StaticValuesObservable<>(collection);
 	}
 
 	/**
@@ -470,12 +494,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	@SafeVarargs
 	public static <T> Observable<T> of(T... values) {
-		BufferedPublisher<T> publisher = new BufferedPublisher<>(values.length);
-		for (T value : values) {
-			publisher.publish(value);
-		}
-		publisher.complete();
-		return publisher.asObservable();
+		return new StaticValuesObservable<>(values);
 	}
 	//endregion
 

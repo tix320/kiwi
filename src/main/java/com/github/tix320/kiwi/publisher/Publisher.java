@@ -18,7 +18,7 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 	 * Publish object.
 	 *
 	 * @param object to publish
-	 * @throws PublisherCompletedException if publisher already completed
+	 * @throws PublisherClosedException if publisher already completed
 	 */
 	public abstract void publish(T object);
 
@@ -33,11 +33,17 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 	}
 
 	/**
+	 * Abort this publisher, after that cannot be published objects.
+	 * Invoking this method more than one time will have no effect.
+	 */
+	public abstract void abort(Throwable throwable);
+
+	/**
 	 * Indicated publisher completeness.
 	 *
 	 * @return true, if completed, false otherwise.
 	 */
-	public abstract boolean isCompleted();
+	public abstract boolean isClosed();
 
 	/**
 	 * Create simple publisher for publishing objects.
@@ -84,23 +90,23 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 	}
 
 	/**
-	 * Create buffered publisher {@link BufferedPublisher} with given limit.
+	 * Create buffered publisher {@link ReplayPublisher} with given limit.
 	 *
 	 * @param bufferSize for subject buffer
 	 * @param <T>        type of objects.
 	 * @return created publisher.
 	 */
-	public static <T> BufferedPublisher<T> buffered(int bufferSize) {
-		return new BufferedPublisher<>(bufferSize);
+	public static <T> ReplayPublisher<T> buffered(int bufferSize) {
+		return new ReplayPublisher<>(bufferSize);
 	}
 
 	/**
-	 * Create buffered publisher {@link BufferedPublisher} without limit.
+	 * Create buffered publisher {@link ReplayPublisher} without limit.
 	 *
 	 * @param <T> type of objects.
 	 * @return created publisher.
 	 */
-	public static <T> BufferedPublisher<T> buffered() {
-		return new BufferedPublisher<>(Integer.MAX_VALUE);
+	public static <T> ReplayPublisher<T> buffered() {
+		return new ReplayPublisher<>(Integer.MAX_VALUE);
 	}
 }

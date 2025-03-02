@@ -4,10 +4,9 @@ import com.github.tix320.kiwi.observable.MonoObservable;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.signal.CompleteSignal;
-import com.github.tix320.kiwi.observable.signal.NextSignal;
+import com.github.tix320.kiwi.observable.signal.PublishSignal;
 import com.github.tix320.kiwi.publisher.internal.BasePublisher;
-import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
+import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
 
 /**
  * Mono publisher to publish exactly one object, after which the publisher will be closed.
@@ -15,9 +14,10 @@ import com.github.tix320.kiwi.publisher.internal.PublisherSubscription;
  */
 public final class MonoPublisher<T> extends BasePublisher<T> {
 
-	private volatile NextSignal<T> valueSignal;
+	private volatile PublishSignal<T> valueSignal;
 
 	public MonoPublisher() {
+		super();
 	}
 
 	@Override
@@ -32,95 +32,32 @@ public final class MonoPublisher<T> extends BasePublisher<T> {
 	}
 
 	@Override
-	protected BasePublisher<T>.NormalStrategy getNormalStrategy() {
-		return new NormalStrategyImpl();
+	protected PublisherCursor createCursor() {
+		return new PublisherCursor() {
+
+			volatile boolean alreadyReceived;
+
+			@Override
+			public boolean hasNext() {
+				return !alreadyReceived && valueSignal != null;
+			}
+
+			@Override
+			public PublishSignal<T> next() {
+				if (alreadyReceived || valueSignal == null) {
+					return null;
+				}
+
+				alreadyReceived = true;
+				return valueSignal;
+			}
+		};
 	}
 
 	@Override
-	protected BasePublisher<T>.FreezeStrategy getFreezeStrategy() {
-		return new FreezeStrategyImpl();
+	protected void onPublish(T item) {
+		valueSignal = new PublishSignal<>(item);
+		MonoPublisher.this.complete(SourceCompletion.DEFAULT);
 	}
 
-	private final class NormalStrategyImpl extends NormalStrategy {
-		@Override
-		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
-			synchronized (lock) {
-				if (valueSignal != null) {
-					subscription.enqueue(valueSignal);
-				}
-				if (isCompleted()) {
-					subscription.enqueue(completion);
-				}
-				else {
-					subscriptions.add(subscription);
-				}
-			}
-
-			subscriber.setSubscription(subscription);
-
-			subscription.start();
-		}
-
-		@Override
-		public void publish(T item) {
-			NextSignal<T> nextSignal = new NextSignal<>(item);
-			valueSignal = nextSignal;
-
-			for (PublisherSubscription<T> subscription : subscriptions) {
-				subscription.next(nextSignal);
-			}
-
-			MonoPublisher.this.complete(SourceCompletion.DEFAULT);
-		}
-
-		@Override
-		public void complete(SourceCompletion sourceCompletion) {
-			completion = new CompleteSignal(sourceCompletion);
-			subscriptions.forEach(subscription -> subscription.complete(completion));
-			subscriptions.clear();
-		}
-	}
-
-	private final class FreezeStrategyImpl extends FreezeStrategy {
-
-		private final NormalStrategy normalStrategy = new NormalStrategyImpl();
-
-		private volatile T valueDuringFreeze;
-
-		@Override
-		public void subscribe(Subscriber<? super T> subscriber, PublisherSubscription<T> subscription) {
-			synchronized (lock) {
-				subscriptions.add(subscription);
-			}
-
-			subscriber.setSubscription(subscription);
-
-			subscription.start();
-		}
-
-		@Override
-		public void publish(T item) {
-			valueDuringFreeze = item;
-			MonoPublisher.this.complete(SourceCompletion.DEFAULT);
-		}
-
-		@Override
-		public void complete(SourceCompletion sourceCompletion) {
-			completionDuringFreeze = sourceCompletion;
-		}
-
-		@Override
-		protected void restore() {
-			if (valueDuringFreeze != null) {
-				normalStrategy.publish(valueDuringFreeze);
-			}
-			valueDuringFreeze = null;
-
-			if (completionDuringFreeze != null) {
-				completion = new CompleteSignal(completionDuringFreeze);
-				subscriptions.forEach(subscription -> subscription.complete(completion));
-				subscriptions.clear();
-			}
-		}
-	}
 }

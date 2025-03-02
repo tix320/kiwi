@@ -4,8 +4,8 @@ import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 public final class FiniteDemandStrategy implements DemandStrategy {
 
-	private static final AtomicLongFieldUpdater<FiniteDemandStrategy> countUpdater = AtomicLongFieldUpdater.newUpdater(
-			FiniteDemandStrategy.class, "count");
+	private static final AtomicLongFieldUpdater<FiniteDemandStrategy> COUNT_HANDLE = AtomicLongFieldUpdater.newUpdater(
+		FiniteDemandStrategy.class, "count");
 
 	private volatile long count;
 
@@ -15,15 +15,23 @@ public final class FiniteDemandStrategy implements DemandStrategy {
 
 	@Override
 	public boolean needMore() {
-		return countUpdater.getAndDecrement(this) != 0;
+		return COUNT_HANDLE.get(this) != 0;
 	}
 
 	@Override
-	public DemandStrategy applyNewValue(long count) {
-		if (count == Long.MAX_VALUE) {
+	public void decrement() {
+		COUNT_HANDLE.decrementAndGet(this);
+	}
+
+	@Override
+	public DemandStrategy addBound(long count) {
+		long current = COUNT_HANDLE.get(this);
+		try {
+			long newVal = Math.addExact(current, count);
+			return new FiniteDemandStrategy(newVal);
+		} catch (ArithmeticException e) {
 			return InfiniteDemandStrategy.INSTANCE;
 		}
-
-		return new FiniteDemandStrategy(countUpdater.get(this) + count);
 	}
+
 }

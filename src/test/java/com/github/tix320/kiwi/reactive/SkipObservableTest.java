@@ -43,7 +43,7 @@ public class SkipObservableTest {
 		publisher.publish(4);
 		publisher.publish(5);
 
-		Thread.sleep(200);
+		Thread.sleep(100);
 
 		subscriber.subscription().cancel();
 

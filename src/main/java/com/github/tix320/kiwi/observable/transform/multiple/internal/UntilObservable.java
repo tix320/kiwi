@@ -1,7 +1,12 @@
-package com.github.tix320.kiwi.observable.transform.single.operator.internal;
+package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
-import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.kiwi.observable.signal.SignalManager;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.MinorSubscriber;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.SourceCompletion;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Unsubscription;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
@@ -11,15 +16,15 @@ public final class UntilObservable<T> extends Observable<T> {
 	private static final Unsubscription UNTIL_UNSUBSCRIPTION = new Unsubscription();
 
 	private static final SourceCompletion SOURCE_COMPLETED_VIA_UNTIL = new SourceCompletion(
-			"SOURCE_COMPLETED_VIA_UNTIL");
+		"SOURCE_COMPLETED_VIA_UNTIL");
 
-	private final Observable<T> observable;
+	private final Observable<T> mainSource;
 
-	private final Observable<?> until;
+	private final Observable<?> untilSource;
 
-	public UntilObservable(Observable<T> observable, Observable<?> until) {
-		this.observable = observable;
-		this.until = until;
+	public UntilObservable(Observable<T> mainSource, Observable<?> untilSource) {
+		this.mainSource = mainSource;
+		this.untilSource = untilSource;
 	}
 
 	@Override
@@ -28,19 +33,15 @@ public final class UntilObservable<T> extends Observable<T> {
 			private volatile Subscription untilSubscription;
 		};
 
-		SignalManager signalManager = subscriber.getSignalManager();
-		signalManager.increaseTokensCount(1);
-
-		observable.subscribe(new Subscriber<>(signalManager) {
+		mainSource.subscribe(subscriber.spawn(new MinorSubscriber<T, T>() {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
-				subscriber.setSubscription(subscription);
-
-				until.subscribe(new Subscriber<Object>(signalManager) {
+				untilSource.subscribe(subscriber.spawn(new MinorSubscriber<Object, T>() {
 					@Override
 					public void onSubscribe(Subscription subscription) {
 						context.untilSubscription = subscription;
+						subscription.requestUnbounded();
 					}
 
 					@Override
@@ -54,7 +55,9 @@ public final class UntilObservable<T> extends Observable<T> {
 							subscription.cancel(UNTIL_UNSUBSCRIPTION);
 						}
 					}
-				});
+				}));
+
+				subscriber.setSubscription(subscription);
 			}
 
 			@Override
@@ -66,12 +69,13 @@ public final class UntilObservable<T> extends Observable<T> {
 			public void onComplete(Completion completion) {
 				if (completion == UNTIL_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_VIA_UNTIL);
-				}
-				else { // Normal source completed or user unsubscribed
+				} else {
+					// Normal source completed or user unsubscribed
 					context.untilSubscription.cancel();
 					subscriber.complete(completion);
 				}
 			}
-		});
+		}));
 	}
+
 }

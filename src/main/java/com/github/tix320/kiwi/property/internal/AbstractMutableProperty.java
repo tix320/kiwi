@@ -1,13 +1,12 @@
 package com.github.tix320.kiwi.property.internal;
 
-import java.util.Objects;
-
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.property.FreezeableProperty;
 import com.github.tix320.kiwi.property.MutableProperty;
 import com.github.tix320.kiwi.property.Property;
-import com.github.tix320.kiwi.publisher.PublisherCompletedException;
+import com.github.tix320.kiwi.publisher.PublisherClosedException;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
+import java.util.Objects;
 
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
@@ -41,7 +40,7 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 
 	@Override
 	public final boolean isClosed() {
-		return publisher.isCompleted();
+		return publisher.isClosed();
 	}
 
 	@Override
@@ -74,8 +73,7 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 	private void publishValue(T value) {
 		try {
 			publisher.publish(value);
-		}
-		catch (PublisherCompletedException e) {
+		} catch (PublisherClosedException e) {
 			throw createClosedException();
 		}
 	}
@@ -83,8 +81,7 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 	private boolean CASPublishValue(T expected, T newValue) {
 		try {
 			return publisher.CASPublish(expected, newValue);
-		}
-		catch (PublisherCompletedException e) {
+		} catch (PublisherClosedException e) {
 			throw createClosedException();
 		}
 	}
@@ -98,4 +95,5 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 	private PropertyClosedException createClosedException() {
 		return new PropertyClosedException(String.format("%s closed. Value change is forbidden.", this));
 	}
+
 }

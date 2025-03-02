@@ -5,10 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class DefaultSchedulerThreadFactory implements ThreadFactory {
 
-	public static final String THREAD_GROUP_NAME = "Kiwi-Scheduler";
-
-	private static final ThreadGroup THREAD_GROUP = new ThreadGroup(THREAD_GROUP_NAME);
-
 	private final AtomicInteger threadNumber = new AtomicInteger(1);
 
 	private final String prefix;
@@ -19,9 +15,10 @@ public final class DefaultSchedulerThreadFactory implements ThreadFactory {
 
 	@Override
 	public Thread newThread(Runnable runnable) {
-		String name = THREAD_GROUP_NAME + "-" + prefix + "-thread-" + threadNumber.getAndIncrement();
-		Thread t = new Thread(THREAD_GROUP, runnable, name);
+		String name = prefix + "-thread-" + threadNumber.getAndIncrement();
+		Thread t = new Thread(runnable, name);
 		t.setDaemon(true);
 		return t;
 	}
+
 }
