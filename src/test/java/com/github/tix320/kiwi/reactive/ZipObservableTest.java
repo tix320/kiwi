@@ -16,8 +16,8 @@ public class ZipObservableTest {
 
 	@Test
 	public void zipTest() throws InterruptedException {
-		Set<Tuple<Integer, Integer>> expected = Set.of(new Tuple<>(10, 20), new Tuple<>(30, 50));
-		Set<Tuple<Integer, Integer>> actual = Collections.synchronizedSet(new HashSet<>());
+		List<Tuple<Integer, Integer>> expected = List.of(new Tuple<>(10, 20), new Tuple<>(30, 50));
+		List<Tuple<Integer, Integer>> actual = Collections.synchronizedList(new ArrayList<>());
 
 		Observable<Integer> observable1 = Observable.of(10, 30, 40);
 
@@ -25,9 +25,9 @@ public class ZipObservableTest {
 
 		Observable.zip(observable1, observable2).subscribe(actual::add);
 
-		Thread.sleep(200);
+		Thread.sleep(100);
 
-		assertEquals(expected, actual); //FIXME <[[10,20], [30,50]]> but was: <[[10,20]]>
+		assertEquals(expected, actual);
 	}
 
 	@Test
@@ -79,7 +79,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(300);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
@@ -116,7 +116,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(300);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}
@@ -153,7 +153,7 @@ public class ZipObservableTest {
 
 		publisher2.publish(20);
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

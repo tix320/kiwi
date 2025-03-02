@@ -36,7 +36,7 @@ public class IntegrationTest {
 		publisher1.publish(50);
 		publisher3.publish(60);
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 
@@ -69,7 +69,7 @@ public class IntegrationTest {
 		publisher1.publish(50);
 		publisher3.publish(60);
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 

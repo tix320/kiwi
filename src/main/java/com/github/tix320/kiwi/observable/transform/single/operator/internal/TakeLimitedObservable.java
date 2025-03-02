@@ -1,14 +1,18 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.MinorSubscriber;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.SourceCompletion;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Unsubscription;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
  */
-public final class CountingObservable<T> extends Observable<T> {
+public final class TakeLimitedObservable<T> extends Observable<T> {
 
 	private static final Unsubscription LIMIT_UNSUBSCRIPTION = new Unsubscription("LIMIT_UNSUBSCRIPTION");
 
@@ -18,7 +22,7 @@ public final class CountingObservable<T> extends Observable<T> {
 
 	private final long count;
 
-	public CountingObservable(Observable<T> observable, long count) {
+	public TakeLimitedObservable(Observable<T> observable, long count) {
 		if (count < 0) {
 			throw new IllegalArgumentException("Count must not be negative");
 		}
@@ -29,7 +33,7 @@ public final class CountingObservable<T> extends Observable<T> {
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
 		AtomicLong limit = new AtomicLong(count);
-		observable.subscribe(new Subscriber<T>(subscriber.getSignalManager()) {
+		observable.subscribe(subscriber.fork(new MinorSubscriber<T, T>() {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -41,13 +45,9 @@ public final class CountingObservable<T> extends Observable<T> {
 				long remaining = limit.decrementAndGet();
 				if (remaining > 0) {
 					subscriber.publish(item);
-				}
-				else {
-					try {
-						subscriber.publish(item);
-					}finally {
+				} else {
 					subscription().cancel(LIMIT_UNSUBSCRIPTION);
-					}
+					subscriber.publish(item);
 				}
 			}
 
@@ -55,11 +55,11 @@ public final class CountingObservable<T> extends Observable<T> {
 			public void onComplete(Completion completion) {
 				if (completion == LIMIT_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_BY_LIMIT);
-				}
-				else {
+				} else {
 					subscriber.complete(completion);
 				}
 			}
-		});
+		}));
 	}
+
 }

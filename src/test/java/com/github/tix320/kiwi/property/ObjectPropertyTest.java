@@ -1,16 +1,14 @@
 package com.github.tix320.kiwi.property;
 
-import java.time.Duration;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.github.tix320.kiwi.property.internal.PropertyClosedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import com.github.tix320.kiwi.property.internal.PropertyClosedException;
-import com.github.tix320.skimp.api.interval.Interval;
-import com.github.tix320.skimp.api.interval.IntervalRepeater;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
@@ -64,7 +62,7 @@ public class ObjectPropertyTest {
 
 		assertThrows(PropertyClosedException.class, () -> property.setValue(3));
 
-		Thread.sleep(1000);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

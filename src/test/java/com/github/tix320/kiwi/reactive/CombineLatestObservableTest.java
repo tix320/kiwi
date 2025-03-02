@@ -1,16 +1,14 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.skimp.api.collection.Tuple;
-import org.junit.jupiter.api.Disabled;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Tigran Sargsyan on 21-Apr-20.
@@ -63,7 +61,7 @@ public class CombineLatestObservableTest {
 
 		publisher1.publish(3);
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(expected, actual);
 	}

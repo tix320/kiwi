@@ -1,6 +1,13 @@
 package com.github.tix320.kiwi.observable.transform.single.operator.internal;
 
-import com.github.tix320.kiwi.observable.*;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.MinorSubscriber;
+import com.github.tix320.kiwi.observable.MonoObservable;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.SourceCompletion;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Unsubscription;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -19,7 +26,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 
 	@Override
 	public void subscribe(Subscriber<? super T> subscriber) {
-		observable.subscribe(new Subscriber<T>(subscriber.getSignalManager()) {
+		observable.subscribe(subscriber.fork(new MinorSubscriber<T, T>() {
 
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -30,8 +37,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 			public void onNext(T item) {
 				try {
 					subscriber.publish(item);
-				}
-				finally {
+				} finally {
 					subscription().cancel(ONCE_UNSUBSCRIPTION);
 				}
 			}
@@ -40,11 +46,11 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 			public void onComplete(Completion completion) {
 				if (completion == ONCE_UNSUBSCRIPTION) {
 					subscriber.complete(SOURCE_COMPLETED_BY_ONCE);
-				}
-				else {
+				} else {
 					subscriber.complete(completion);
 				}
 			}
-		});
+		}));
 	}
+
 }

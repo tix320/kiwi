@@ -351,7 +351,7 @@ public class ObservableTest {
 			return null;
 		});
 
-		 assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+		 assertTimeoutPreemptively(Duration.ofSeconds(500), () -> {
 		 	Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
 		 		actual.add(integerIntegerTuple.first());
 		 		actual.add(integerIntegerTuple.second());

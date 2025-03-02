@@ -10,7 +10,7 @@ import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
-import com.github.tix320.kiwi.publisher.PublisherCompletedException;
+import com.github.tix320.kiwi.publisher.PublisherClosedException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,7 +28,7 @@ public class PublisherTest {
 		publisher.publish(2);
 		publisher.publish(3);
 		publisher.complete();
-		assertThrows(PublisherCompletedException.class, () -> publisher.publish(4));
+		assertThrows(PublisherClosedException.class, () -> publisher.publish(4));
 	}
 
 	@Test
@@ -86,8 +86,8 @@ public class PublisherTest {
 
 		publisher.publish(1);
 
-		Thread.sleep(200);
-		assertThrows(PublisherCompletedException.class, () -> publisher.publish(2));
+		Thread.sleep(100);
+		assertThrows(PublisherClosedException.class, () -> publisher.publish(2));
 
 		assertEquals(expected, actual);
 		assertTrue(onCompleteCalled.get());
@@ -111,7 +111,7 @@ public class PublisherTest {
 
 		Thread.sleep(100);
 
-		assertThrows(PublisherCompletedException.class, () -> publisher.publish(2));
+		assertThrows(PublisherClosedException.class, () -> publisher.publish(2));
 		assertEquals(expected, actual);
 	}
 }

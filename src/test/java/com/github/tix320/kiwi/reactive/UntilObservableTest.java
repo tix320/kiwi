@@ -103,7 +103,7 @@ public class UntilObservableTest {
 			}
 		});
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}

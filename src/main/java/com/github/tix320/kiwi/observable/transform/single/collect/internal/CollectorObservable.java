@@ -1,11 +1,14 @@
 package com.github.tix320.kiwi.observable.transform.single.collect.internal;
 
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.MinorSubscriber;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.SourceCompletion;
+import com.github.tix320.kiwi.observable.Subscriber;
+import com.github.tix320.kiwi.observable.Subscription;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
-
-import com.github.tix320.kiwi.observable.*;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
 
 /**
  * @author Tigran.Sargsyan on 01-Mar-19
@@ -21,7 +24,8 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 	@Override
 	public void subscribe(Subscriber<? super R> subscriber) {
 		Queue<S> objects = new ConcurrentLinkedQueue<>();
-		observable.subscribe(new Subscriber<>(subscriber.getSignalManager()) {
+		observable.subscribe(subscriber.fork(new MinorSubscriber<S, R>() {
+
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);
@@ -35,18 +39,13 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 			@Override
 			public void onComplete(Completion completion) {
 				if (completion instanceof SourceCompletion) {
-					try {
-						subscriber.publish(collect(objects.stream()));
-					}
-					catch (Throwable e) {
-						ExceptionUtils.applyToUncaughtExceptionHandler(e);
-						 // TODO call OnError
-					}
+					subscriber.publish(collect(objects.stream()));
 				}
 				subscriber.complete(completion);
 			}
-		});
+		}));
 	}
 
 	protected abstract R collect(Stream<S> objects);
+
 }

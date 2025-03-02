@@ -1,13 +1,18 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.kiwi.publisher.SinglePublisher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,13 +46,13 @@ public class SimplePublisherTest {
 		publisher.publish(6);
 		publisher.publish(7);
 
-		Thread.sleep(200);
+		Thread.sleep(100);
 
 		subscriber.subscription().cancel();
 
 		publisher.publish(8);
 
-		Thread.sleep(100);
+		Thread.sleep(300);
 
 		assertEquals(expected, actual);
 	}
@@ -132,5 +137,23 @@ public class SimplePublisherTest {
 		assertEquals(expected2, actual2);
 		assertEquals(expected3, actual3);
 		assertEquals(expected4, actual4);
+	}
+
+	@Test
+	public void concurrentPublishTest() throws InterruptedException {
+		int count = 100000;
+
+		Set<Integer> expected = IntStream.range(0, count).boxed().collect(Collectors.toSet());
+		Set<Integer> actual = new ConcurrentSkipListSet<>();
+
+		var publisher = Publisher.<Integer>simple();
+		Observable<Integer> observable = publisher.asObservable();
+		observable.subscribe(actual::add);
+
+		IntStream.range(0, count).parallel().forEach(publisher::publish);
+
+		Thread.sleep(1000);
+		assertEquals(count, actual.size());
+		assertEquals(expected, actual);
 	}
 }

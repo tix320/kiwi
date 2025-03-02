@@ -1,21 +1,19 @@
 package com.github.tix320.kiwi.reactive;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.publisher.Publisher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.IntStream;
-
-import com.github.tix320.kiwi.BaseTest;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.publisher.Publisher;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
-public class BufferedPublisherTest extends BaseTest {
+public class ReplayPublisherTest {
 
 	@Test
 	public void simpleTest() throws InterruptedException {
@@ -55,7 +53,7 @@ public class BufferedPublisherTest extends BaseTest {
 		publisher.publish("11");
 		publisher.publish("12");
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -120,6 +118,23 @@ public class BufferedPublisherTest extends BaseTest {
 			publisher.publish("value" + index);
 		});
 
-		Thread.sleep(1000);
+		Thread.sleep(100);
 	}
+
+	@Test
+	public void subscribeAlreadyClosed() throws InterruptedException {
+		Publisher<Integer> publisher = Publisher.buffered(5);
+		publisher.publish(1);
+		publisher.publish(2);
+		publisher.complete();
+
+		List<Integer> actual = new CopyOnWriteArrayList<>();
+
+		publisher.asObservable().subscribe(actual::add);
+
+		Thread.sleep(100);
+
+		assertEquals(List.of(1, 2), actual);
+	}
+
 }

@@ -13,11 +13,12 @@ public final class EmptyDemandStrategy implements DemandStrategy {
 	}
 
 	@Override
-	public DemandStrategy applyNewValue(long count) {
-		if (count == Long.MAX_VALUE) {
-			return InfiniteDemandStrategy.INSTANCE;
-		}
+	public void decrement() {
+	}
 
+	@Override
+	public DemandStrategy addBound(long count) {
 		return new FiniteDemandStrategy(count);
 	}
+
 }
