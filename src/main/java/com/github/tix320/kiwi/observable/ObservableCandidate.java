@@ -1,7 +1,5 @@
 package com.github.tix320.kiwi.observable;
 
-import com.github.tix320.kiwi.observable.Observable;
-
 public interface ObservableCandidate<T> {
 
 	/**
@@ -12,4 +10,5 @@ public interface ObservableCandidate<T> {
 	 * @see Observable
 	 */
 	Observable<T> asObservable();
+
 }

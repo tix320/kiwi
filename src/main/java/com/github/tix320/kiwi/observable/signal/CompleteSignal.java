@@ -1,11 +1,10 @@
 package com.github.tix320.kiwi.observable.signal;
 
-import static com.github.tix320.kiwi.observable.signal.DefaultPriorities.COMPLETE_PRIORITY;
+import static com.github.tix320.kiwi.observable.signal.SignalPriorities.COMPLETE_PRIORITY;
 
 import com.github.tix320.kiwi.observable.SourceCompletion;
 
 public non-sealed class CompleteSignal extends Signal {
-
 
 	protected final SourceCompletion completion;
 
@@ -18,13 +17,8 @@ public non-sealed class CompleteSignal extends Signal {
 	}
 
 	@Override
-	public int defaultPriority() {
+	public int priority() {
 		return COMPLETE_PRIORITY;
-	}
-
-	@Override
-	public final void accept(SignalVisitor signalVisitor) {
-		signalVisitor.visit(this);
 	}
 
 }

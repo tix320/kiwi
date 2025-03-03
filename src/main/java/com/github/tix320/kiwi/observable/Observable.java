@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.kiwi.observable.plain.StaticValueObservable;
 import com.github.tix320.kiwi.observable.plain.StaticValuesObservable;
-import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
+import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
@@ -39,10 +39,10 @@ import java.util.function.Supplier;
 
 /**
  * @param <T> type of data.
+ *
  * @author Tigran Sargsyan on 21-Feb-19
  */
 public abstract class Observable<T> implements ObservableCandidate<T> {
-
 
 	/**
 	 * Subscribe to observable and consume events asynchronously.
@@ -110,24 +110,6 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	}
 
 	/**
-	 * Subscribe to observable and handle every item, consumer must return boolean value,
-	 * which indicates that need more elements or not.
-	 *
-	 * @param consumer for processing items
-	 */
-	public final void conditionalSubscribe(ConditionalConsumer<T> consumer) {
-		subscribe(new FlexibleSubscriber<>() {
-			@Override
-			public void onNext(T item) {
-				boolean needMore = consumer.accept(item);
-				if (!needMore) {
-					subscription().cancel();
-				}
-			}
-		});
-	}
-
-	/**
 	 * Subscribe to observable completeness.
 	 *
 	 * @param onComplete for processing completeness
@@ -146,13 +128,14 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 		return this;
 	}
 
-	//region awaits functions
+	// region awaits functions
 
 	/**
 	 * Blocks current thread until this observable will be completed.
 	 *
 	 * @throws ThreadInterruptedException when thread was interrupted
-	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #await(Duration)} (Duration)}} instead.
+	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking
+	 * 	while holding the lock/monitor. Use {{@link #await(Duration)} (Duration)}} instead.
 	 */
 	@Deprecated
 	public final void await() {
@@ -163,6 +146,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Blocks current thread for given until this observable will be completed.
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
 	 * @throws TimeoutException           when observable not completed in given time.
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
@@ -180,17 +164,14 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 		if (millis < 0) {
 			try {
 				latch.await();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new ThreadInterruptedException();
 			}
-		}
-		else {
+		} else {
 			boolean normally;
 			try {
 				normally = latch.await(millis, TimeUnit.MILLISECONDS);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new ThreadInterruptedException();
 			}
 			if (!normally) {
@@ -206,7 +187,8 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Blocks current thread until this observable will be published one value and return.
 	 *
 	 * @throws ThreadInterruptedException when thread was interrupted
-	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking while holding the lock/monitor. Use {{@link #get(Duration)}} instead.
+	 * @deprecated use of this method may cause some thread problems until deadlock, for example in the case of blocking
+	 * 	while holding the lock/monitor. Use {{@link #get(Duration)}} instead.
 	 */
 	@Deprecated
 	public final T get() {
@@ -217,6 +199,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Blocks current thread for given timout until this observable will be published one value and return.
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
 	 * @throws TimeoutException           when observable not completed in given time.
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
@@ -227,9 +210,11 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	}
 
 	/**
-	 * Blocks current thread for given timout until this observable will be published one value and apply given consumer to that item.
+	 * Blocks current thread for given timout until this observable will be published one value and apply given consumer
+	 * to that item.
 	 *
 	 * @param timeout timeout to wait. Note: ceil to milliseconds.
+	 *
 	 * @throws TimeoutException           when observable not completed in given time.
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
@@ -245,8 +230,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 				if (changed) {
 					consumer.accept(item);
 				}
-			}
-			finally {
+			} finally {
 				latch.countDown();
 			}
 		});
@@ -254,17 +238,14 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 		if (millis < 0) {
 			try {
 				latch.await();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new ThreadInterruptedException();
 			}
-		}
-		else {
+		} else {
 			boolean normally;
 			try {
 				normally = latch.await(millis, TimeUnit.MILLISECONDS);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new ThreadInterruptedException();
 			}
 			if (!normally) {
@@ -280,11 +261,12 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Returns observable, which will be produce another item, if this observable not produces in given duration.
 	 *
 	 * @param timeout to wait. Note: ceil to milliseconds.
+	 *
 	 * @return new observable
 	 */
 	public final MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
 		var publisher = Publisher.<T>simple();
-		DefaultScheduler.get()
+		KiwiSchedulerHolder.get()
 			.schedule(timeout.toMillis(), TimeUnit.MILLISECONDS,
 					  () -> {
 						  T item;
@@ -300,15 +282,16 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 
 		return new FirstOfAllObservable<>(List.of(this, publisher.asObservable()));
 	}
-	//endregion
+	// endregion
 
-	//region transform functions
+	// region transform functions
 
 	/**
 	 * Return observable, which will subscribe to this and transform every object according to given transformer.
 	 *
 	 * @param mapper for transform objects
 	 * @param <R>    type of result object
+	 *
 	 * @return new observable
 	 */
 	public final <R> Observable<R> map(Function<? super T, ? extends R> mapper) {
@@ -321,6 +304,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return observable, which will subscribe to this and receive n objects, after that unsubscribe.
 	 *
 	 * @param count for wanted objects
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> take(long count) {
@@ -332,6 +316,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * and unsubscribe from this observable, when given will be completed.
 	 *
 	 * @param observable to subscribe
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> takeUntil(Observable<?> observable) {
@@ -343,6 +328,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * and unsubscribe, when predicate result will be negative.
 	 *
 	 * @param predicate for testing objects
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> takeWhile(Predicate<? super T> predicate) {
@@ -353,6 +339,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return observable, which will subscribe to this and skip n objects.
 	 *
 	 * @param count for skipped objects
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> skip(long count) {
@@ -363,14 +350,15 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return observable, which will subscribe to this and set filter to objects according to given filter.
 	 *
 	 * @param filter for filtering objects
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> filter(Predicate<? super T> filter) {
 		return new FilterObservable<>(this, filter);
 	}
-	//endregion
+	// endregion
 
-	//region collect functions
+	// region collect functions
 
 	/**
 	 * Return observable, which will subscribe to this and wait until it will be completed,
@@ -380,6 +368,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param valueMapper for extracting map value from objects
 	 * @param <K>         type of map key
 	 * @param <V>         type of map value
+	 *
 	 * @return new observable
 	 */
 	public final <K, V> Observable<Map<K, V>> toMap(Function<? super T, ? extends K> keyMapper,
@@ -403,6 +392,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param toString  to transform object to string
 	 * @param delimiter to separate transformed strings
+	 *
 	 * @return new observable
 	 */
 	public final Observable<String> join(Function<? super T, ? extends String> toString, String delimiter) {
@@ -417,15 +407,16 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param delimiter to separate transformed strings
 	 * @param prefix    to concat before strings join
 	 * @param suffix    to concat after string join
+	 *
 	 * @return new observable
 	 */
 	public final Observable<String> join(Function<? super T, ? extends String> toString, String delimiter,
 										 String prefix, String suffix) {
 		return new JoinObservable<>(this, toString, delimiter, prefix, suffix);
 	}
-	//endregion
+	// endregion
 
-	//region other
+	// region other
 
 	/**
 	 * Convert this observable to {@link MonoObservable} or return @this if it is already mono.
@@ -443,6 +434,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return observable, which will subscribe to this and do given action on every consumed object.
 	 *
 	 * @param action to perform over objects
+	 *
 	 * @return new observable
 	 */
 	public final Observable<T> peek(Consumer<? super T> action) {
@@ -455,6 +447,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return empty observable, which will be immediately completed.
 	 *
 	 * @param <T> type of observable
+	 *
 	 * @return observable
 	 */
 	public static <T> Observable<T> empty() {
@@ -468,6 +461,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param value to publish
 	 * @param <T>   type of object
+	 *
 	 * @return observable
 	 */
 	public static <T> MonoObservable<T> of(T value) {
@@ -479,6 +473,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param collection to publish
 	 * @param <T>        type of objects
+	 *
 	 * @return observable
 	 */
 	public static <T> Observable<T> of(Collection<T> collection) {
@@ -490,21 +485,23 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param values to publish
 	 * @param <T>    type of object
+	 *
 	 * @return observable
 	 */
 	@SafeVarargs
 	public static <T> Observable<T> of(T... values) {
 		return new StaticValuesObservable<>(values);
 	}
-	//endregion
+	// endregion
 
-	//region combining functions
+	// region combining functions
 
 	/**
 	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
 	 *
 	 * @param observables to subscribe
 	 * @param <T>         type of object
+	 *
 	 * @return observable
 	 */
 	@SafeVarargs
@@ -517,6 +514,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * Return observable, which will be subscribe to given observables and publish objects from each of them.
 	 *
 	 * @param observables to subscribe
+	 *
 	 * @return observable
 	 */
 	@SuppressWarnings("all")
@@ -530,6 +528,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param observables to subscribe
 	 * @param <T>         type of object
+	 *
 	 * @return observable
 	 */
 	public static <T> Observable<T> merge(Iterable<Observable<? extends T>> observables) {
@@ -546,6 +545,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param observables to subscribe
 	 * @param <T>         type of object
+	 *
 	 * @return observable
 	 */
 	@SafeVarargs
@@ -561,6 +561,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @param observables to subscribe
 	 * @param <T>         type of object
+	 *
 	 * @return observable
 	 */
 	public static <T> Observable<List<T>> zip(Iterable<? extends Observable<? extends T>> observables) {
@@ -579,6 +580,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param observable2 to subscribe
 	 * @param <A>         type of first object
 	 * @param <B>         type of second object
+	 *
 	 * @return observable
 	 */
 	@SuppressWarnings("all")
@@ -588,23 +590,24 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 		return zipObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
 
-
 	/**
 	 * Return observable, which will be subscribe to given observables.
-	 * It will be wait for every publish from given observables and combine latest items of every observable as tuple and publish.
+	 * It will be wait for every publish from given observables and combine latest items of every observable as tuple
+	 * and publish.
 	 *
 	 * @param observable1 to subscribe
 	 * @param observable2 to subscribe
 	 * @param <A>         type of first object
 	 * @param <B>         type of second object
+	 *
 	 * @return observable
 	 */
 	@SuppressWarnings("all")
 	public static <A, B> Observable<Tuple<A, B>> combineLatest(Observable<? extends A> observable1,
 															   Observable<? extends B> observable2) {
 		CombineLatestObservable<List> combineLatestObservable = new CombineLatestObservable(
-				List.of(observable1, observable2));
+			List.of(observable1, observable2));
 		return combineLatestObservable.map(list -> new Tuple<>((A) list.get(0), (B) list.get(1)));
 	}
-	//endregion
+	// endregion
 }

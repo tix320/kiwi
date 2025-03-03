@@ -1,19 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
@@ -150,10 +154,9 @@ public class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.map(integer -> integer + "lol").conditionalSubscribe(item -> {
-			actual1.add(item);
-			return !item.equals("25lol");
-		});
+		observable.map(integer -> integer + "lol")
+			.takeWhile(item -> !item.equals("50lol"))
+			.subscribe(actual1::add);
 
 		publisher.publish(10);
 		observable.map(integer -> integer + "wtf").toMono().subscribe(actual2::add);
@@ -216,8 +219,7 @@ public class ObservableTest {
 				publisher.publish(10);
 				publisher.publish(20);
 				publisher.publish(25);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException();
 			}
 		}).exceptionally(throwable -> {
@@ -246,8 +248,7 @@ public class ObservableTest {
 				publisher.publish(10);
 				publisher.publish(20);
 				publisher.publish(25);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException();
 			}
 		}).exceptionally(throwable -> {
@@ -277,8 +278,7 @@ public class ObservableTest {
 				publisher.publish(20);
 				publisher.publish(25);
 				publisher.complete();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException();
 			}
 		}).exceptionally(throwable -> {
@@ -308,8 +308,7 @@ public class ObservableTest {
 				publisher.publish(20);
 				publisher.publish(25);
 				publisher.complete();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException();
 			}
 		}).exceptionally(throwable -> {
@@ -342,8 +341,7 @@ public class ObservableTest {
 				publisher2.publish(20);
 				publisher1.complete();
 				publisher2.complete();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException();
 			}
 		}).exceptionally(throwable -> {
@@ -351,12 +349,12 @@ public class ObservableTest {
 			return null;
 		});
 
-		 assertTimeoutPreemptively(Duration.ofSeconds(500), () -> {
-		 	Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
-		 		actual.add(integerIntegerTuple.first());
-		 		actual.add(integerIntegerTuple.second());
-		 	}).await();
-		 });
+		assertTimeoutPreemptively(Duration.ofSeconds(500), () -> {
+			Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
+				actual.add(integerIntegerTuple.first());
+				actual.add(integerIntegerTuple.second());
+			}).await();
+		});
 
 		assertEquals(expected, actual);
 	}
@@ -370,8 +368,7 @@ public class ObservableTest {
 		CompletableFuture.runAsync(() -> {
 			try {
 				Thread.sleep(50);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException(e);
 			}
 			publisher.publish(3);
@@ -392,8 +389,7 @@ public class ObservableTest {
 		CompletableFuture.runAsync(() -> {
 			try {
 				Thread.sleep(50);
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				throw new IllegalStateException(e);
 			}
 			publisher.publish(3);
@@ -470,5 +466,6 @@ public class ObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
 }
 

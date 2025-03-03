@@ -16,8 +16,6 @@ public abstract sealed class Signal permits PublishSignal, CancelSignal, Complet
 		return seqNumber;
 	}
 
-	public abstract int defaultPriority();
-
-	public abstract void accept(SignalVisitor signalVisitor);
+	public abstract int priority();
 
 }

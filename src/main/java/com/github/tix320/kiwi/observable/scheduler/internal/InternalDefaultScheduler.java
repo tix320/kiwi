@@ -5,9 +5,9 @@ import com.github.tix320.skimp.api.exception.ExceptionUtils;
 import com.github.tix320.skimp.api.thread.tracer.Tracer;
 import com.github.tix320.skimp.api.thread.tracer.TrackableExecutorService;
 import com.github.tix320.skimp.api.thread.tracer.TrackableScheduledExecutorService;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -17,8 +17,9 @@ public final class InternalDefaultScheduler implements Scheduler {
 
 	private final ExecutorService executorService = TrackableExecutorService.wrap(
 		new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
-							   Math.min(Runtime.getRuntime().availableProcessors() * 4, 100), 2, TimeUnit.MINUTES,
-							   new ArrayBlockingQueue<>(1000),
+							   Runtime.getRuntime().availableProcessors() * 4,
+							   2, TimeUnit.MINUTES,
+							   new LinkedBlockingQueue<>(1000),
 							   new DefaultSchedulerThreadFactory("Kiwi-Default-Scheduler"),
 							   new RejectionHandler()));
 
@@ -58,10 +59,10 @@ public final class InternalDefaultScheduler implements Scheduler {
 		@Override
 		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
 			Thread currentThread = Thread.currentThread();
-			System.err.printf("WARNING: Kiwi Internal Scheduler is full. Retrying after sleep of 3 seconds[%s]%n",
+			System.err.printf("WARNING: Kiwi Internal Scheduler is full. Retrying after sleep of 500 ms[%s]%n",
 							  currentThread);
 			try {
-				Thread.sleep(100);
+				Thread.sleep(500);
 			} catch (InterruptedException ignored) {
 			}
 			executor.execute(r);

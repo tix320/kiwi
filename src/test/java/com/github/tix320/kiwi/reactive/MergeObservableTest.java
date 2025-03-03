@@ -1,14 +1,13 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MergeObservableTest {
 
@@ -24,10 +23,9 @@ public class MergeObservableTest {
 
 		Observable<Integer> observable3 = publisher.asObservable();
 
-		Observable.merge(observable1, observable2, observable3).conditionalSubscribe(number -> {
-			actual.add(number);
-			return actual.size() < 4;
-		});
+		Observable.merge(observable1, observable2, observable3)
+			.takeWhile(integer -> actual.size() < 4)
+			.subscribe(actual::add);
 
 		publisher.publish(8);
 
@@ -38,4 +36,5 @@ public class MergeObservableTest {
 			assertTrue(maybe.contains(integer));
 		}
 	}
+
 }

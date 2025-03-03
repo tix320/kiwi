@@ -9,7 +9,7 @@ public abstract sealed class Completion permits SourceCompletion, Unsubscription
 	}
 
 	public <T> T data() {
-		//noinspection unchecked
+		// noinspection unchecked
 		return (T) data;
 	}
 
@@ -17,4 +17,5 @@ public abstract sealed class Completion permits SourceCompletion, Unsubscription
 	public String toString() {
 		return "%s[%s]".formatted(getClass().getSimpleName(), data);
 	}
+
 }

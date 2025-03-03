@@ -4,7 +4,7 @@ import static java.util.Comparator.comparing;
 import static java.util.Comparator.nullsFirst;
 
 import com.github.tix320.kiwi.observable.Subscriber;
-import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
+import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,12 +21,13 @@ public final class SignalSynchronizer {
 	private static final Comparator<Signal> CROSS_SOURCE_COMPARATOR =
 		nullsFirst(comparing(Signal::seqNumber).reversed());
 
-	private static final Comparator<Signal> SAME_SOURCE_COMPARATOR = comparing(Signal::defaultPriority)
+	private static final Comparator<Signal> SAME_SOURCE_COMPARATOR = comparing(Signal::priority)
 		.thenComparing(comparing(Signal::seqNumber).reversed());
 
-	private static final int NOT_ACTIVATED = 0;
-	private static final int IDLE = 1;
-	private static final int RUNNING = 2;
+	private static final int NOT_ACTIVATED = -1;
+	private static final int ACTIVATED = 0;
+	private static final int ACQUIRED = 1;
+	private static final int SCHEDULED = 2;
 
 	private final Map<Token, PriorityBlockingQueue<Signal>> signalQueues;
 
@@ -35,8 +36,9 @@ public final class SignalSynchronizer {
 	private volatile int workerState;
 
 	public SignalSynchronizer() {
-		signalQueues = new ConcurrentHashMap<>();
-		tokensState = new AtomicReference<>(new State(1, 0, 0));
+		this.signalQueues = new ConcurrentHashMap<>();
+		this.tokensState = new AtomicReference<>(new State(1, 0, 0));
+		this.workerState = NOT_ACTIVATED;
 	}
 
 	public void addNewTokenSpace() {
@@ -65,21 +67,24 @@ public final class SignalSynchronizer {
 	}
 
 	private void activate() {
-		boolean changed = WORKER_STATE_HANDLE.compareAndSet(this, NOT_ACTIVATED, IDLE);
+		boolean changed = WORKER_STATE_HANDLE.compareAndSet(this, NOT_ACTIVATED, ACTIVATED);
 		if (!changed) {
-			throw new IllegalStateException();
+			throw new IllegalStateException("Already activated");
 		}
 
 		tryRunWorker();
 	}
 
 	private void tryRunWorker() {
-		boolean changed = WORKER_STATE_HANDLE.compareAndSet(this, IDLE, RUNNING);
-		if (!changed) {
-			return;
-		}
+		int newValue = WORKER_STATE_HANDLE.updateAndGet(this, value -> switch (value) {
+			case NOT_ACTIVATED -> NOT_ACTIVATED;
+			case ACTIVATED -> ACQUIRED;
+			default -> SCHEDULED;
+		});
 
-		DefaultScheduler.get().schedule(this::runWorker);
+		if (newValue == ACQUIRED) {
+			KiwiSchedulerHolder.get().schedule(this::runWorker);
+		}
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
@@ -115,11 +120,12 @@ public final class SignalSynchronizer {
 
 			}
 		} finally {
-			WORKER_STATE_HANDLE.set(this, IDLE);
-		}
+			var prevValue = WORKER_STATE_HANDLE.getAndSet(this, ACTIVATED);
+			if (prevValue == SCHEDULED) {
+				tryRunWorker();
+			}
 
-		// in case another thread tried to start worker between the while end and finally block
-		tryRunWorker();
+		}
 	}
 
 	private Map.Entry<Token, PriorityBlockingQueue<Signal>> pollLeading() {

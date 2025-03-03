@@ -118,21 +118,22 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	private final class PublisherSubscription extends Subscription {
 
-		private final Subscriber<? super T> realSubscriber;
-
 		private final SignalSynchronizer.Token token;
 
 		private final PublisherCursor publisherCursor;
 
 		private final AtomicBoolean ended = new AtomicBoolean(false);
-		private final AtomicInteger wip = new AtomicInteger(0);
 		private final AtomicReference<DemandStrategy> demandStrategy =
 			new AtomicReference<>(EmptyDemandStrategy.INSTANCE);
 
+		private static final int IDLE = 0;
+		private static final int ACQUIRED = 1;
+		private static final int SCHEDULED = 2;
+		private final AtomicInteger state = new AtomicInteger(IDLE);
+
 		public PublisherSubscription(Subscriber<? super T> realSubscriber) {
-			this.realSubscriber = realSubscriber;
-			this.publisherCursor = createCursor();
 			this.token = realSubscriber.createToken();
+			this.publisherCursor = createCursor();
 		}
 
 		public void activate() {
@@ -144,16 +145,20 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 				return;
 			}
 
-			int prevValue = wip.getAndIncrement();
-			if (prevValue != 0) {
-				return;
-			}
+			int newValue = state.updateAndGet(value -> switch (value) {
+				case IDLE -> ACQUIRED;
+				default -> SCHEDULED;
+			});
 
-			doActionInternal();
-
-			var newValue = wip.decrementAndGet();
-			if (newValue != 0) {
-				doAction();
+			if (newValue == ACQUIRED) {
+				try {
+					doActionInternal();
+				} finally {
+					var prevValue = state.getAndSet(IDLE);
+					if (prevValue == SCHEDULED) {
+						doAction();
+					}
+				}
 			}
 
 		}

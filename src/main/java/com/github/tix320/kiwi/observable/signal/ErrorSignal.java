@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.observable.signal;
 
-import static com.github.tix320.kiwi.observable.signal.DefaultPriorities.ERROR_PRIORITY;
+import static com.github.tix320.kiwi.observable.signal.SignalPriorities.ERROR_PRIORITY;
 
 public non-sealed class ErrorSignal extends Signal {
 
@@ -15,13 +15,8 @@ public non-sealed class ErrorSignal extends Signal {
 	}
 
 	@Override
-	public int defaultPriority() {
+	public int priority() {
 		return ERROR_PRIORITY;
-	}
-
-	@Override
-	public final void accept(SignalVisitor signalVisitor) {
-		signalVisitor.visit(this);
 	}
 
 }

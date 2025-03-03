@@ -1,10 +1,9 @@
 package com.github.tix320.kiwi.observable.scheduler;
 
+import com.github.tix320.kiwi.observable.scheduler.internal.InternalDefaultScheduler;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.github.tix320.kiwi.observable.scheduler.internal.InternalDefaultScheduler;
-
-public final class DefaultScheduler {
+public final class KiwiSchedulerHolder {
 
 	private static final AtomicReference<Scheduler> INSTANCE = new AtomicReference<>();
 
@@ -19,4 +18,5 @@ public final class DefaultScheduler {
 	public static void changeTo(Scheduler scheduler) {
 		INSTANCE.set(scheduler);
 	}
+
 }

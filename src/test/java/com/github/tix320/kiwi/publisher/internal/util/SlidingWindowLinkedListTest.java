@@ -12,17 +12,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
-class SlidingWindowLinkedListTest {
+public class SlidingWindowLinkedListTest {
 
 	@Test
-	void constructorRejectsNegativeWindowSize() {
+	public void constructorRejectsNegativeWindowSize() {
 		assertThatThrownBy(() -> new SlidingWindowLinkedList<>(-1))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("windowSize");
 	}
 
 	@Test
-	void zeroWindowSizeRetainsNoNodes() {
+	public void zeroWindowSizeRetainsNoNodes() {
 		// windowSize=0 -> always discard nodes immediately after appending
 		var list = new SlidingWindowLinkedList<String>(0);
 		list.append("A");
@@ -34,7 +34,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void canAppendSingleElementAndSeeItIfWindowSizeNotExceeded() {
+	public void canAppendSingleElementAndSeeItIfWindowSizeNotExceeded() {
 		var list = new SlidingWindowLinkedList<Integer>(5);
 		list.append(42);
 
@@ -49,7 +49,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void largeWindowSizeDoesNotRemoveNodesIfNotExceeded() {
+	public void largeWindowSizeDoesNotRemoveNodesIfNotExceeded() {
 		var list = new SlidingWindowLinkedList<String>(10);
 		list.append("A");
 		list.append("B");
@@ -60,7 +60,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void slidingWindowRemovesOlderNodesWhenExceedingWindowSize() {
+	public void slidingWindowRemovesOlderNodesWhenExceedingWindowSize() {
 		// windowSize=2 means keep exactly the 2 newest nodes
 		var list = new SlidingWindowLinkedList<String>(2);
 		list.append("A"); // keep [A]
@@ -72,7 +72,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void singleThreadIterationShowsNewestNodesWithinWindow() {
+	public void singleThreadIterationShowsNewestNodesWithinWindow() {
 		var list = new SlidingWindowLinkedList<Integer>(3);
 		list.append(1); // [1]
 		list.append(2); // [1,2]
@@ -91,7 +91,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void sliderThrowsNoSuchElementIfExhausted() {
+	public void sliderThrowsNoSuchElementIfExhausted() {
 		var list = new SlidingWindowLinkedList<Integer>(1);
 		list.append(10); // keep [10]
 		var it = list.slider();
@@ -100,7 +100,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void concurrentAppendsDoNotCorruptList() throws InterruptedException {
+	public void concurrentAppendsDoNotCorruptList() throws InterruptedException {
 		// If windowSize=50, we keep the 50 newest items at most
 		var list = new SlidingWindowLinkedList<Integer>(50);
 		int threads = 4;
@@ -140,7 +140,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void windowSizeOneKeepsExactlyOneNode() {
+	public void windowSizeOneKeepsExactlyOneNode() {
 		var list = new SlidingWindowLinkedList<String>(1);
 		list.append("A"); // [A]
 		list.append("B"); // keep only [B]
@@ -150,7 +150,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void windowSizeZeroAlwaysEmpty() {
+	public void windowSizeZeroAlwaysEmpty() {
 		var list = new SlidingWindowLinkedList<String>(0);
 		list.append("X");
 		list.append("Y");
@@ -165,7 +165,7 @@ class SlidingWindowLinkedListTest {
 	 * even if we appended items.
 	 */
 	@Test
-	void zeroWindowSizeAlwaysEmptySnapshot() {
+	public void zeroWindowSizeAlwaysEmptySnapshot() {
 		var list = new SlidingWindowLinkedList<String>(0);
 		list.append("A");
 		list.append("B");
@@ -180,7 +180,7 @@ class SlidingWindowLinkedListTest {
 	 * for any windowSize > 0 as well.
 	 */
 	@Test
-	void noElementsGivesEmptySnapshot() {
+	public void noElementsGivesEmptySnapshot() {
 		var list = new SlidingWindowLinkedList<String>(5);
 		var snapshot = list.getSnapshot();
 		assertThat(snapshot).isEmpty();
@@ -191,7 +191,7 @@ class SlidingWindowLinkedListTest {
 	 * snapshot returns all items in the correct order.
 	 */
 	@Test
-	void basicSnapshotWithFewerThanWindowSizeElements() {
+	public void basicSnapshotWithFewerThanWindowSizeElements() {
 		var list = new SlidingWindowLinkedList<Integer>(5);
 		list.append(10);
 		list.append(20);
@@ -209,7 +209,7 @@ class SlidingWindowLinkedListTest {
 	 * among the retained nodes.
 	 */
 	@Test
-	void snapshotCappedByWindowSize() {
+	public void snapshotCappedByWindowSize() {
 		var list = new SlidingWindowLinkedList<Integer>(3);
 		list.append(1);    // list -> [1]
 		list.append(2);    // list -> [1, 2]
@@ -229,7 +229,7 @@ class SlidingWindowLinkedListTest {
 	 * the list is exactly at windowSize capacity.
 	 */
 	@Test
-	void snapshotAtExactWindowSize() {
+	public void snapshotAtExactWindowSize() {
 		var list = new SlidingWindowLinkedList<String>(2);
 		list.append("A");
 		list.append("B");  // [A, B] => capacity is reached, no discard yet
@@ -241,7 +241,7 @@ class SlidingWindowLinkedListTest {
 	}
 
 	@Test
-	void concurrentAppendsRespectWindowSizeInSnapshot() throws InterruptedException {
+	public void concurrentAppendsRespectWindowSizeInSnapshot() throws InterruptedException {
 		var windowSize = 500;
 		var list = new SlidingWindowLinkedList<Integer>(windowSize);
 

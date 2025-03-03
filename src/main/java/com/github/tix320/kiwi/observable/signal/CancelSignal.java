@@ -1,6 +1,6 @@
 package com.github.tix320.kiwi.observable.signal;
 
-import static com.github.tix320.kiwi.observable.signal.DefaultPriorities.CANCEL_PRIORITY;
+import static com.github.tix320.kiwi.observable.signal.SignalPriorities.CANCEL_PRIORITY;
 
 import com.github.tix320.kiwi.observable.Unsubscription;
 
@@ -17,13 +17,8 @@ public non-sealed class CancelSignal extends Signal {
 	}
 
 	@Override
-	public int defaultPriority() {
+	public int priority() {
 		return CANCEL_PRIORITY;
-	}
-
-	@Override
-	public final void accept(SignalVisitor signalVisitor) {
-		signalVisitor.visit(this);
 	}
 
 }

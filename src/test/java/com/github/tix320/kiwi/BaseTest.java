@@ -1,14 +1,11 @@
 package com.github.tix320.kiwi;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.github.tix320.kiwi.observable.scheduler.DefaultScheduler;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public abstract class BaseTest {
 
@@ -16,7 +13,7 @@ public abstract class BaseTest {
 
 	@BeforeEach
 	public void setUp() {
-		throwables = new ArrayList<>();
+		throwables = new CopyOnWriteArrayList<>();
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> throwables.add(e));
 	}
 
@@ -24,4 +21,5 @@ public abstract class BaseTest {
 	public void tearDown() {
 		assertEquals(0, throwables.size());
 	}
+
 }
