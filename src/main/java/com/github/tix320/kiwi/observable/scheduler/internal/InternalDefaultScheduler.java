@@ -1,10 +1,10 @@
 package com.github.tix320.kiwi.observable.scheduler.internal;
 
 import com.github.tix320.kiwi.observable.scheduler.Scheduler;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
-import com.github.tix320.skimp.api.thread.tracer.Tracer;
-import com.github.tix320.skimp.api.thread.tracer.TrackableExecutorService;
-import com.github.tix320.skimp.api.thread.tracer.TrackableScheduledExecutorService;
+import com.github.tix320.skimp.exception.ExceptionUtils;
+import com.github.tix320.skimp.thread.tracer.Tracer;
+import com.github.tix320.skimp.thread.tracer.TrackableExecutorService;
+import com.github.tix320.skimp.thread.tracer.TrackableScheduledExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;

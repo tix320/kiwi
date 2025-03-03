@@ -10,7 +10,7 @@ public interface Stock<T> extends ObservableCandidate<T> {
 
 	// ---------- Factory methods ----------
 
-	static <T> ObjectStock<T> forObject() {
-		return new ObjectStock<>();
+	static <T> ObjectStock<T> forObject(int windowSize) {
+		return new ObjectStock<>(windowSize);
 	}
 }

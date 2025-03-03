@@ -20,8 +20,8 @@ import com.github.tix320.kiwi.observable.transform.single.operator.internal.Take
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.TakeWhileObservable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
-import com.github.tix320.skimp.api.collection.Tuple;
-import com.github.tix320.skimp.api.exception.ThreadInterruptedException;
+import com.github.tix320.skimp.collection.Tuple;
+import com.github.tix320.skimp.exception.ThreadInterruptedException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;

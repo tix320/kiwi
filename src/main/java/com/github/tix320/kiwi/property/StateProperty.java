@@ -26,4 +26,5 @@ public final class StateProperty<T extends Enum<T>> extends ObjectProperty<T> {
 			throw new IllegalStateException(errorFactory.apply(actualState));
 		}
 	}
+
 }

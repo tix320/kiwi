@@ -1,90 +1,42 @@
 package com.github.tix320.kiwi.property;
 
-import java.util.Map;
-
 import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
-import com.github.tix320.skimp.api.collection.BiMap;
+import com.github.tix320.kiwi.publisher.SinglePublisher.ModifyResult;
+import com.github.tix320.skimp.collection.map.MutableBiMap;
 
 /**
  * @author Tigran Sargsyan on 31-Mar-20.
  */
-public final class BiMapProperty<K, V> extends AbstractMutableProperty<BiMap<K, V>> {
+public final class BiMapProperty<K, V> extends AbstractMutableProperty<MutableBiMap<K, V>> {
 
-	public BiMapProperty() {
+	public BiMapProperty(MutableBiMap<K, V> map) {
+		super(map);
 	}
 
-	public BiMapProperty(BiMap<K, V> value) {
-		super(value);
+	public void put(K key, V value) {
+		publisher.modifyValue(map -> {
+			map.put(key, value);
+			return new ModifyResult<>(null, true);
+		});
 	}
 
-	@Override
-	public ReadOnlyBiMapProperty<K, V> toReadOnly() {
-		return new ReadOnlyBiMapProperty<>(this);
+	public V remove(K key) {
+		return publisher.modifyValue(map -> {
+			var prevValue = map.remove(key);
+			return new ModifyResult<>(prevValue, prevValue != null);
+		});
 	}
 
-	@Override
-	public synchronized void setValue(BiMap<K, V> value) {
-		super.setValue(value);
-	}
-
-	@Override
-	public synchronized boolean compareAndSetValue(BiMap<K, V> expectedValue, BiMap<K, V> value) {
-		return super.compareAndSetValue(expectedValue, value);
-	}
-
-	@Override
-	public synchronized void close() {
-		super.close();
-	}
-
-	public synchronized void put(K key, V value) {
-		checkClosed();
-		getValue().put(key, value);
-		republish();
-	}
-
-	public synchronized V straightRemove(K key) {
-		checkClosed();
-		V v = getValue().straightRemove(key);
-		republish();
-		return v;
-	}
-
-	public synchronized K inverseRemove(V key) {
-		checkClosed();
-		K k = getValue().inverseRemove(key);
-		republish();
-		return k;
-	}
-
-	public Map<K, V> straightView() {
-		return getValue().straightView();
-	}
-
-	public Map<V, K> inverseView() {
-		return getValue().inverseView();
-	}
-
-
-	@Override
-	public synchronized int hashCode() {
-		return getValue().hashCode();
+	public K removeInverse(V key) {
+		return publisher.modifyValue(map -> {
+			var prevValue = map.removeInverse(key);
+			return new ModifyResult<>(prevValue, prevValue != null);
+		});
 	}
 
 	@Override
-	public synchronized boolean equals(Object obj) {
-		if (obj == this) {
-			return true;
-		}
-		if (!(obj instanceof BiMap)) {
-			return false;
-		}
-
-		return getValue().equals(obj);
+	public String toString() {
+		return "BiMapProperty{" + getValue() + "}";
 	}
 
-	@Override
-	public synchronized String toString() {
-		return getValue().toString();
-	}
 }

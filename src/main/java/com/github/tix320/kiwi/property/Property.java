@@ -1,14 +1,13 @@
 package com.github.tix320.kiwi.property;
 
+import com.github.tix320.kiwi.observable.ObservableCandidate;
+import com.github.tix320.skimp.collection.map.MutableBiMap;
+import com.github.tix320.skimp.exception.ExceptionUtils;
+import com.github.tix320.skimp.function.CheckedRunnable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.github.tix320.kiwi.observable.ObservableCandidate;
-import com.github.tix320.skimp.api.collection.BiMap;
-import com.github.tix320.skimp.api.exception.ExceptionUtils;
-import com.github.tix320.skimp.api.function.CheckedRunnable;
 
 public interface Property<T> extends ObservableCandidate<T> {
 
@@ -28,43 +27,19 @@ public interface Property<T> extends ObservableCandidate<T> {
 		return new StateProperty<>(initialValue);
 	}
 
-	static <T> ListProperty<T> forList() {
-		return new ListProperty<>();
-	}
-
 	static <T> ListProperty<T> forList(List<T> initialValue) {
 		return new ListProperty<>(initialValue);
-	}
-
-	static <T> SetProperty<T> forSet() {
-		return new SetProperty<>();
 	}
 
 	static <T> SetProperty<T> forSet(Set<T> initialValue) {
 		return new SetProperty<>(initialValue);
 	}
 
-	static <T> CollectionProperty<T> forCollection() {
-		return new CollectionProperty<>();
-	}
-
-	static <T> CollectionProperty<T> forCollection(Collection<T> initialValue) {
-		return new CollectionProperty<>(initialValue);
-	}
-
-	static <K, V> MapProperty<K, V> forMap() {
-		return new MapProperty<>();
-	}
-
 	static <K, V> MapProperty<K, V> forMap(Map<K, V> initialValue) {
 		return new MapProperty<>(initialValue);
 	}
 
-	static <K, V> BiMapProperty<K, V> forBiMap() {
-		return new BiMapProperty<>();
-	}
-
-	static <K, V> BiMapProperty<K, V> forBiMap(BiMap<K, V> initialValue) {
+	static <K, V> BiMapProperty<K, V> forBiMap(MutableBiMap<K, V> initialValue) {
 		return new BiMapProperty<>(initialValue);
 	}
 
@@ -95,8 +70,7 @@ public interface Property<T> extends ObservableCandidate<T> {
 		Throwable ex = null;
 		try {
 			runnable.run();
-		}
-		catch (Throwable e) {
+		} catch (Throwable e) {
 			ex = e;
 		}
 
@@ -108,4 +82,5 @@ public interface Property<T> extends ObservableCandidate<T> {
 			ExceptionUtils.sneakyThrow(ex);
 		}
 	}
+
 }

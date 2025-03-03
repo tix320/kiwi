@@ -4,6 +4,7 @@ import com.github.tix320.kiwi.observable.signal.PublishSignal;
 import com.github.tix320.kiwi.publisher.internal.BasePublisher;
 import com.github.tix320.kiwi.publisher.internal.PublisherCursor;
 import java.util.Objects;
+import java.util.function.Function;
 
 public final class SinglePublisher<T> extends BasePublisher<T> {
 
@@ -85,6 +86,10 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 		Objects.requireNonNull(newValue);
 
 		synchronized (lock) {
+			if (isClosed()) {
+				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
+			}
+
 			PublishSignal<T> valueSignal = regularValue;
 			T currentValue = valueSignal == null ? null : valueSignal.getItem();
 
@@ -97,12 +102,34 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 		}
 	}
 
+	public <R> R modifyValue(Function<T, ModifyResult<R>> function) {
+		synchronized (lock) {
+			if (isClosed()) {
+				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
+			}
+
+			PublishSignal<T> valueSignal = regularValue;
+			if (valueSignal == null) {
+				return null;
+			}
+
+			var modifyResult = function.apply(valueSignal.getItem());
+			if (modifyResult.republish()) {
+				publish(valueSignal.getItem());
+			}
+			return modifyResult.data();
+		}
+	}
+
 	public T getValue() {
 		var valueSignal = regularValue;
 		if (valueSignal == null) {
 			return null;
 		}
 		return valueSignal.getItem();
+	}
+
+	public record ModifyResult<R>(R data, boolean republish) {
 	}
 
 }

@@ -1,18 +1,16 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.publisher.Publisher;
-import com.github.tix320.skimp.api.object.None;
-import org.junit.jupiter.api.Test;
-
+import com.github.tix320.skimp.object.None;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
@@ -193,4 +191,5 @@ public class UntilObservableTest {
 
 		assertEquals(List.of("onSubscribe", "onPublish", "onComplete"), called);
 	}
+
 }

@@ -2,7 +2,6 @@ package com.github.tix320.kiwi.property.internal;
 
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.property.MutableStock;
-import com.github.tix320.kiwi.property.Stock;
 import com.github.tix320.kiwi.publisher.PublisherClosedException;
 import com.github.tix320.kiwi.publisher.ReplayPublisher;
 import java.util.List;
@@ -14,8 +13,13 @@ public abstract class AbstractMutableStock<T> implements MutableStock<T> {
 
 	private final ReplayPublisher<T> publisher;
 
-	public AbstractMutableStock() {
-		this.publisher = new ReplayPublisher<>(Integer.MAX_VALUE);
+	public AbstractMutableStock(int windowSize) {
+		this.publisher = new ReplayPublisher<>(windowSize);
+	}
+
+	@Override
+	public final List<T> list() {
+		return publisher.getBuffer();
 	}
 
 	@Override
@@ -26,14 +30,6 @@ public abstract class AbstractMutableStock<T> implements MutableStock<T> {
 	@Override
 	public final void close() {
 		publisher.complete();
-	}
-
-	@Override
-	public abstract Stock<T> toReadOnly();
-
-	@Override
-	public final List<T> list() {
-		return publisher.getBuffer();
 	}
 
 	@Override
@@ -50,7 +46,7 @@ public abstract class AbstractMutableStock<T> implements MutableStock<T> {
 	}
 
 	private PropertyClosedException createClosedException() {
-		return new PropertyClosedException(String.format("%s closed. Value adding is forbidden.", this));
+		return new PropertyClosedException("Stock is closed. Modification is forbidden.");
 	}
 
 }

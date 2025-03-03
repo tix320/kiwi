@@ -1,13 +1,12 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
-import com.github.tix320.skimp.api.collection.Tuple;
+import com.github.tix320.skimp.collection.Tuple;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -22,7 +21,6 @@ public class CombineLatestObservableTest {
 
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = Publisher.simple();
-
 
 		Observable.combineLatest(publisher1.asObservable(), publisher2.asObservable()).subscribe(actual::add);
 
@@ -50,7 +48,6 @@ public class CombineLatestObservableTest {
 		Publisher<Integer> publisher1 = Publisher.simple();
 		Publisher<Integer> publisher2 = Publisher.simple();
 
-
 		Observable.combineLatest(publisher1.asObservable(), publisher2.asObservable()).subscribe(actual::add);
 
 		publisher1.publish(1);
@@ -65,4 +62,5 @@ public class CombineLatestObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
 }

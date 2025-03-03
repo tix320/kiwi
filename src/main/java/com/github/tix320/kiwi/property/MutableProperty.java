@@ -10,5 +10,4 @@ public interface MutableProperty<T> extends Property<T> {
 
 	boolean isClosed();
 
-	Property<T> toReadOnly();
 }

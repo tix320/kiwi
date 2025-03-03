@@ -1,5 +1,6 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.skimp.collection.Tuple;
 import java.util.*;
 
 import com.github.tix320.kiwi.observable.Completion;
@@ -7,7 +8,6 @@ import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
-import com.github.tix320.skimp.api.collection.Tuple;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

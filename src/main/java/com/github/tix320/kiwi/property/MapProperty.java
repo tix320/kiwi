@@ -1,193 +1,91 @@
 package com.github.tix320.kiwi.property;
 
-import java.util.Collection;
-import java.util.Collections;
+import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
+import com.github.tix320.kiwi.publisher.SinglePublisher;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
-
 public final class MapProperty<K, V> extends AbstractMutableProperty<Map<K, V>> {
 
-	public MapProperty() {
+	public MapProperty(Map<K, V> map) {
+		super(map);
 	}
 
-	public MapProperty(Map<K, V> value) {
-		super(new ConcurrentHashMap<>(value));
-	}
-
-	@Override
-	public ReadOnlyMapProperty<K, V> toReadOnly() {
-		return new ReadOnlyMapProperty<>(this);
-	}
-
-	@Override
-	public synchronized void setValue(Map<K, V> value) {
-		super.setValue(new ConcurrentHashMap<>(value));
-	}
-
-	@Override
-	public synchronized boolean compareAndSetValue(Map<K, V> expectedValue, Map<K, V> value) {
-		return super.compareAndSetValue(expectedValue, new ConcurrentHashMap<>(value));
-	}
-
-	@Override
-	public synchronized void close() {
-		super.close();
-	}
-
-	public synchronized V getOrDefault(K key, V defaultValue) {
-		return getValue().getOrDefault(key, defaultValue);
-	}
-
-	public synchronized void forEach(BiConsumer<? super K, ? super V> action) {
-		getValue().forEach(action);
-	}
-
-	public synchronized void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
-		checkClosed();
-		getValue().replaceAll(function);
-		republish();
-	}
-
-	public synchronized V putIfAbsent(K key, V value) {
-		checkClosed();
-		V v = getValue().putIfAbsent(key, value);
-		republish();
-		return v;
-	}
-
-	public synchronized boolean remove(K key, V value) {
-		checkClosed();
-		boolean removed = getValue().remove(key, value);
-		if (removed) {
-			republish();
-		}
-		return removed;
-	}
-
-	public synchronized boolean replace(K key, V oldValue, V newValue) {
-		checkClosed();
-		boolean replaced = getValue().replace(key, oldValue, newValue);
-		if (replaced) {
-			republish();
-		}
-		return replaced;
-	}
-
-	public synchronized V replace(K key, V value) {
-		checkClosed();
-		V v = getValue().replace(key, value);
-		republish();
-		return v;
-	}
-
-	public synchronized V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-		checkClosed();
-		V v = getValue().computeIfAbsent(key, mappingFunction);
-		republish();
-		return v;
-	}
-
-	public synchronized V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		checkClosed();
-		V v = getValue().computeIfPresent(key, remappingFunction);
-		republish();
-		return v;
-	}
-
-	public synchronized V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		checkClosed();
-		V v = getValue().compute(key, remappingFunction);
-		republish();
-		return v;
-	}
-
-	public synchronized V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-		checkClosed();
-		V v = getValue().merge(key, value, remappingFunction);
-		republish();
-		return v;
-	}
-
-	public synchronized boolean isEmpty() {
-		return getValue().isEmpty();
-	}
-
-	public synchronized boolean containsKey(K key) {
+	public boolean containsKey(K key) {
 		return getValue().containsKey(key);
 	}
 
-	public synchronized boolean containsValue(V value) {
-		return getValue().containsValue(value);
-	}
-
-	public synchronized V get(K key) {
+	public V get(K key) {
 		return getValue().get(key);
 	}
 
-	public synchronized V put(K key, V value) {
-		checkClosed();
-		V v = getValue().put(key, value);
-		republish();
-		return v;
+	public V put(K key, V value) {
+		return publisher.modifyValue(map -> {
+			var prevValue = map.put(key, value);
+			return new SinglePublisher.ModifyResult<>(prevValue, true);
+		});
 	}
 
-	public synchronized V remove(K key) {
-		checkClosed();
-		V v = getValue().remove(key);
-		republish();
-		return v;
+	public V putIfAbsent(K key, V value) {
+		return publisher.modifyValue(map -> {
+			var prevValue = map.putIfAbsent(key, value);
+			return new SinglePublisher.ModifyResult<>(prevValue, prevValue == null);
+		});
 	}
 
-	public synchronized void putAll(Map<? extends K, ? extends V> m) {
-		checkClosed();
-		getValue().putAll(m);
-		republish();
+	public void putAll(Map<? extends K, ? extends V> values) {
+		publisher.modifyValue(map -> {
+			map.putAll(values);
+			return new SinglePublisher.ModifyResult<>(null, true);
+		});
 	}
 
-	public synchronized void clear() {
-		checkClosed();
-		getValue().clear();
-		republish();
+	public V remove(K key) {
+		return publisher.modifyValue(map -> {
+			var prevValue = map.remove(key);
+			return new SinglePublisher.ModifyResult<>(prevValue, prevValue != null);
+		});
 	}
 
-	public synchronized Set<K> keySet() {
-		return Collections.unmodifiableSet(getValue().keySet());
+	public void clear() {
+		publisher.modifyValue(map -> {
+			map.clear();
+			return new SinglePublisher.ModifyResult<>(null, true);
+		});
 	}
 
-	public synchronized Collection<V> values() {
-		return Collections.unmodifiableCollection(getValue().values());
+	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+		return publisher.modifyValue(map -> {
+			var resultValue = map.computeIfAbsent(key, mappingFunction);
+			return new SinglePublisher.ModifyResult<>(resultValue, true);
+		});
 	}
 
-	public synchronized Set<Entry<K, V>> entrySet() {
-		return Collections.unmodifiableSet(getValue().entrySet());
+	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+		return publisher.modifyValue(map -> {
+			var resultValue = map.computeIfPresent(key, remappingFunction);
+			return new SinglePublisher.ModifyResult<>(resultValue, true);
+		});
+	}
+
+	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+		return publisher.modifyValue(map -> {
+			var resultValue = map.compute(key, remappingFunction);
+			return new SinglePublisher.ModifyResult<>(resultValue, true);
+		});
+	}
+
+	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+		return publisher.modifyValue(map -> {
+			var resultValue = map.merge(key, value, remappingFunction);
+			return new SinglePublisher.ModifyResult<>(resultValue, true);
+		});
 	}
 
 	@Override
-	public synchronized int hashCode() {
-		return getValue().hashCode();
+	public String toString() {
+		return "MapProperty{" + getValue() + "}";
 	}
 
-	@Override
-	public synchronized boolean equals(Object obj) {
-		if (obj == this) {
-			return true;
-		}
-		if (!(obj instanceof Map)) {
-			return false;
-		}
-
-		return getValue().equals(obj);
-	}
-
-	@Override
-	public synchronized String toString() {
-		return getValue().toString();
-	}
 }

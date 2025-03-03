@@ -6,5 +6,4 @@ public interface MutableStock<T> extends Stock<T> {
 
 	void close();
 
-	Stock<T> toReadOnly();
 }

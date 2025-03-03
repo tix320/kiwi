@@ -14,9 +14,9 @@ public class MapPropertyTest {
 
 	@Test
 	public void simpleTest() {
-		MapProperty<Integer, String> property = Property.forMap();
+		MapProperty<Integer, String> property = Property.forMap(new ConcurrentHashMap<>());
 
-		assertNull(property.getValue());
+		assertEquals(new ConcurrentHashMap<>(), property.getValue());
 
 		property.setValue(Map.of(3, "foo"));
 
@@ -26,7 +26,7 @@ public class MapPropertyTest {
 
 	@Test
 	public void observableTest() throws InterruptedException {
-		MapProperty<Integer, String> mapProperty = Property.forMap();
+		MapProperty<Integer, String> mapProperty = Property.forMap(new ConcurrentHashMap<>());
 
 		ConcurrentHashMap<Integer, String> map = new ConcurrentHashMap<>();
 		map.put(1, "foo");
@@ -54,7 +54,7 @@ public class MapPropertyTest {
 
 		Thread.sleep(100);
 
-		assertEquals(Map.of(1, "foo"), map);
+		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), map);
 		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), mapProperty.getValue());
 		assertTrue(tested[0]);
 		assertTrue(tested[1]);

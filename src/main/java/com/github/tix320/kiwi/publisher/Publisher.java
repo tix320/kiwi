@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.publisher;
 
 import com.github.tix320.kiwi.observable.ObservableCandidate;
 import com.github.tix320.kiwi.observable.SourceCompletion;
-import com.github.tix320.skimp.api.object.None;
+import com.github.tix320.skimp.object.None;
 
 /**
  * A producer of items (and related control messages) received by subscribers.
