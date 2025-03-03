@@ -20,7 +20,58 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UntilObservableTest {
 
 	@Test
-	public void simpleTest() throws InterruptedException {
+	public void publishTest() throws InterruptedException {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		Publisher<None> untilPublisher = Publisher.simple();
+
+		List<Integer> expected = List.of(1, 2);
+		List<Integer> actual = new ArrayList<>();
+
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(actual::add);
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		untilPublisher.publish(None.SELF);
+
+		publisher.publish(3);
+		publisher.publish(4);
+		publisher.complete();
+
+		Thread.sleep(100);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void publishAndCompleteTest() throws InterruptedException {
+		Publisher<Integer> publisher = Publisher.simple();
+
+		Publisher<None> untilPublisher = Publisher.simple();
+
+		List<Integer> expected = List.of(1, 2);
+		List<Integer> actual = new ArrayList<>();
+
+		publisher.asObservable().takeUntil(untilPublisher.asObservable()).subscribe(actual::add);
+
+		publisher.publish(1);
+		publisher.publish(2);
+
+		untilPublisher.publish(None.SELF);
+		untilPublisher.complete();
+
+		publisher.publish(3);
+		publisher.publish(4);
+		publisher.complete();
+
+		Thread.sleep(100);
+
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void completeTest() throws InterruptedException {
 		Publisher<Integer> publisher = Publisher.simple();
 
 		Publisher<None> untilPublisher = Publisher.simple();

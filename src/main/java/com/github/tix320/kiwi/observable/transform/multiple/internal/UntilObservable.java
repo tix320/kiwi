@@ -46,7 +46,8 @@ public final class UntilObservable<T> extends Observable<T> {
 
 					@Override
 					public void onNext(Object item) {
-
+						subscription.cancel(UNTIL_UNSUBSCRIPTION);
+						context.untilSubscription.cancel();
 					}
 
 					@Override

@@ -28,7 +28,7 @@ public final class InternalDefaultScheduler implements Scheduler {
 
 	@Override
 	public void schedule(Runnable task) {
-		executorService.submit(() -> {
+		executorService.execute(() -> {
 			try {
 				task.run();
 			} catch (Throwable e) {
