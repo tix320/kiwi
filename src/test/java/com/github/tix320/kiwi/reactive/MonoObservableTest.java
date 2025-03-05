@@ -1,20 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
+import com.github.tix320.kiwi.observable.MonoObservable;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.github.tix320.kiwi.observable.Completion;
-import com.github.tix320.kiwi.observable.FlexibleSubscriber;
-import com.github.tix320.kiwi.observable.MonoObservable;
-import com.github.tix320.kiwi.publisher.Publisher;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class MonoObservableTest {
 
 	@Test
@@ -29,7 +32,7 @@ public class MonoObservableTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -55,7 +58,7 @@ public class MonoObservableTest {
 
 		publisher.publish(3);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -84,8 +87,9 @@ public class MonoObservableTest {
 		publisher.publish(3);
 		publisher.publish(4);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
+
 }

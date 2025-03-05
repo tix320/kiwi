@@ -1,20 +1,25 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import com.github.tix320.skimp.object.None;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class UntilObservableTest {
 
 	@Test
@@ -37,7 +42,7 @@ public class UntilObservableTest {
 		publisher.publish(4);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -63,7 +68,7 @@ public class UntilObservableTest {
 		publisher.publish(4);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -88,7 +93,7 @@ public class UntilObservableTest {
 		publisher.publish(4);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -120,7 +125,7 @@ public class UntilObservableTest {
 			}
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}
@@ -152,7 +157,7 @@ public class UntilObservableTest {
 			}
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of("onSubscribe", "onComplete"), called);
 	}
@@ -187,7 +192,7 @@ public class UntilObservableTest {
 
 		untilPublisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of("onSubscribe", "onPublish", "onComplete"), called);
 	}

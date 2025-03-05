@@ -1,23 +1,28 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherClosedException;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran.Sargsyan on 26-Feb-19
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class PublisherTest {
 
 	@Test
@@ -51,12 +56,9 @@ public class PublisherTest {
 		observable.subscribe(subscriber);
 
 		publisher.publish(1);
-
-		Thread.sleep(100);
-
 		publisher.publish(2);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -86,9 +88,9 @@ public class PublisherTest {
 
 		publisher.publish(1);
 
-		Thread.sleep(100);
-		assertThrows(PublisherClosedException.class, () -> publisher.publish(2));
+		SchedulerUtils.awaitTermination();
 
+		assertThrows(PublisherClosedException.class, () -> publisher.publish(2));
 		assertEquals(expected, actual);
 		assertTrue(onCompleteCalled.get());
 	}
@@ -109,9 +111,10 @@ public class PublisherTest {
 
 		publisher.publish(1);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertThrows(PublisherClosedException.class, () -> publisher.publish(2));
 		assertEquals(expected, actual);
 	}
+
 }

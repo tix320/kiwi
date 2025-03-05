@@ -1,12 +1,13 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
 import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,13 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 24-Feb-19
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class ObservableTest {
 
 	@Test
@@ -39,7 +42,7 @@ public class ObservableTest {
 		AtomicReference<Map<Integer, Integer>> actual = new AtomicReference<>(null);
 		empty.toMap(integer -> integer, integer -> integer).subscribe(actual::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(Map.of(), actual.get());
 	}
@@ -57,7 +60,7 @@ public class ObservableTest {
 
 		of.toMono().subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -82,7 +85,7 @@ public class ObservableTest {
 	//
 	// 	publisher.publish(50);
 	//
-	// 	Thread.sleep(100);
+	// 	SchedulerUtils.awaitTermination();
 	//
 	// 	assertEquals(expected, actual);
 	// }
@@ -106,7 +109,7 @@ public class ObservableTest {
 	// 	publisher.publish(70);
 	// 	publisher.publish(80);
 	//
-	// 	Thread.sleep(100);
+	// 	SchedulerUtils.awaitTermination();
 	//
 	// 	assertEquals(7, actual.size());
 	// 	for (Integer integer : actual) {
@@ -137,7 +140,7 @@ public class ObservableTest {
 	//
 	// 	publisher.complete();
 	//
-	// 	Thread.sleep(100);
+	// 	SchedulerUtils.awaitTermination();
 	//
 	// 	assertEquals(Set.of("10", "20", "25", "50"), new HashSet<>(Arrays.asList(actual.get().split(","))));
 	// }
@@ -166,7 +169,7 @@ public class ObservableTest {
 
 		publisher.publish(50);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -191,16 +194,12 @@ public class ObservableTest {
 		publisher.publish(20);
 		publisher.publish(25);
 
-		Thread.sleep(100);
-
 		untilPublisher.complete();
-
-		Thread.sleep(100);
 
 		publisher.publish(50);
 		publisher.publish(60);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -213,23 +212,14 @@ public class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		CompletableFuture.runAsync(() -> {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				publisher.publish(10);
-				publisher.publish(20);
-				publisher.publish(25);
-			} catch (InterruptedException e) {
-				throw new IllegalStateException();
-			}
-		}).exceptionally(throwable -> {
-			throwable.printStackTrace();
-			return null;
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher.publish(10);
+			publisher.publish(20);
+			publisher.publish(25);
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
-		});
+		observable.take(2).map(integer -> integer * 2).peek(actual::add).await(Duration.ofSeconds(5));
 
 		assertEquals(expected, actual);
 	}
@@ -241,24 +231,14 @@ public class ObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
-
-		CompletableFuture.runAsync(() -> {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				publisher.publish(10);
-				publisher.publish(20);
-				publisher.publish(25);
-			} catch (InterruptedException e) {
-				throw new IllegalStateException();
-			}
-		}).exceptionally(throwable -> {
-			throwable.printStackTrace();
-			return null;
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher.publish(10);
+			publisher.publish(20);
+			publisher.publish(25);
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			observable.take(2).map(integer -> integer * 2).peek(actual::add).await();
-		});
+		observable.take(2).map(integer -> integer * 2).peek(actual::add).await(Duration.ofSeconds(5));
 
 		assertEquals(expected, actual);
 	}
@@ -271,24 +251,15 @@ public class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		CompletableFuture.runAsync(() -> {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				publisher.publish(10);
-				publisher.publish(20);
-				publisher.publish(25);
-				publisher.complete();
-			} catch (InterruptedException e) {
-				throw new IllegalStateException();
-			}
-		}).exceptionally(throwable -> {
-			throwable.printStackTrace();
-			return null;
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher.publish(10);
+			publisher.publish(20);
+			publisher.publish(25);
+			publisher.complete();
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			observable.map(integer -> integer * 2).peek(actual::add).await();
-		});
+		observable.map(integer -> integer * 2).peek(actual::add).await(Duration.ofSeconds(5));
 
 		assertEquals(expected, actual);
 	}
@@ -301,24 +272,15 @@ public class ObservableTest {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
-		CompletableFuture.runAsync(() -> {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				publisher.publish(10);
-				publisher.publish(20);
-				publisher.publish(25);
-				publisher.complete();
-			} catch (InterruptedException e) {
-				throw new IllegalStateException();
-			}
-		}).exceptionally(throwable -> {
-			throwable.printStackTrace();
-			return null;
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher.publish(10);
+			publisher.publish(20);
+			publisher.publish(25);
+			publisher.complete();
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			observable.map(actual::add).await();
-		});
+		observable.map(actual::add).await(Duration.ofSeconds(5));
 
 		assertEquals(expected, actual);
 	}
@@ -333,68 +295,49 @@ public class ObservableTest {
 		Observable<Integer> observable1 = publisher1.asObservable();
 		Observable<Integer> observable2 = publisher2.asObservable();
 
-		CompletableFuture.runAsync(() -> {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				publisher1.publish(10);
-				TimeUnit.SECONDS.sleep(1);
-				publisher2.publish(20);
-				publisher1.complete();
-				publisher2.complete();
-			} catch (InterruptedException e) {
-				throw new IllegalStateException();
-			}
-		}).exceptionally(throwable -> {
-			throwable.printStackTrace();
-			return null;
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher1.publish(10);
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
+			publisher2.publish(20);
+			publisher1.complete();
+			publisher2.complete();
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(500), () -> {
-			Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
-				actual.add(integerIntegerTuple.first());
-				actual.add(integerIntegerTuple.second());
-			}).await();
-		});
+		Observable.zip(observable1, observable2).peek(integerIntegerTuple -> {
+			actual.add(integerIntegerTuple.first());
+			actual.add(integerIntegerTuple.second());
+		}).await(Duration.ofSeconds(5));
 
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void getTest() throws InterruptedException {
+	public void getTest() {
 		Publisher<Integer> publisher = Publisher.simple();
 		Observable<Integer> observable = publisher.asObservable();
 
 		publisher.publish(2);
 		CompletableFuture.runAsync(() -> {
-			try {
-				Thread.sleep(50);
-			} catch (InterruptedException e) {
-				throw new IllegalStateException(e);
-			}
+			SchedulerUtils.sleepFor(Duration.ofMillis(50));
 			publisher.publish(3);
 		});
 
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
-			Integer number = observable.map(integer -> integer + 5).get();
-			assertEquals(8, number);
-		});
+		Integer number = observable.map(integer -> integer + 5).get(Duration.ofSeconds(5));
+		assertEquals(8, number);
 	}
 
 	@Test
-	public void getWithBufferedTest() throws InterruptedException {
+	public void getWithBufferedTest() {
 		Publisher<Integer> publisher = Publisher.buffered(1);
 		Observable<Integer> observable = publisher.asObservable();
 
 		publisher.publish(2);
-		CompletableFuture.runAsync(() -> {
-			try {
-				Thread.sleep(50);
-			} catch (InterruptedException e) {
-				throw new IllegalStateException(e);
-			}
+		KiwiSchedulerHolder.get().schedule(() -> {
+			SchedulerUtils.sleepFor(Duration.ofMillis(100));
 			publisher.publish(3);
 		});
-		Integer number = observable.map(integer -> integer + 5).get();
+		Integer number = observable.map(integer -> integer + 5).get(Duration.ofSeconds(5));
 
 		assertEquals(7, number);
 	}
@@ -408,7 +351,7 @@ public class ObservableTest {
 
 		Observable<Integer> observable = publisher.asObservable();
 
-		observable.subscribe(new FlexibleSubscriber<Integer>() {
+		observable.subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onNext(Integer item) {
 				actual.add(item);
@@ -428,7 +371,7 @@ public class ObservableTest {
 
 		publisher.publish(3);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -458,14 +401,15 @@ public class ObservableTest {
 
 		publisher.publish(1);
 		publisher.publish(2);
-		Thread.sleep(100);
+		SchedulerUtils.sleepFor(Duration.ofMillis(100));
 		subscriber.subscription().cancel();
 		publisher.publish(3);
-		Thread.sleep(100);
+		SchedulerUtils.sleepFor(Duration.ofMillis(100));
 		subscriber.subscription().cancel();
+
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
 
 }
-

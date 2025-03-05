@@ -1,19 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.property.ObjectProperty;
 import com.github.tix320.kiwi.property.Property;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 20-Apr-20.
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class PropertyAtomicContextTest {
 
 	@Test
@@ -33,7 +37,7 @@ public class PropertyAtomicContextTest {
 
 		property.setValue(6);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -62,7 +66,7 @@ public class PropertyAtomicContextTest {
 		property1.setValue(9);
 		property2.setValue(10);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -89,7 +93,7 @@ public class PropertyAtomicContextTest {
 
 		property.setValue(7);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}

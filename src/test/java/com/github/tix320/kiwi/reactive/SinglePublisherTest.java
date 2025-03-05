@@ -1,12 +1,11 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,8 +16,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class SinglePublisherTest {
 
 	@Test
@@ -36,7 +40,7 @@ public class SinglePublisherTest {
 		observable.subscribe(number -> actual2.add(number + 4));
 		publisher.publish(20);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -62,7 +66,7 @@ public class SinglePublisherTest {
 		assertEquals(25, publisher.getValue());
 		assertFalse(changed);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -78,7 +82,8 @@ public class SinglePublisherTest {
 		IntStream.range(0, 100000).parallel().forEach(publisher::publish);
 		publisher.publish(15);
 
-		Thread.sleep(7000);
+		SchedulerUtils.awaitTermination();
+
 		assertEquals(15, publisher.getValue());
 		assertEquals(15, actual.get(actual.size() - 1));
 	}
@@ -96,7 +101,8 @@ public class SinglePublisherTest {
 
 		Stream.generate(() -> null).limit(count).parallel().forEach(value -> publisher.CASPublish(10, 72));
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
+
 		assertEquals(2, actual.size());
 		assertEquals(expected, actual);
 	}
@@ -111,7 +117,7 @@ public class SinglePublisherTest {
 
 		publisher.asObservable().subscribe(holder::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(3, holder.get());
 	}

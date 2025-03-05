@@ -1,14 +1,19 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import com.github.tix320.skimp.collection.Tuple;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class IntegrationTest {
 
 	@Test
@@ -35,7 +40,7 @@ public class IntegrationTest {
 		publisher1.publish(50);
 		publisher3.publish(60);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 
@@ -70,7 +75,7 @@ public class IntegrationTest {
 		publisher1.publish(50);
 		publisher3.publish(60);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 

@@ -1,16 +1,19 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
-import org.junit.jupiter.api.Test;
-
+import com.github.tix320.kiwi.utils.SchedulerUtils;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class SkipObservableTest {
 
 	@Test
@@ -19,7 +22,7 @@ public class SkipObservableTest {
 		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
 		Observable.of(4, 5, 6, 7).skip(2).subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -29,7 +32,6 @@ public class SkipObservableTest {
 		List<Integer> expected = List.of();
 		List<Integer> actual = new ArrayList<>();
 		Publisher<Integer> publisher = Publisher.simple();
-
 
 		FlexibleSubscriber<Integer> subscriber = new FlexibleSubscriber<>() {
 			@Override
@@ -43,7 +45,7 @@ public class SkipObservableTest {
 		publisher.publish(4);
 		publisher.publish(5);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		subscriber.subscription().cancel();
 
@@ -51,4 +53,5 @@ public class SkipObservableTest {
 
 		assertEquals(expected, actual);
 	}
+
 }

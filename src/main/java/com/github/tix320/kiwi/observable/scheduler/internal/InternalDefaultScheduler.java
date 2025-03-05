@@ -54,10 +54,23 @@ public final class InternalDefaultScheduler implements Scheduler {
 		scheduledExecutorService.scheduleWithFixedDelay(() -> schedule(task), initialDelay, delay, unit);
 	}
 
+	public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+		executorService.shutdown();
+		scheduledExecutorService.shutdown();
+		var mainTerminated = executorService.awaitTermination(timeout, unit);
+		var delayedTerminated = executorService.awaitTermination(timeout, unit);
+		return mainTerminated && delayedTerminated;
+	}
+
 	private static final class RejectionHandler implements RejectedExecutionHandler {
 
 		@Override
 		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+			if (executor.isTerminating() || executor.isTerminated()) {
+				System.err.printf("WARNING: Kiwi Internal Scheduler is terminated. New tasks will be dropped %n");
+				return;
+			}
+
 			Thread currentThread = Thread.currentThread();
 			System.err.printf("WARNING: Kiwi Internal Scheduler is full. Retrying after sleep of 500 ms[%s]%n",
 							  currentThread);

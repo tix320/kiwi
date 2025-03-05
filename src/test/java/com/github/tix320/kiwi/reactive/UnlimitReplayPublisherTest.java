@@ -1,18 +1,22 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.ReplayPublisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class UnlimitReplayPublisherTest {
 
 	@Test
@@ -37,7 +41,7 @@ public class UnlimitReplayPublisherTest {
 
 		publisher.publish(40);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -71,12 +75,10 @@ public class UnlimitReplayPublisherTest {
 		thread.join();
 		thread1.join();
 
-		Thread.sleep(1500);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(chunkSize * 2, actual.size());
 		assertEquals(expectedPart1, actual.subList(0, chunkSize));
-
 	}
 
 }
-

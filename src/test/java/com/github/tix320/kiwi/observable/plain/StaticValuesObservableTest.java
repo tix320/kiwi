@@ -1,17 +1,21 @@
 package com.github.tix320.kiwi.observable.plain;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 03.03.25
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class StaticValuesObservableTest {
 
 	@Test
@@ -37,7 +41,7 @@ public class StaticValuesObservableTest {
 			}
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of(1, 2), items);
 	}
@@ -66,7 +70,7 @@ public class StaticValuesObservableTest {
 			}
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of(1, 2, 3, 4), items);
 	}

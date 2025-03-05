@@ -1,25 +1,28 @@
 package com.github.tix320.kiwi.reactive;
 
-import com.github.tix320.kiwi.publisher.SinglePublisher;
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.github.tix320.kiwi.observable.FlexibleSubscriber;
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.publisher.Publisher;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class SimplePublisherTest {
 
 	@Test
@@ -46,13 +49,13 @@ public class SimplePublisherTest {
 		publisher.publish(6);
 		publisher.publish(7);
 
-		Thread.sleep(100);
+		SchedulerUtils.sleepFor(Duration.ofMillis(100));
 
 		subscriber.subscription().cancel();
 
 		publisher.publish(8);
 
-		Thread.sleep(300);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -98,7 +101,7 @@ public class SimplePublisherTest {
 		publisher.publish(14);
 		publisher.publish(15);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -131,7 +134,7 @@ public class SimplePublisherTest {
 		publisher.publish(4);
 		publisher.publish(5);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -152,8 +155,10 @@ public class SimplePublisherTest {
 
 		IntStream.range(0, count).parallel().forEach(publisher::publish);
 
-		Thread.sleep(1000);
+		SchedulerUtils.awaitTermination();
+
 		assertEquals(count, actual.size());
 		assertEquals(expected, actual);
 	}
+
 }
