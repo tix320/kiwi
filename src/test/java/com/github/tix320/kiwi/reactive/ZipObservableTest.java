@@ -1,17 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
-import com.github.tix320.skimp.collection.Tuple;
-import java.util.*;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Completion;
 import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
-import org.junit.jupiter.api.Test;
-
+import com.github.tix320.kiwi.utils.SchedulerUtils;
+import com.github.tix320.skimp.collection.Tuple;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class ZipObservableTest {
 
 	@Test
@@ -25,7 +31,7 @@ public class ZipObservableTest {
 
 		Observable.zip(observable1, observable2).subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -44,7 +50,7 @@ public class ZipObservableTest {
 			actual.add(-1);
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -52,7 +58,7 @@ public class ZipObservableTest {
 	@Test
 	public void zipOnCompleteTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(6, 4), Arrays.asList(9, 7),
-				Collections.singletonList(25));
+													 Collections.singletonList(25));
 		List<List<Integer>> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher1 = Publisher.simple();
@@ -79,7 +85,7 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -87,7 +93,7 @@ public class ZipObservableTest {
 	@Test
 	public void zipCompleteObservableWhichHasItemInQueueTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(6, 4), Arrays.asList(9, 7), Arrays.asList(10, 20),
-				Collections.singletonList(25));
+													 Collections.singletonList(25));
 		List<List<Integer>> actual = new ArrayList<>();
 
 		Publisher<Integer> publisher1 = Publisher.simple();
@@ -116,16 +122,15 @@ public class ZipObservableTest {
 
 		publisher1.publish(10);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
 
-
 	@Test
 	public void zipCompleteObservableComplexTest() throws InterruptedException {
 		List<List<Integer>> expected = Arrays.asList(Arrays.asList(1, 3), Arrays.asList(2, 4),
-				Collections.singletonList(25));
+													 Collections.singletonList(25));
 
 		List<List<Integer>> actual = new ArrayList<>();
 
@@ -153,7 +158,7 @@ public class ZipObservableTest {
 
 		publisher2.publish(20);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}

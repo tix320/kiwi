@@ -1,20 +1,23 @@
 package com.github.tix320.kiwi.reactive;
 
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
+import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-
-import com.github.tix320.kiwi.observable.Observable;
-import com.github.tix320.kiwi.publisher.Publisher;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran.Sargsyan on 28-Feb-19
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class CollectorsTest {
 
 	@Test
@@ -22,7 +25,7 @@ public class CollectorsTest {
 		AtomicReference<Map<Integer, String>> actual = new AtomicReference<>();
 		Observable.of("a", "aa", "aaa", "aaaa").toMap(String::length, s -> s).subscribe(actual::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(Map.of(1, "a", 2, "aa", 3, "aaa", 4, "aaaa"), actual.get());
 	}
@@ -51,7 +54,7 @@ public class CollectorsTest {
 		publisher.publish(6);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(Map.of(2, "2", 3, "3", 4, "4", 5, "5", 6, "6"), actualMap);
 	}
@@ -61,7 +64,7 @@ public class CollectorsTest {
 		AtomicReference<List<Integer>> actual = new AtomicReference<>();
 		Observable.of(1, 2, 3, 4).toList().subscribe(actual::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of(1, 2, 3, 4), actual.get());
 	}
@@ -89,7 +92,7 @@ public class CollectorsTest {
 		publisher.publish(6);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals("2,3,4,5,6", actual.get());
 	}
@@ -117,7 +120,7 @@ public class CollectorsTest {
 		publisher.publish(6);
 		publisher.complete();
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals("[2,3,4,5,6]", actual.get());
 	}
@@ -128,7 +131,7 @@ public class CollectorsTest {
 
 		Observable.of("hello").join(s -> s, ",", "[", "]").toMap(String::length, s -> s).subscribe(actual::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(Map.of(7, "[hello]"), actual.get());
 	}
@@ -138,12 +141,13 @@ public class CollectorsTest {
 		AtomicReference<Integer> actual = new AtomicReference<>();
 
 		Observable.of(1, 2, 3)
-				.toMap(Function.identity(), value -> value * 2)
-				.map(map -> map.get(3))
-				.subscribe(actual::set);
+			.toMap(Function.identity(), value -> value * 2)
+			.map(map -> map.get(3))
+			.subscribe(actual::set);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(6, actual.get());
 	}
+
 }

@@ -1,18 +1,22 @@
 package com.github.tix320.kiwi.reactive;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.publisher.Publisher;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.IntStream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class ReplayPublisherTest {
 
 	@Test
@@ -53,7 +57,7 @@ public class ReplayPublisherTest {
 		publisher.publish("11");
 		publisher.publish("12");
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected1, actual1);
 		assertEquals(expected2, actual2);
@@ -75,7 +79,7 @@ public class ReplayPublisherTest {
 
 		observable.subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -95,7 +99,7 @@ public class ReplayPublisherTest {
 
 		observable.subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -118,7 +122,7 @@ public class ReplayPublisherTest {
 			publisher.publish("value" + index);
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 	}
 
 	@Test
@@ -132,7 +136,7 @@ public class ReplayPublisherTest {
 
 		publisher.asObservable().subscribe(actual::add);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(List.of(1, 2), actual);
 	}

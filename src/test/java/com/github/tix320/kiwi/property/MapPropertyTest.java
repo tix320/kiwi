@@ -1,15 +1,19 @@
 package com.github.tix320.kiwi.property;
 
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class MapPropertyTest {
 
 	@Test
@@ -52,7 +56,7 @@ public class MapPropertyTest {
 		mapProperty.put(2, "boo");
 		mapProperty.put(3, "goo");
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), map);
 		assertEquals(Map.of(1, "foo", 2, "boo", 3, "goo"), mapProperty.getValue());
@@ -60,4 +64,5 @@ public class MapPropertyTest {
 		assertTrue(tested[1]);
 		assertTrue(tested[2]);
 	}
+
 }

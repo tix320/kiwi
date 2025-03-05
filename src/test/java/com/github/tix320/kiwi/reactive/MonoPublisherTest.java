@@ -1,15 +1,18 @@
 package com.github.tix320.kiwi.reactive;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.MonoObservable;
 import com.github.tix320.kiwi.publisher.MonoPublisher;
 import com.github.tix320.kiwi.publisher.Publisher;
-import org.junit.jupiter.api.Test;
-
+import com.github.tix320.kiwi.utils.SchedulerUtils;
+import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class MonoPublisherTest {
 
 	@Test
@@ -23,7 +26,7 @@ public class MonoPublisherTest {
 		});
 		mono.publish("foo");
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertTrue(called.get());
 	}
@@ -39,8 +42,9 @@ public class MonoPublisherTest {
 			called.set(true);
 		});
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertTrue(called.get());
 	}
+
 }

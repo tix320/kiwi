@@ -1,18 +1,22 @@
 package com.github.tix320.kiwi.property;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
+import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.property.internal.PropertyClosedException;
+import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * @author Tigran Sargsyan on 21-Mar-20.
  */
+@ExtendWith({AsyncExceptionCheckerExtension.class, KiwiSchedulerRefreshExtension.class})
 public class ObjectPropertyTest {
 
 	@Test
@@ -40,7 +44,7 @@ public class ObjectPropertyTest {
 		property.setValue(2);
 		property.setValue(3);
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
@@ -62,8 +66,9 @@ public class ObjectPropertyTest {
 
 		assertThrows(PropertyClosedException.class, () -> property.setValue(3));
 
-		Thread.sleep(100);
+		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
 	}
+
 }
