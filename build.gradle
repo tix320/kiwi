@@ -1,0 +1,107 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'signing'
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.github.tix320:skimp:2.0.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+group = 'com.github.tix320'
+version = '2.4.0'
+
+sonatypeUsername = findProperty("sonatypeUsername")
+sonatypePassword = findProperty("sonatypePassword")
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = 'com.github.tix320'
+            artifactId = 'kiwi'
+
+            pom {
+                name = 'Kiwi'
+                description = 'Reactive streams library'
+                url = 'https://github.com/tix320/kiwi'
+                licenses {
+                    license {
+                        name = 'Apache License 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'tix320'
+                        name = 'Tigran Sargsyan'
+                        email = 'tixtix320@gmail.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/tix320/kiwi'
+                    connection = 'scm:git:https://github.com/tix320/kiwi'
+                    developerConnection = 'scm:git:https://github.com/tix320/kiwi'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "ossrh"
+            url = version.endsWith('SNAPSHOT')
+                    ? 'https://oss.sonatype.org/content/repositories/snapshots'
+                    : 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+            credentials {
+                username = sonatypeUsername
+                password = sonatypePassword
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username = sonatypeUsername
+            password = sonatypePassword
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
+}
+
+tasks.register("printVersion") {
+    doLast {
+        println(project.version)
+    }
+}
