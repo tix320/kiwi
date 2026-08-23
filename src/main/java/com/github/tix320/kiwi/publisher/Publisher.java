@@ -7,8 +7,7 @@ import com.github.tix320.skimp.object.None;
 /**
  * A producer of items (and related control messages) received by subscribers.
  * Each current subscriber receives the same items (via method {@link #publish}).
- * Is not recommended to publish null values, because of implementation may do not support null values.
- * Use null case instance of your class, or class {@link None} if possible.
+	 * Null items are not supported. Use a null-object instance or {@link None} when needed.
  *
  * @author Tigran Sargsyan on 21-Feb-19
  */
@@ -24,7 +23,7 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 
 	/**
 	 * Complete this publisher, after that cannot be published objects.
-	 * Invoking this method more than one time will no effect.
+	 * Invoking this method after the publisher is closed throws {@link PublisherClosedException}.
 	 */
 	public abstract void complete(SourceCompletion sourceCompletion);
 
@@ -34,7 +33,7 @@ public abstract class Publisher<T> implements ObservableCandidate<T> {
 
 	/**
 	 * Abort this publisher, after that cannot be published objects.
-	 * Invoking this method more than one time will have no effect.
+	 * Invoking this method after the publisher is closed throws {@link PublisherClosedException}.
 	 */
 	public abstract void abort(Throwable throwable);
 

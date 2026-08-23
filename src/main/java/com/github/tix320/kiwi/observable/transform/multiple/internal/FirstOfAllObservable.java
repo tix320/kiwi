@@ -57,9 +57,7 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 			@Override
 			protected void onCancel(Unsubscription unsubscription) {
 				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
-				for (Subscription subscription : subscriptions) {
-					subscription.cancel(userUnsubscription);
-				}
+				SubscriptionUtils.cancelAll(subscriptions, userUnsubscription);
 			}
 		};
 
@@ -97,9 +95,7 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 
 		@Override
 		public void onNext(T item) {
-			for (Subscription subscription : context.subscriptions) {
-				subscription.cancel();
-			}
+			SubscriptionUtils.cancelAll(context.subscriptions, Unsubscription.DEFAULT);
 			parent().publish(item);
 		}
 

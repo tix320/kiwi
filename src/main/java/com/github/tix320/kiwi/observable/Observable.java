@@ -28,10 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -151,36 +148,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
 	public final void await(Duration timeout) {
-		CountDownLatch latch = new CountDownLatch(1);
-		AtomicBoolean isTimout = new AtomicBoolean(false);
-
-		long millis = timeout.toMillis();
-
-		Observable.this.subscribeOnComplete(completionType -> {
-			isTimout.compareAndSet(false, true);
-			latch.countDown();
-		});
-
-		if (millis < 0) {
-			try {
-				latch.await();
-			} catch (InterruptedException e) {
-				throw new ThreadInterruptedException();
-			}
-		} else {
-			boolean normally;
-			try {
-				normally = latch.await(millis, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException e) {
-				throw new ThreadInterruptedException();
-			}
-			if (!normally) {
-				boolean changed = isTimout.compareAndSet(false, true);
-				if (changed) {
-					throw new TimeoutException(String.format("The observable not completed in %sms", millis));
-				}
-			}
-		}
+		ObservableWaiter.await(this, timeout);
 	}
 
 	/**
@@ -204,9 +172,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
 	public final T get(Duration timeout) {
-		AtomicReference<T> itemHolder = new AtomicReference<>();
-		waitAndApply(timeout, itemHolder::set);
-		return itemHolder.get();
+		return ObservableWaiter.get(this, timeout);
 	}
 
 	/**
@@ -219,42 +185,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @throws ThreadInterruptedException when thread was interrupted
 	 */
 	public final void waitAndApply(Duration timeout, Consumer<T> consumer) {
-		CountDownLatch latch = new CountDownLatch(1);
-
-		long millis = timeout.toMillis();
-
-		AtomicBoolean isTimout = new AtomicBoolean(false);
-		this.toMono().subscribe(item -> {
-			try {
-				boolean changed = isTimout.compareAndSet(false, true);
-				if (changed) {
-					consumer.accept(item);
-				}
-			} finally {
-				latch.countDown();
-			}
-		});
-
-		if (millis < 0) {
-			try {
-				latch.await();
-			} catch (InterruptedException e) {
-				throw new ThreadInterruptedException();
-			}
-		} else {
-			boolean normally;
-			try {
-				normally = latch.await(millis, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException e) {
-				throw new ThreadInterruptedException();
-			}
-			if (!normally) {
-				boolean changed = isTimout.compareAndSet(false, true);
-				if (changed) {
-					throw new TimeoutException(String.format("The observable not completed in %sms", millis));
-				}
-			}
-		}
+		ObservableWaiter.waitAndApply(this, timeout, consumer);
 	}
 
 	/**
@@ -272,7 +203,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 						  T item;
 						  try {
 							  item = factory.get();
-						  } catch (Throwable e) {
+						  } catch (Exception e) {
 							  publisher.abort(e);
 							  return;
 						  }

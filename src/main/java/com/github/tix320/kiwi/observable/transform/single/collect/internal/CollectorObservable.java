@@ -6,6 +6,7 @@ import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Unsubscription;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -27,8 +28,24 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 		observable.subscribe(subscriber.fork(new MinorSubscriber<S, R>() {
 
 			@Override
-			public void onSubscribe(Subscription subscription) {
-				subscriber.setSubscription(subscription);
+			public void onSubscribe(Subscription sourceSubscription) {
+				subscriber.setSubscription(new Subscription() {
+
+					@Override
+					protected void onRequest(long count) {
+						sourceSubscription.requestUnbounded();
+					}
+
+					@Override
+					protected void onUnboundRequest() {
+						sourceSubscription.requestUnbounded();
+					}
+
+					@Override
+					protected void onCancel(Unsubscription unsubscription) {
+						sourceSubscription.cancel(unsubscription);
+					}
+				});
 			}
 
 			@Override

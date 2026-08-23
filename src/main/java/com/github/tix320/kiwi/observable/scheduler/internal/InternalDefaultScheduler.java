@@ -32,7 +32,7 @@ public final class InternalDefaultScheduler implements Scheduler {
 		executorService.execute(() -> {
 			try {
 				task.run();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				Tracer.INSTANCE.injectFullStacktrace(e);
 				ExceptionUtils.applyToUncaughtExceptionHandler(e);
 			}
@@ -58,7 +58,7 @@ public final class InternalDefaultScheduler implements Scheduler {
 		executorService.shutdown();
 		scheduledExecutorService.shutdown();
 		var mainTerminated = executorService.awaitTermination(timeout, unit);
-		var delayedTerminated = executorService.awaitTermination(timeout, unit);
+		var delayedTerminated = scheduledExecutorService.awaitTermination(timeout, unit);
 		return mainTerminated && delayedTerminated;
 	}
 
@@ -76,7 +76,9 @@ public final class InternalDefaultScheduler implements Scheduler {
 							  currentThread);
 			try {
 				Thread.sleep(500);
-			} catch (InterruptedException ignored) {
+			} catch (InterruptedException exception) {
+				Thread.currentThread().interrupt();
+				return;
 			}
 			executor.execute(r);
 		}

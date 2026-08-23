@@ -38,16 +38,21 @@ public final class TakeLimitedObservable<T> extends Observable<T> {
 			@Override
 			public void onSubscribe(Subscription subscription) {
 				subscriber.setSubscription(subscription);
+				if (count == 0) {
+					subscription.cancel(LIMIT_UNSUBSCRIPTION);
+				}
 			}
 
 			@Override
 			public void onNext(T item) {
-				long remaining = limit.decrementAndGet();
-				if (remaining > 0) {
-					subscriber.publish(item);
-				} else {
+				long remaining = limit.getAndDecrement();
+				if (remaining <= 0) {
+					return;
+				}
+
+				subscriber.publish(item);
+				if (remaining == 1) {
 					subscription().cancel(LIMIT_UNSUBSCRIPTION);
-					subscriber.publish(item);
 				}
 			}
 

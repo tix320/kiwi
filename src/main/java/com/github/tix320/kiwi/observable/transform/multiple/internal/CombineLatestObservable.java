@@ -50,9 +50,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 			@Override
 			protected void onCancel(Unsubscription unsubscription) {
 				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
-				for (Subscription subscription : subscriptions) {
-					subscription.cancel(userUnsubscription);
-				}
+				SubscriptionUtils.cancelAll(subscriptions, userUnsubscription);
 			}
 		};
 
@@ -120,9 +118,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 				if (compCount == context.sourcesCount()) {
 					parent().complete(ALL_COMPLETED);
 				} else if (itemHolder.isEmpty()) {
-					for (Subscription subscription : context.subscriptions) {
-						subscription.cancel();
-					}
+					SubscriptionUtils.cancelAll(context.subscriptions, Unsubscription.DEFAULT);
 					parent().complete(COMPLETED_BY_ONE_WITH_NO_ITEMS);
 				}
 			} else {

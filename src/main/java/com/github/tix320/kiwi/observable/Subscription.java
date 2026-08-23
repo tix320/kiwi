@@ -6,6 +6,7 @@ package com.github.tix320.kiwi.observable;
 public abstract class Subscription {
 
 	private boolean cancelled;
+	private boolean unboundedRequested;
 
 	private final Object lock = new Object();
 
@@ -37,7 +38,11 @@ public abstract class Subscription {
 			if (cancelled) {
 				throw new IllegalStateException("Subscription is already cancelled");
 			}
+			if (unboundedRequested) {
+				return;
+			}
 
+			unboundedRequested = true;
 			onUnboundRequest();
 		}
 	}

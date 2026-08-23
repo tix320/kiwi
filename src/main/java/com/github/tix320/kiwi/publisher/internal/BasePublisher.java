@@ -5,9 +5,6 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
-import com.github.tix320.kiwi.observable.demand.DemandStrategy;
-import com.github.tix320.kiwi.observable.demand.EmptyDemandStrategy;
-import com.github.tix320.kiwi.observable.demand.InfiniteDemandStrategy;
 import com.github.tix320.kiwi.observable.signal.CancelSignal;
 import com.github.tix320.kiwi.observable.signal.CompleteSignal;
 import com.github.tix320.kiwi.observable.signal.ErrorSignal;
@@ -16,10 +13,11 @@ import com.github.tix320.kiwi.observable.signal.SignalSynchronizer;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.PublisherClosedException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Tigran Sargsyan on 23-Feb-19
@@ -40,6 +38,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	@Override
 	public final void publish(T object) {
+		Objects.requireNonNull(object, "Published item must not be null");
 		synchronized (lock) {
 			if (isClosed()) {
 				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
@@ -128,8 +127,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		private final PublisherCursor publisherCursor;
 
 		private final AtomicBoolean signalProductionEnded = new AtomicBoolean(false);
-		private final AtomicReference<DemandStrategy> demandStrategy =
-			new AtomicReference<>(EmptyDemandStrategy.INSTANCE);
+		private final AtomicLong demand = new AtomicLong(0);
 
 		private static final int IDLE = 0;
 		private static final int ACQUIRED = 1;
@@ -169,14 +167,12 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		}
 
 		private void doActionInternal() {
-			var demandStrategy = this.demandStrategy.get();
 			while (true) {
 				if (signalProductionEnded.get()) {
 					break;
 				}
 
 				var hasPublish = publisherCursor.hasNext();
-				var demands = demandStrategy.needMore();
 
 				if (abortion != null) {
 					token.addSignal(abortion);
@@ -188,9 +184,8 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 					subscriptions.remove(this);
 					signalProductionEnded.set(true);
 					break;
-				} else if (hasPublish && demands) {
+				} else if (hasPublish && tryAcquireDemand()) {
 					Signal signal = publisherCursor.next();
-					demandStrategy.decrement();
 					token.addSignal(signal);
 				} else {
 					break;
@@ -200,14 +195,31 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 		@Override
 		protected void onRequest(long count) {
-			demandStrategy.getAndUpdate(strategy -> strategy.addBound(count));
+			demand.getAndUpdate(current -> {
+				if (current == Long.MAX_VALUE || Long.MAX_VALUE - current < count) {
+					return Long.MAX_VALUE;
+				}
+				return current + count;
+			});
 			doAction();
 		}
 
 		@Override
 		protected void onUnboundRequest() {
-			demandStrategy.getAndSet(InfiniteDemandStrategy.INSTANCE);
+			demand.set(Long.MAX_VALUE);
 			doAction();
+		}
+
+		private boolean tryAcquireDemand() {
+			while (true) {
+				long current = demand.get();
+				if (current == 0) {
+					return false;
+				}
+				if (current == Long.MAX_VALUE || demand.compareAndSet(current, current - 1)) {
+					return true;
+				}
+			}
 		}
 
 		@Override

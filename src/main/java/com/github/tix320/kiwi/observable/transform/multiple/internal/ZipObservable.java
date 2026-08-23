@@ -55,9 +55,7 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 			@Override
 			protected void onCancel(Unsubscription unsubscription) {
 				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
-				for (Subscription subscription : subscriptions) {
-					subscription.cancel(userUnsubscription);
-				}
+				SubscriptionUtils.cancelAll(subscriptions, userUnsubscription);
 			}
 		};
 
@@ -125,9 +123,8 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 			parent().publish(zip);
 
 			if (someSourceEnded) {
-				for (Subscription subscription : context.subscriptions) {
-					subscription.cancel(UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
-				}
+				SubscriptionUtils.cancelAll(context.subscriptions,
+					UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
 				parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED);
 			}
 		}
@@ -141,9 +138,8 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 				if (compCount == context.sourcesCount()) {
 					parent().complete(ALL_COMPLETED);
 				} else if (source.isEmpty()) {
-					for (Subscription subscription : context.subscriptions) {
-						subscription.cancel(UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
-					}
+					SubscriptionUtils.cancelAll(context.subscriptions,
+						UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
 					parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED);
 				}
 			} else if (completion instanceof UserUnsubscription userUnsubscription) {

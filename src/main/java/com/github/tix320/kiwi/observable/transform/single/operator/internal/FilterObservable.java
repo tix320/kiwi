@@ -33,6 +33,8 @@ public final class FilterObservable<T> extends Observable<T> {
 			public void onNext(T item) {
 				if (filter.test(item)) {
 					subscriber.publish(item);
+				} else {
+					subscription().request(1);
 				}
 			}
 

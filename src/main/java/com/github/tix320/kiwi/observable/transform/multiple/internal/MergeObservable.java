@@ -49,9 +49,7 @@ public final class MergeObservable<T> extends Observable<T> {
 			@Override
 			protected void onCancel(Unsubscription unsubscription) {
 				UserUnsubscription userUnsubscription = new UserUnsubscription(unsubscription);
-				for (Subscription subscription : subscriptions) {
-					subscription.cancel(userUnsubscription);
-				}
+				SubscriptionUtils.cancelAll(subscriptions, userUnsubscription);
 			}
 		};
 

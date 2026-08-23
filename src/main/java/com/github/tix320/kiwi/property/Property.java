@@ -67,19 +67,14 @@ public interface Property<T> extends ObservableCandidate<T> {
 			property.freeze();
 		}
 
-		Throwable ex = null;
 		try {
 			runnable.run();
-		} catch (Throwable e) {
-			ex = e;
-		}
-
-		for (FreezeableProperty property : properties) {
-			property.unfreeze();
-		}
-
-		if (ex != null) {
-			ExceptionUtils.sneakyThrow(ex);
+		} catch (Throwable throwable) {
+			ExceptionUtils.sneakyThrow(throwable);
+		} finally {
+			for (FreezeableProperty property : properties) {
+				property.unfreeze();
+			}
 		}
 	}
 

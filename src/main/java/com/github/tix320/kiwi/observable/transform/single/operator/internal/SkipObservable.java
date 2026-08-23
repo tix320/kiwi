@@ -35,6 +35,8 @@ public final class SkipObservable<T> extends Observable<T> {
 				long remaining = mustSkip.decrementAndGet();
 				if (remaining < 0) {
 					subscriber.publish(item);
+				} else {
+					subscription().request(1);
 				}
 			}
 

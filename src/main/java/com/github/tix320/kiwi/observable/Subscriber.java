@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.kiwi.observable.signal.SignalSynchronizer;
 import com.github.tix320.kiwi.observable.signal.SignalSynchronizer.Token;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -96,7 +97,7 @@ public abstract class Subscriber<T> {
 				onSubscribe(_subscription);
 			} catch (SubscriberCallbackException | SubscriberIllegalStateException e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new SubscriberCallbackException(e);
 			}
 
@@ -106,6 +107,7 @@ public abstract class Subscriber<T> {
 	}
 
 	public final void publish(T item) throws SubscriberCallbackException {
+		Objects.requireNonNull(item, "Published item must not be null");
 		setConcurrencyFlag(PUBLISH);
 		try {
 			Subscription subscription = this._subscription;
@@ -117,7 +119,7 @@ public abstract class Subscriber<T> {
 				onNext(item);
 			} catch (SubscriberCallbackException | SubscriberIllegalStateException e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new SubscriberCallbackException(e);
 			}
 
@@ -144,7 +146,7 @@ public abstract class Subscriber<T> {
 				onComplete(completion);
 			} catch (SubscriberCallbackException | SubscriberIllegalStateException e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new SubscriberCallbackException(e);
 			}
 
@@ -169,7 +171,7 @@ public abstract class Subscriber<T> {
 	//
 	// 		try {
 	// 			onError(error);
-	// 		} catch (Throwable e) {
+	// 		} catch (Exception e) {
 	// 			ExceptionUtils.applyToUncaughtExceptionHandler(new ErrorHandlerException(e));
 	// 		}
 	// 	} finally {

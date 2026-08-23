@@ -85,52 +85,57 @@ public final class SignalSynchronizer {
 		});
 
 		if (newValue == ACQUIRED) {
-			KiwiSchedulerHolder.get().schedule(this::runWorker);
+			KiwiSchedulerHolder.get().schedule(() -> {
+				try {
+					runWorker();
+				} finally {
+					var previousState = WORKER_STATE_HANDLE.getAndSet(this, ACTIVATED);
+					if (previousState == SCHEDULED) {
+						tryRunWorker();
+					}
+				}
+			});
 		}
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void runWorker() {
-		try {
-			while (true) {
-				var entry = pollLeading();
-				if (entry == null) {
-					break;
-				}
-
-				Signal signal = entry.getValue().poll();
-				if (signal == null) {
-					break;
-				}
-
-				Token token = entry.getKey();
-				Subscriber subscriber = token.subscriber;
-				boolean terminal = signal instanceof CompleteSignal
-					|| signal instanceof CancelSignal
-					|| signal instanceof ErrorSignal;
-				try {
-					if (signal instanceof PublishSignal publishSignal) { // todo: java 21 switch
-						subscriber.publish(publishSignal.getItem());
-					} else if (signal instanceof CompleteSignal completeSignal) {
-						subscriber.complete(completeSignal.completion());
-					} else if (signal instanceof ErrorSignal errorSignal) {
-						// subscriber.completeWithError(errorSignal.error());
-					} else if (signal instanceof CancelSignal cancelSignal) {
-						subscriber.complete(cancelSignal.unsubscription());
-					}
-				} finally {
-					if (terminal) {
-						signalQueues.remove(token);
-					}
-				}
-
-			}
-		} finally {
-			var prevValue = WORKER_STATE_HANDLE.getAndSet(this, ACTIVATED);
-			if (prevValue == SCHEDULED) {
-				tryRunWorker();
+		while (true) {
+			var entry = pollLeading();
+			if (entry == null) {
+				break;
 			}
 
+			Signal signal = entry.getValue().poll();
+			if (signal == null) {
+				break;
+			}
+
+			Token token = entry.getKey();
+			Subscriber subscriber = token.subscriber;
+			boolean terminal = signal instanceof CompleteSignal
+				|| signal instanceof CancelSignal
+				|| signal instanceof ErrorSignal;
+			try {
+				if (signal instanceof PublishSignal publishSignal) { // todo: java 21 switch
+					subscriber.publish(publishSignal.getItem());
+				} else if (signal instanceof CompleteSignal completeSignal) {
+					subscriber.complete(completeSignal.completion());
+				} else if (signal instanceof ErrorSignal errorSignal) {
+					// subscriber.completeWithError(errorSignal.error());
+				} else if (signal instanceof CancelSignal cancelSignal) {
+					subscriber.complete(cancelSignal.unsubscription());
+				}
+			} catch (Exception exception) {
+				if (!terminal) {
+					tryRunWorker();
+				}
+				throw exception;
+			} finally {
+				if (terminal) {
+					signalQueues.remove(token);
+				}
+			}
 		}
 	}
 
