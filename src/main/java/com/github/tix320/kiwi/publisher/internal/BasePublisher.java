@@ -103,12 +103,17 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		public void subscribe(Subscriber<? super T> subscriber) {
 			var subscription = new PublisherSubscription(subscriber);
 
-			subscriber.setSubscription(subscription);
-
 			synchronized (lock) {
 				if (!isClosed()) {
 					subscriptions.add(subscription);
 				}
+			}
+
+			try {
+				subscriber.setSubscription(subscription);
+			} catch (Exception exception) {
+				subscriptions.remove(subscription);
+				throw exception;
 			}
 
 			subscription.activate();
@@ -122,7 +127,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 		private final PublisherCursor publisherCursor;
 
-		private final AtomicBoolean ended = new AtomicBoolean(false);
+		private final AtomicBoolean signalProductionEnded = new AtomicBoolean(false);
 		private final AtomicReference<DemandStrategy> demandStrategy =
 			new AtomicReference<>(EmptyDemandStrategy.INSTANCE);
 
@@ -141,7 +146,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		}
 
 		public void doAction() {
-			if (ended.get()) {
+			if (signalProductionEnded.get()) {
 				return;
 			}
 
@@ -166,18 +171,22 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 		private void doActionInternal() {
 			var demandStrategy = this.demandStrategy.get();
 			while (true) {
+				if (signalProductionEnded.get()) {
+					break;
+				}
+
 				var hasPublish = publisherCursor.hasNext();
 				var demands = demandStrategy.needMore();
 
 				if (abortion != null) {
 					token.addSignal(abortion);
 					subscriptions.remove(this);
-					ended.set(true);
+					signalProductionEnded.set(true);
 					break;
 				} else if (completion != null && !hasPublish) {
 					token.addSignal(completion);
 					subscriptions.remove(this);
-					ended.set(true);
+					signalProductionEnded.set(true);
 					break;
 				} else if (hasPublish && demands) {
 					Signal signal = publisherCursor.next();
@@ -203,6 +212,8 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 		@Override
 		protected void onCancel(Unsubscription unsubscription) {
+			signalProductionEnded.set(true);
+			subscriptions.remove(this);
 			CancelSignal cancelSignal = new CancelSignal(unsubscription);
 
 			token.addSignal(cancelSignal);

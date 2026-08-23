@@ -1,7 +1,8 @@
 package com.github.tix320.kiwi.observable.signal;
 
-import static java.util.Comparator.comparing;
-import static java.util.Comparator.nullsFirst;
+import static java.util.Comparator.comparingInt;
+import static java.util.Comparator.comparingLong;
+import static java.util.Comparator.nullsLast;
 
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
@@ -19,10 +20,11 @@ public final class SignalSynchronizer {
 		AtomicIntegerFieldUpdater.newUpdater(SignalSynchronizer.class, "workerState");
 
 	private static final Comparator<Signal> CROSS_SOURCE_COMPARATOR =
-		nullsFirst(comparing(Signal::seqNumber).reversed());
+		nullsLast(comparingLong(Signal::seqNumber));
 
-	private static final Comparator<Signal> SAME_SOURCE_COMPARATOR = comparing(Signal::priority)
-		.thenComparing(comparing(Signal::seqNumber).reversed());
+	private static final Comparator<Signal> SAME_SOURCE_COMPARATOR = comparingInt(Signal::priority)
+		.reversed()
+		.thenComparingLong(Signal::seqNumber);
 
 	private static final int NOT_ACTIVATED = -1;
 	private static final int ACTIVATED = 0;
@@ -61,7 +63,7 @@ public final class SignalSynchronizer {
 		});
 
 		var token = new Token(subscriber);
-		signalQueues.put(token, new PriorityBlockingQueue<>(16, SAME_SOURCE_COMPARATOR.reversed()));
+		signalQueues.put(token, new PriorityBlockingQueue<>(16, SAME_SOURCE_COMPARATOR));
 
 		return token;
 	}
@@ -102,20 +104,24 @@ public final class SignalSynchronizer {
 				}
 
 				Token token = entry.getKey();
-
 				Subscriber subscriber = token.subscriber;
-
-				if (signal instanceof PublishSignal publishSignal) { // todo: java 21 switch
-					subscriber.publish(publishSignal.getItem());
-				} else if (signal instanceof CompleteSignal completeSignal) {
-					subscriber.complete(completeSignal.completion());
-					signalQueues.remove(token);
-				} else if (signal instanceof ErrorSignal errorSignal) {
-					// subscriber.completeWithError(errorSignal.error());
-					signalQueues.remove(token);
-				} else if (signal instanceof CancelSignal cancelSignal) {
-					subscriber.complete(cancelSignal.unsubscription());
-					signalQueues.remove(token);
+				boolean terminal = signal instanceof CompleteSignal
+					|| signal instanceof CancelSignal
+					|| signal instanceof ErrorSignal;
+				try {
+					if (signal instanceof PublishSignal publishSignal) { // todo: java 21 switch
+						subscriber.publish(publishSignal.getItem());
+					} else if (signal instanceof CompleteSignal completeSignal) {
+						subscriber.complete(completeSignal.completion());
+					} else if (signal instanceof ErrorSignal errorSignal) {
+						// subscriber.completeWithError(errorSignal.error());
+					} else if (signal instanceof CancelSignal cancelSignal) {
+						subscriber.complete(cancelSignal.unsubscription());
+					}
+				} finally {
+					if (terminal) {
+						signalQueues.remove(token);
+					}
 				}
 
 			}
@@ -139,7 +145,7 @@ public final class SignalSynchronizer {
 		while (iterator.hasNext()) {
 			var entry = iterator.next();
 			var signal = entry.getValue().peek();
-			if (CROSS_SOURCE_COMPARATOR.compare(signal, leading) > 0) {
+			if (CROSS_SOURCE_COMPARATOR.compare(leading, signal) > 0) {
 				leading = signal;
 				leadingQueue = entry;
 			}
