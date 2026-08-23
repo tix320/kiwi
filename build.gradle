@@ -10,15 +10,16 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.tix320:skimp:2.0.0'
+    implementation 'com.github.tix320:skimp:3.0.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.8.1'
     testImplementation 'org.assertj:assertj-core:3.24.2'
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(26))
     }
     withSourcesJar()
     withJavadocJar()
@@ -29,8 +30,12 @@ test {
 
     testLogging {
         events "failed"
-        exceptionFormat "full"
+        exceptionFormat = "full"
     }
+}
+
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 group = 'com.github.tix320'
@@ -77,8 +82,8 @@ publishing {
         maven {
             name = "ossrh"
             url = version.endsWith('SNAPSHOT')
-                    ? 'https://oss.sonatype.org/content/repositories/snapshots'
-                    : 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+                    ? 'https://central.sonatype.com/repository/maven-snapshots/'
+                    : 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
             credentials {
                 username = sonatypeUsername
                 password = sonatypePassword
@@ -90,6 +95,8 @@ publishing {
 nexusPublishing {
     repositories {
         sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
             username = sonatypeUsername
             password = sonatypePassword
         }
