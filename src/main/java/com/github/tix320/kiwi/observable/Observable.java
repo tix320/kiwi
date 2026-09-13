@@ -195,8 +195,8 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 *
 	 * @return new observable
 	 */
-	public final MonoObservable<T> getOnTimout(Duration timeout, Supplier<T> factory) {
-		var publisher = Publisher.<T>simple();
+	public final MonoObservable<T> getOnTimeout(Duration timeout, Supplier<T> factory) {
+		var publisher = Publisher.<T>mono();
 		KiwiSchedulerHolder.get()
 			.schedule(timeout.toMillis(), TimeUnit.MILLISECONDS,
 					  () -> {

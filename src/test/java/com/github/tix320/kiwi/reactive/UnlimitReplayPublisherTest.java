@@ -20,6 +20,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class UnlimitReplayPublisherTest {
 
 	@Test
+	public void emptySnapshotDoesNotPreallocateMaximumWindow() {
+		ReplayPublisher<Integer> publisher = Publisher.buffered();
+
+		assertEquals(List.of(), publisher.getBuffer());
+	}
+
+	@Test
 	public void simpleTest() throws InterruptedException {
 		List<Integer> expected1 = List.of(10, 20, 40);
 		List<Integer> expected2 = List.of(30, 60, 120);

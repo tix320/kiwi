@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.skimp.exception.ThreadInterruptedException;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -92,15 +93,27 @@ final class ObservableWaiter {
 		}
 
 		void await(Duration timeout) {
-			long millis = timeout.toMillis();
-			if (millis < 0) {
+			Objects.requireNonNull(timeout, "Timeout must not be null");
+			if (timeout.isNegative()) {
 				awaitIndefinitely();
 				return;
 			}
+			long millis = timeout.toMillis();
+			if (!timeout.minusMillis(millis).isZero() && millis < Long.MAX_VALUE) {
+				millis++;
+			}
 
 			try {
-				if (!latch.await(millis, TimeUnit.MILLISECONDS) && cancel()) {
-					throw new TimeoutException(String.format("The observable not completed in %sms", millis));
+				if (!latch.await(millis, TimeUnit.MILLISECONDS)) {
+					if (tryFinish()) {
+						Exception cancellationFailure = cancelSubscription();
+						TimeoutException timeoutException =
+							new TimeoutException(String.format("The observable not completed in %sms", millis));
+						addSuppressed(timeoutException, cancellationFailure);
+						throw timeoutException;
+					}
+
+					latch.await();
 				}
 			} catch (InterruptedException exception) {
 				handleInterruption();
@@ -116,21 +129,29 @@ final class ObservableWaiter {
 		}
 
 		private void handleInterruption() {
-			cancel();
 			Thread.currentThread().interrupt();
-			throw new ThreadInterruptedException();
+			Exception cancellationFailure = tryFinish() ? cancelSubscription() : null;
+			ThreadInterruptedException interruptedException = new ThreadInterruptedException();
+			addSuppressed(interruptedException, cancellationFailure);
+			throw interruptedException;
 		}
 
-		private boolean cancel() {
-			if (!tryFinish()) {
-				return false;
-			}
-
+		private Exception cancelSubscription() {
 			Subscription value = subscription.get();
 			if (value != null) {
-				value.cancel();
+				try {
+					value.cancel();
+				} catch (Exception exception) {
+					return exception;
+				}
 			}
-			return true;
+			return null;
+		}
+
+		private void addSuppressed(Exception exception, Exception suppressed) {
+			if (suppressed != null) {
+				exception.addSuppressed(suppressed);
+			}
 		}
 
 	}

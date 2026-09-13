@@ -41,9 +41,7 @@ public final class MergeObservable<T> extends Observable<T> {
 
 			@Override
 			protected void onUnboundRequest() {
-				for (Subscription subscription : subscriptions) {
-					subscription.requestUnbounded();
-				}
+				SubscriptionUtils.requestUnboundedAll(subscriptions);
 			}
 
 			@Override
@@ -63,8 +61,12 @@ public final class MergeObservable<T> extends Observable<T> {
 			subscribers.add(sub);
 		}
 
-		for (int i = 0; i < observables.size(); i++) {
-			observables.get(i).subscribe(subscribers.get(i));
+		try {
+			for (int i = 0; i < observables.size(); i++) {
+				observables.get(i).subscribe(subscribers.get(i));
+			}
+		} catch (Exception exception) {
+			SubscriptionUtils.rollback(subscriptions, exception);
 		}
 	}
 

@@ -25,7 +25,7 @@ public class GetOnTimoutObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 
-		publisher.asObservable().getOnTimout(Duration.ofSeconds(2), () -> 5).subscribe(actual::add);
+		publisher.asObservable().getOnTimeout(Duration.ofSeconds(2), () -> 5).subscribe(actual::add);
 
 		publisher.publish(1);
 		publisher.publish(2);
@@ -42,7 +42,7 @@ public class GetOnTimoutObservableTest {
 
 		Publisher<Integer> publisher = Publisher.simple();
 
-		publisher.asObservable().getOnTimout(Duration.ofMillis(500), () -> 5).subscribe(actual::add);
+		publisher.asObservable().getOnTimeout(Duration.ofMillis(500), () -> 5).subscribe(actual::add);
 
 		SchedulerUtils.sleepFor(Duration.ofMillis(800));
 
@@ -52,6 +52,19 @@ public class GetOnTimoutObservableTest {
 		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void subscribeAfterTimeoutReceivesFallback() throws InterruptedException {
+		List<Integer> actual = Collections.synchronizedList(new ArrayList<>());
+		Publisher<Integer> publisher = Publisher.simple();
+		var observable = publisher.asObservable().getOnTimeout(Duration.ofMillis(50), () -> 5);
+
+		SchedulerUtils.sleepFor(Duration.ofMillis(100));
+		observable.subscribe(actual::add);
+		SchedulerUtils.awaitTermination();
+
+		assertEquals(List.of(5), actual);
 	}
 
 }

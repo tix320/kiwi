@@ -75,4 +75,28 @@ public class StaticValuesObservableTest {
 		assertEquals(List.of(1, 2, 3, 4), items);
 	}
 
+	@Test
+	public void emptySourceCompletesWithoutDemand() throws InterruptedException {
+		var observable = new StaticValuesObservable<Integer>(List.of());
+		var completions = new CopyOnWriteArrayList<Completion>();
+
+		observable.subscribe(new Subscriber<>() {
+			@Override
+			protected void onSubscribe(Subscription subscription) {
+			}
+
+			@Override
+			protected void onNext(Integer item) {
+			}
+
+			@Override
+			protected void onComplete(Completion completion) {
+				completions.add(completion);
+			}
+		});
+
+		SchedulerUtils.awaitTermination();
+		assertEquals(1, completions.size());
+	}
+
 }

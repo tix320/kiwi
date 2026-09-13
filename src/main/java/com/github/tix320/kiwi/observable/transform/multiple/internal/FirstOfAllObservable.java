@@ -43,9 +43,7 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 				// don't care about count, because this observable emits only one item
 				boolean changed = requested.compareAndSet(false, true);
 				if (changed) {
-					for (Subscription subscription : subscriptions) {
-						subscription.request(1);
-					}
+					SubscriptionUtils.requestAll(subscriptions, 1);
 				}
 			}
 
@@ -62,8 +60,8 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 		};
 
 		int sourcesCount = observables.size();
-		SharedContext sharedContext = new SharedContext(sourcesCount, generalSubscription,
-														subscriptions, new AtomicInteger(0));
+		SharedContext sharedContext = new SharedContext(
+			sourcesCount, generalSubscription, subscriptions, new AtomicInteger(0), new AtomicBoolean(false));
 
 		List<Subscriber<T>> subscribers = new ArrayList<>(sourcesCount);
 		for (int i = 0; i < sourcesCount; i++) {
@@ -71,8 +69,12 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 			subscribers.add(sub);
 		}
 
-		for (int i = 0; i < observables.size(); i++) {
-			observables.get(i).subscribe(subscribers.get(i));
+		try {
+			for (int i = 0; i < observables.size(); i++) {
+				observables.get(i).subscribe(subscribers.get(i));
+			}
+		} catch (Exception exception) {
+			SubscriptionUtils.rollback(subscriptions, exception);
 		}
 	}
 
@@ -95,13 +97,27 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 
 		@Override
 		public void onNext(T item) {
-			SubscriptionUtils.cancelAll(context.subscriptions, Unsubscription.DEFAULT);
-			parent().publish(item);
+			if (!context.terminated.compareAndSet(false, true)) {
+				return;
+			}
+
+			SubscriptionUtils.cancelAllThen(context.subscriptions, Unsubscription.DEFAULT, () -> {
+				try {
+					parent().publish(item);
+				} finally {
+					parent().complete(ALL_COMPLETED);
+				}
+			});
 		}
 
 		@Override
 		public void onComplete(Completion completion) {
-			if (context.completedCaughtCount.incrementAndGet() == context.sourcesCount) {
+			if (context.terminated.get()) {
+				return;
+			}
+
+			if (context.completedCaughtCount.incrementAndGet() == context.sourcesCount
+				&& context.terminated.compareAndSet(false, true)) {
 				if (completion instanceof UserUnsubscription userUnsubscription) {
 					Unsubscription realUnsubscription = userUnsubscription.realUnsubscription();
 					parent().complete(realUnsubscription);
@@ -116,7 +132,8 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 	private record SharedContext(int sourcesCount,
 								 Subscription generalSubscription,
 								 List<Subscription> subscriptions,
-								 AtomicInteger completedCaughtCount) {
+								 AtomicInteger completedCaughtCount,
+								 AtomicBoolean terminated) {
 
 	}
 

@@ -26,6 +26,17 @@ public class SubscriptionContractTest {
 	}
 
 	@Test
+	public void finiteRequestAfterUnboundedRequestIsIgnored() {
+		TrackingSubscription subscription = new TrackingSubscription();
+
+		subscription.requestUnbounded();
+		subscription.request(10);
+
+		assertEquals(1, subscription.unboundedRequests.get());
+		assertEquals(0, subscription.finiteRequests.get());
+	}
+
+	@Test
 	public void concurrentUnboundedRequestsInvokeHookOnce() throws Exception {
 		int threadCount = 16;
 		TrackingSubscription subscription = new TrackingSubscription();
@@ -127,11 +138,13 @@ public class SubscriptionContractTest {
 	private static final class TrackingSubscription extends Subscription {
 
 		private final AtomicInteger unboundedRequests = new AtomicInteger();
+		private final AtomicInteger finiteRequests = new AtomicInteger();
 		private final AtomicInteger cancellations = new AtomicInteger();
 		private final AtomicReference<Unsubscription> unsubscription = new AtomicReference<>();
 
 		@Override
 		protected void onRequest(long count) {
+			finiteRequests.incrementAndGet();
 		}
 
 		@Override

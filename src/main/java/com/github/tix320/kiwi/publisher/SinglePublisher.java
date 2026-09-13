@@ -8,27 +8,37 @@ import java.util.function.Function;
 
 public final class SinglePublisher<T> extends BasePublisher<T> {
 
-	private volatile PublishSignal<T> regularValue;
-	private volatile PublishSignal<T> valueDuringFreeze;
+	private final Function<? super T, ? extends T> publicationMapper;
+
+	private volatile T regularValue;
+	private volatile T valueDuringFreeze;
+	private volatile PublishSignal<T> regularSignal;
+
 	private volatile int freezeCounter = 0;
 
 	public SinglePublisher() {
+		this.publicationMapper = Function.identity();
 	}
 
 	public SinglePublisher(T initialValue) {
-		Objects.requireNonNull(initialValue);
-		publish(initialValue);
+		this(initialValue, Function.identity());
+	}
+
+	public SinglePublisher(T initialValue, Function<? super T, ? extends T> publicationMapper) {
+		this.publicationMapper = Objects.requireNonNull(publicationMapper);
+		publish(Objects.requireNonNull(initialValue));
 	}
 
 	@Override
 	protected void onPublish(T item) {
 		Objects.requireNonNull(item);
 
-		var signal = new PublishSignal<>(item);
 		if (freezeCounter > 0) {
-			valueDuringFreeze = signal;
+			valueDuringFreeze = item;
 		} else {
-			regularValue = signal;
+			PublishSignal<T> signal = new PublishSignal<>(publicationMapper.apply(item));
+			regularValue = item;
+			regularSignal = signal;
 		}
 	}
 
@@ -40,13 +50,13 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 
 			@Override
 			public boolean hasNext() {
-				var value = regularValue;
+				var value = regularSignal;
 				return value != null && value != lastValue;
 			}
 
 			@Override
 			public PublishSignal<T> next() {
-				var value = regularValue;
+				var value = regularSignal;
 				if (value == null || value == lastValue) {
 					return null;
 				}
@@ -72,14 +82,13 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 			freezeCounter--;
 
 			if (freezeCounter == 0) {
-				PublishSignal<T> ref = valueDuringFreeze;
+				T ref = valueDuringFreeze;
 				valueDuringFreeze = null;
-				if (ref != null) {
-					publish(ref.getItem());
+				if (ref != null && !isClosed()) {
+					publish(ref);
 				}
 			}
 		}
-
 	}
 
 	public boolean CASPublish(T expected, T newValue) {
@@ -90,8 +99,7 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
 			}
 
-			PublishSignal<T> valueSignal = regularValue;
-			T currentValue = valueSignal == null ? null : valueSignal.getItem();
+			T currentValue = currentValue();
 
 			if (Objects.equals(currentValue, expected)) {
 				publish(newValue);
@@ -108,25 +116,28 @@ public final class SinglePublisher<T> extends BasePublisher<T> {
 				throw new PublisherClosedException("Publisher is already closed, items publishing is prohibited");
 			}
 
-			PublishSignal<T> valueSignal = regularValue;
-			if (valueSignal == null) {
+			T currentValue = currentValue();
+			if (currentValue == null) {
 				return null;
 			}
 
-			var modifyResult = function.apply(valueSignal.getItem());
+			var modifyResult = function.apply(currentValue);
 			if (modifyResult.republish()) {
-				publish(valueSignal.getItem());
+				publish(currentValue);
 			}
 			return modifyResult.data();
 		}
 	}
 
-	public T getValue() {
-		var valueSignal = regularValue;
-		if (valueSignal == null) {
-			return null;
+	private T currentValue() {
+		if (freezeCounter > 0 && valueDuringFreeze != null) {
+			return valueDuringFreeze;
 		}
-		return valueSignal.getItem();
+		return regularValue;
+	}
+
+	public T getValue() {
+		return regularValue;
 	}
 
 	public record ModifyResult<R>(R data, boolean republish) {

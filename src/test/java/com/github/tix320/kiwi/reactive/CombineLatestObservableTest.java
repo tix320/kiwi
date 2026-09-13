@@ -3,12 +3,15 @@ package com.github.tix320.kiwi.reactive;
 import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
 import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.observable.Observable;
+import com.github.tix320.kiwi.observable.Completion;
+import com.github.tix320.kiwi.observable.FlexibleSubscriber;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.utils.SchedulerUtils;
 import com.github.tix320.skimp.collection.Tuple;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +65,23 @@ public class CombineLatestObservableTest {
 		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void emptySourceCompletesWithoutInternalCancellationFailure() throws InterruptedException {
+		List<Completion> completions = new CopyOnWriteArrayList<>();
+		Publisher<Integer> publisher = Publisher.simple();
+
+		Observable.combineLatest(Observable.<Integer>empty(), publisher.asObservable())
+			.subscribe(new FlexibleSubscriber<>() {
+				@Override
+				public void onComplete(Completion completion) {
+					completions.add(completion);
+				}
+			});
+
+		SchedulerUtils.awaitTermination();
+		assertEquals(1, completions.size());
 	}
 
 }

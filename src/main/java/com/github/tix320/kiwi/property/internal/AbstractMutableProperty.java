@@ -5,6 +5,7 @@ import com.github.tix320.kiwi.property.FreezeableProperty;
 import com.github.tix320.kiwi.property.MutableProperty;
 import com.github.tix320.kiwi.publisher.PublisherClosedException;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
+import java.util.function.Function;
 
 /**
  * @author Tigran Sargsyan on 19-Apr-20.
@@ -19,6 +20,10 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 
 	public AbstractMutableProperty(T value) {
 		this.publisher = new SinglePublisher<>(value);
+	}
+
+	public AbstractMutableProperty(T value, Function<? super T, ? extends T> publicationMapper) {
+		this.publisher = new SinglePublisher<>(value, publicationMapper);
 	}
 
 	@Override

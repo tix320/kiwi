@@ -50,9 +50,12 @@ public final class TakeLimitedObservable<T> extends Observable<T> {
 					return;
 				}
 
-				subscriber.publish(item);
-				if (remaining == 1) {
-					subscription().cancel(LIMIT_UNSUBSCRIPTION);
+				try {
+					subscriber.publish(item);
+				} finally {
+					if (remaining == 1) {
+						subscription().cancel(LIMIT_UNSUBSCRIPTION);
+					}
 				}
 			}
 

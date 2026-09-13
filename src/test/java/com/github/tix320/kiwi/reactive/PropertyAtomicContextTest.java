@@ -11,6 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -96,6 +99,42 @@ public class PropertyAtomicContextTest {
 		SchedulerUtils.awaitTermination();
 
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void checkedExceptionIsRethrownWithoutWrapping() {
+		ObjectProperty<Integer> property = Property.forObject();
+		Exception expected = new Exception("Expected test failure");
+
+		Exception actual = assertThrows(Exception.class, () -> Property.updateAtomic(property, () -> {
+			throw expected;
+		}));
+
+		assertSame(expected, actual);
+	}
+
+	@Test
+	public void errorPassesThroughWithoutWrapping() {
+		ObjectProperty<Integer> property = Property.forObject();
+		AssertionError expected = new AssertionError("Expected test failure");
+
+		AssertionError actual = assertThrows(AssertionError.class, () -> Property.updateAtomic(property, () -> {
+			throw expected;
+		}));
+
+		assertSame(expected, actual);
+	}
+
+	@Test
+	public void unfreezeIsSafeAfterPropertyWasClosed() {
+		ObjectProperty<Integer> property = Property.forObject(1);
+		property.freeze();
+		property.setValue(2);
+		property.close();
+
+		assertDoesNotThrow(property::unfreeze);
+		assertDoesNotThrow(property::unfreeze);
+		assertEquals(1, property.getValue());
 	}
 
 }

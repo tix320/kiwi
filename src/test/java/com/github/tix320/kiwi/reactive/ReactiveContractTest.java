@@ -14,6 +14,9 @@ import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
 import com.github.tix320.kiwi.observable.scheduler.Scheduler;
+import com.github.tix320.kiwi.observable.signal.CancelSignal;
+import com.github.tix320.kiwi.observable.signal.CompleteSignal;
+import com.github.tix320.kiwi.observable.signal.ErrorSignal;
 import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.time.Duration;
@@ -121,10 +124,67 @@ public class ReactiveContractTest {
 	}
 
 	@Test
+	public void closedEmptyPublisherCompletesLateSubscriberWithoutDemand() throws Exception {
+		Publisher<Integer> publisher = Publisher.simple();
+		publisher.complete();
+		List<Completion> completions = new CopyOnWriteArrayList<>();
+
+		publisher.asObservable().subscribe(new Subscriber<>() {
+			@Override
+			protected void onSubscribe(Subscription subscription) {
+			}
+
+			@Override
+			protected void onNext(Integer item) {
+			}
+
+			@Override
+			protected void onComplete(Completion completion) {
+				completions.add(completion);
+			}
+		});
+
+		SchedulerUtils.awaitTermination();
+		assertEquals(1, completions.size());
+	}
+
+	@Test
 	public void nullItemsAreRejected() {
 		Publisher<Object> publisher = Publisher.simple();
 		assertThrows(NullPointerException.class, () -> publisher.publish(null));
 		assertThrows(NullPointerException.class, () -> Observable.of((Object) null));
+	}
+
+	@Test
+	public void nullControlValuesAreRejectedBeforeStateChanges() {
+		Subscriber<Object> subscriber = new FlexibleSubscriber<>() {};
+		assertThrows(NullPointerException.class, () -> subscriber.setSubscription(null));
+
+		Subscription subscription = new Subscription() {
+			@Override
+			protected void onRequest(long count) {
+			}
+
+			@Override
+			protected void onUnboundRequest() {
+			}
+
+			@Override
+			protected void onCancel(Unsubscription unsubscription) {
+			}
+		};
+		subscriber.setSubscription(subscription);
+
+		assertThrows(NullPointerException.class, () -> subscriber.complete(null));
+		assertThrows(NullPointerException.class, () -> subscription.cancel(null));
+
+		Publisher<Object> publisher = Publisher.simple();
+		assertThrows(NullPointerException.class, () -> publisher.complete(null));
+		assertThrows(NullPointerException.class, () -> publisher.abort(null));
+		assertThrows(NullPointerException.class, () -> new CompleteSignal(null));
+		assertThrows(NullPointerException.class, () -> new CancelSignal(null));
+		assertThrows(NullPointerException.class, () -> new ErrorSignal(null));
+		publisher.publish(new Object());
 	}
 
 	@Test
@@ -170,7 +230,38 @@ public class ReactiveContractTest {
 	}
 
 	@Test
-	public void terminalCallbackExceptionDoesNotRescheduleWorker() {
+	public void takeCancelsAtLimitWhenDownstreamCallbackFails() {
+		Scheduler previous = KiwiSchedulerHolder.get();
+		CapturingScheduler scheduler = new CapturingScheduler();
+		KiwiSchedulerHolder.changeTo(scheduler);
+		try {
+			AtomicBoolean completed = new AtomicBoolean(false);
+			Observable.of(1, 2).take(1).subscribe(new Subscriber<>() {
+				@Override
+				protected void onSubscribe(Subscription subscription) {
+					subscription.requestUnbounded();
+				}
+
+				@Override
+				protected void onNext(Integer item) {
+					throw new IllegalStateException("Expected test failure");
+				}
+
+				@Override
+				protected void onComplete(Completion completion) {
+					completed.set(true);
+				}
+			});
+
+			assertEquals(true, completed.get());
+			assertEquals(1, scheduler.failures.size());
+		} finally {
+			KiwiSchedulerHolder.changeTo(previous);
+		}
+	}
+
+	@Test
+	public void terminalCallbackExceptionReschedulesWorker() {
 		Scheduler previous = KiwiSchedulerHolder.get();
 		CapturingScheduler scheduler = new CapturingScheduler();
 		KiwiSchedulerHolder.changeTo(scheduler);
@@ -195,7 +286,7 @@ public class ReactiveContractTest {
 
 			assertEquals(true, completed.get());
 			assertEquals(1, scheduler.failures.size());
-			assertEquals(1, scheduler.scheduledTasks.get());
+			assertEquals(2, scheduler.scheduledTasks.get());
 		} finally {
 			KiwiSchedulerHolder.changeTo(previous);
 		}

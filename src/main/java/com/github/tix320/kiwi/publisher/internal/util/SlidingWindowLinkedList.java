@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class SlidingWindowLinkedList<E> {
 
+	private static final int MAX_SNAPSHOT_INITIAL_CAPACITY = 10_000;
+
 	// VarHandle mechanics
 	private static final VarHandle HEAD_HANDLE;
 	private static final VarHandle TAIL_HANDLE;
@@ -56,12 +58,13 @@ public class SlidingWindowLinkedList<E> {
 	}
 
 	public List<E> getSnapshot() {
-		List<E> result = new ArrayList<>(windowSize);
+		List<E> result = new ArrayList<>(Math.min(windowSize, MAX_SNAPSHOT_INITIAL_CAPACITY));
 		int count = 0;
 		var curr = _head._next;
 		while (curr != null && count < windowSize) {
 			result.add(curr.value);
 			curr = curr._next;
+			count++;
 		}
 
 		return result;

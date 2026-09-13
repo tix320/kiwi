@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.property;
 
 import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -9,7 +10,7 @@ import java.util.function.Function;
 public final class MapProperty<K, V> extends AbstractMutableProperty<Map<K, V>> {
 
 	public MapProperty(Map<K, V> map) {
-		super(map);
+		super(map, Collections::unmodifiableMap);
 	}
 
 	public boolean containsKey(K key) {

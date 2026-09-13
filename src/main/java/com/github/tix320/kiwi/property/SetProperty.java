@@ -3,6 +3,7 @@ package com.github.tix320.kiwi.property;
 import com.github.tix320.kiwi.property.internal.AbstractMutableProperty;
 import com.github.tix320.kiwi.publisher.SinglePublisher;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Set;
 public final class SetProperty<T> extends AbstractMutableProperty<Set<T>> {
 
 	public SetProperty(Set<T> set) {
-		super(set);
+		super(set, Collections::unmodifiableSet);
 	}
 
 	public boolean contains(T key) {

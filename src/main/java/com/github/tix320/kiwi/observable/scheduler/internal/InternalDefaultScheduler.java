@@ -8,7 +8,6 @@ import com.github.tix320.skimp.thread.tracer.TrackableScheduledExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -19,9 +18,9 @@ public final class InternalDefaultScheduler implements Scheduler {
 		new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
 							   Runtime.getRuntime().availableProcessors() * 4,
 							   2, TimeUnit.MINUTES,
-							   new LinkedBlockingQueue<>(1000),
+							   new LinkedBlockingQueue<>(),
 							   new DefaultSchedulerThreadFactory("Kiwi-Default-Scheduler"),
-							   new RejectionHandler()));
+							   new ThreadPoolExecutor.DiscardPolicy()));
 
 	private final ScheduledExecutorService scheduledExecutorService = TrackableScheduledExecutorService.wrap(
 		Executors.newSingleThreadScheduledExecutor(
@@ -60,29 +59,6 @@ public final class InternalDefaultScheduler implements Scheduler {
 		var mainTerminated = executorService.awaitTermination(timeout, unit);
 		var delayedTerminated = scheduledExecutorService.awaitTermination(timeout, unit);
 		return mainTerminated && delayedTerminated;
-	}
-
-	private static final class RejectionHandler implements RejectedExecutionHandler {
-
-		@Override
-		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-			if (executor.isTerminating() || executor.isTerminated()) {
-				System.err.printf("WARNING: Kiwi Internal Scheduler is terminated. New tasks will be dropped %n");
-				return;
-			}
-
-			Thread currentThread = Thread.currentThread();
-			System.err.printf("WARNING: Kiwi Internal Scheduler is full. Retrying after sleep of 500 ms[%s]%n",
-							  currentThread);
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException exception) {
-				Thread.currentThread().interrupt();
-				return;
-			}
-			executor.execute(r);
-		}
-
 	}
 
 }

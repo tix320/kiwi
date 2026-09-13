@@ -1,5 +1,7 @@
 package com.github.tix320.kiwi.observable;
 
+import java.util.Objects;
+
 /**
  * @author Tigran Sargsyan on 21-Feb-19
  */
@@ -28,6 +30,9 @@ public abstract class Subscription {
 			if (cancelled) {
 				throw new IllegalStateException("Subscription is already cancelled");
 			}
+			if (unboundedRequested) {
+				return;
+			}
 
 			onRequest(n);
 		}
@@ -51,6 +56,7 @@ public abstract class Subscription {
 	 * Unsubscribe from observable passing {@link Unsubscription} instance.
 	 */
 	public final void cancel(Unsubscription unsubscription) {
+		Objects.requireNonNull(unsubscription, "Unsubscription must not be null");
 		synchronized (lock) {
 			if (cancelled) {
 				return;

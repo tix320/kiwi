@@ -86,6 +86,7 @@ public abstract class Subscriber<T> {
 	}
 
 	public final void setSubscription(Subscription sub) throws SubscriberCallbackException {
+		Objects.requireNonNull(sub, "Subscription must not be null");
 		setConcurrencyFlag(SET_SUB);
 		try {
 			boolean changed = SUB_HANDLE.compareAndSet(this, INITIAL_STATE, sub);
@@ -129,6 +130,7 @@ public abstract class Subscriber<T> {
 	}
 
 	public final void complete(Completion completion) {
+		Objects.requireNonNull(completion, "Completion must not be null");
 		setConcurrencyFlag(COMPLETE);
 		try {
 			SUB_HANDLE.updateAndGet(this, s -> {

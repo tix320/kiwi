@@ -3,7 +3,6 @@ package com.github.tix320.kiwi.property;
 import com.github.tix320.kiwi.observable.ObservableCandidate;
 import com.github.tix320.skimp.collection.map.MutableBiMap;
 import com.github.tix320.skimp.exception.ExceptionUtils;
-import com.github.tix320.skimp.function.CheckedRunnable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -45,32 +44,32 @@ public interface Property<T> extends ObservableCandidate<T> {
 
 	// ---------- Atomic helper ----------
 
-	static void updateAtomic(FreezeableProperty property, CheckedRunnable runnable) {
+	static void updateAtomic(FreezeableProperty property, CheckedAction runnable) {
 		updateAtomic(runnable, List.of(property));
 	}
 
-	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, CheckedRunnable runnable) {
+	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, CheckedAction runnable) {
 		updateAtomic(runnable, List.of(property1, property2));
 	}
 
 	static void updateAtomic(FreezeableProperty property1, FreezeableProperty property2, FreezeableProperty property3,
-							 CheckedRunnable runnable) {
+							 CheckedAction runnable) {
 		updateAtomic(runnable, List.of(property1, property2, property3));
 	}
 
-	static void updateAtomic(Collection<FreezeableProperty> properties, CheckedRunnable runnable) {
+	static void updateAtomic(Collection<FreezeableProperty> properties, CheckedAction runnable) {
 		updateAtomic(runnable, properties);
 	}
 
-	private static void updateAtomic(CheckedRunnable runnable, Collection<FreezeableProperty> properties) {
+	private static void updateAtomic(CheckedAction runnable, Collection<FreezeableProperty> properties) {
 		for (FreezeableProperty property : properties) {
 			property.freeze();
 		}
 
 		try {
 			runnable.run();
-		} catch (Throwable throwable) {
-			ExceptionUtils.sneakyThrow(throwable);
+		} catch (Exception exception) {
+			ExceptionUtils.sneakyThrow(exception);
 		} finally {
 			for (FreezeableProperty property : properties) {
 				property.unfreeze();

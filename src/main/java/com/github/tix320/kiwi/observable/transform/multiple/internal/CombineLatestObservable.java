@@ -19,6 +19,8 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 	private static final SourceCompletion COMPLETED_BY_ONE_WITH_NO_ITEMS =
 		new SourceCompletion("COMPLETED_BY_ONE_WITH_NO_ITEMS");
+	private static final Unsubscription UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS =
+		new Unsubscription("COMBINE_LATEST_ONE_WITH_NO_ITEMS");
 
 	private final List<Observable<? extends T>> observables;
 
@@ -42,9 +44,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 			@Override
 			protected void onUnboundRequest() {
-				for (Subscription subscription : subscriptions) {
-					subscription.requestUnbounded();
-				}
+				SubscriptionUtils.requestUnboundedAll(subscriptions);
 			}
 
 			@Override
@@ -68,8 +68,12 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 			subscribers.add(sub);
 		}
 
-		for (int i = 0; i < observables.size(); i++) {
-			observables.get(i).subscribe(subscribers.get(i));
+		try {
+			for (int i = 0; i < observables.size(); i++) {
+				observables.get(i).subscribe(subscribers.get(i));
+			}
+		} catch (Exception exception) {
+			SubscriptionUtils.rollback(subscriptions, exception);
 		}
 	}
 
@@ -118,19 +122,17 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 				if (compCount == context.sourcesCount()) {
 					parent().complete(ALL_COMPLETED);
 				} else if (itemHolder.isEmpty()) {
-					SubscriptionUtils.cancelAll(context.subscriptions, Unsubscription.DEFAULT);
-					parent().complete(COMPLETED_BY_ONE_WITH_NO_ITEMS);
+					SubscriptionUtils.cancelAllThen(context.subscriptions,
+						UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS,
+						() -> parent().complete(COMPLETED_BY_ONE_WITH_NO_ITEMS));
 				}
-			} else {
-				if (!(completion instanceof UserUnsubscription userUnsubscription)) {
-					throw new IllegalStateException("Unexpected completion from source in combineLatest: "
-													+ completion);
-				}
-
+			} else if (completion instanceof UserUnsubscription userUnsubscription) {
 				if (compCount == context.sourcesCount()) {
 					var realUnsubscription = userUnsubscription.realUnsubscription();
 					parent().complete(realUnsubscription);
 				}
+			} else if (completion != UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS) {
+				throw new IllegalStateException("Unexpected completion from source in combineLatest: " + completion);
 			}
 		}
 

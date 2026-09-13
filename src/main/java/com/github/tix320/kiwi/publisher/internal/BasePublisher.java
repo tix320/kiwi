@@ -53,6 +53,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	@Override
 	public final void complete(SourceCompletion sourceCompletion) {
+		Objects.requireNonNull(sourceCompletion, "Source completion must not be null");
 		synchronized (lock) {
 			if (isClosed()) {
 				throw new PublisherClosedException("Publisher is already closed, completion is prohibited");
@@ -67,6 +68,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	@Override
 	public final void abort(Throwable throwable) {
+		Objects.requireNonNull(throwable, "Abort failure must not be null");
 		synchronized (lock) {
 			if (isClosed()) {
 				throw new PublisherClosedException("Publisher is already closed, abortion is prohibited");
@@ -115,6 +117,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 				throw exception;
 			}
 
+			subscription.doAction();
 			subscription.activate();
 		}
 

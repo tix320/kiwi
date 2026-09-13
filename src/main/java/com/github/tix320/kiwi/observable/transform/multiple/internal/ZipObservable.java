@@ -40,16 +40,12 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 			@Override
 			protected void onRequest(long count) {
-				for (Subscription subscription : subscriptions) {
-					subscription.request(count);
-				}
+				SubscriptionUtils.requestAll(subscriptions, count);
 			}
 
 			@Override
 			protected void onUnboundRequest() {
-				for (Subscription subscription : subscriptions) {
-					subscription.requestUnbounded();
-				}
+				SubscriptionUtils.requestUnboundedAll(subscriptions);
 			}
 
 			@Override
@@ -72,8 +68,12 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 			subscribers.add(sub);
 		}
 
-		for (int i = 0; i < observables.size(); i++) {
-			observables.get(i).subscribe(subscribers.get(i));
+		try {
+			for (int i = 0; i < observables.size(); i++) {
+				observables.get(i).subscribe(subscribers.get(i));
+			}
+		} catch (Exception exception) {
+			SubscriptionUtils.rollback(subscriptions, exception);
 		}
 
 	}
@@ -123,9 +123,9 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 			parent().publish(zip);
 
 			if (someSourceEnded) {
-				SubscriptionUtils.cancelAll(context.subscriptions,
-					UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
-				parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED);
+				SubscriptionUtils.cancelAllThen(context.subscriptions,
+					UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
+					() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
 			}
 		}
 
@@ -138,9 +138,9 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 				if (compCount == context.sourcesCount()) {
 					parent().complete(ALL_COMPLETED);
 				} else if (source.isEmpty()) {
-					SubscriptionUtils.cancelAll(context.subscriptions,
-						UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED);
-					parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED);
+					SubscriptionUtils.cancelAllThen(context.subscriptions,
+						UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
+						() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
 				}
 			} else if (completion instanceof UserUnsubscription userUnsubscription) {
 				if (compCount == context.sourcesCount()) {

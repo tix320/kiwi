@@ -12,6 +12,7 @@ import com.github.tix320.kiwi.observable.signal.SignalSynchronizer.Token;
 import com.github.tix320.kiwi.publisher.internal.util.SlidingWindowLinkedList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Tigran Sargsyan on 24.02.25
@@ -35,6 +36,12 @@ public class StaticValuesObservable<T> extends Observable<T> {
 		var slider = list.slider();
 
 		Token token = subscriber.createToken();
+		AtomicBoolean completionProduced = new AtomicBoolean(false);
+		Runnable completeIfNeeded = () -> {
+			if (completionProduced.compareAndSet(false, true)) {
+				token.addSignal(new CompleteSignal(SourceCompletion.DEFAULT));
+			}
+		};
 
 		subscriber.setSubscription(new Subscription() {
 			@Override
@@ -43,7 +50,7 @@ public class StaticValuesObservable<T> extends Observable<T> {
 					token.addSignal(new PublishSignal<>(slider.next()));
 				}
 				if (!slider.hasNext()) {
-					token.addSignal(new CompleteSignal(SourceCompletion.DEFAULT));
+					completeIfNeeded.run();
 				}
 			}
 
@@ -52,7 +59,7 @@ public class StaticValuesObservable<T> extends Observable<T> {
 				while (slider.hasNext()) {
 					token.addSignal(new PublishSignal<>(slider.next()));
 				}
-				token.addSignal(new CompleteSignal(SourceCompletion.DEFAULT));
+				completeIfNeeded.run();
 			}
 
 			@Override
@@ -61,6 +68,9 @@ public class StaticValuesObservable<T> extends Observable<T> {
 			}
 		});
 
+		if (values.isEmpty()) {
+			completeIfNeeded.run();
+		}
 		token.activate();
 	}
 

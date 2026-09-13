@@ -127,9 +127,7 @@ public final class SignalSynchronizer {
 					subscriber.complete(cancelSignal.unsubscription());
 				}
 			} catch (Exception exception) {
-				if (!terminal) {
-					tryRunWorker();
-				}
+				tryRunWorker();
 				throw exception;
 			} finally {
 				if (terminal) {
