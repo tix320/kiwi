@@ -20,7 +20,7 @@ dependencies {
 <dependency>
     <groupId>com.github.tix320</groupId>
     <artifactId>kiwi</artifactId>
-    <version>2.4.0</version>
+    <version>3.0.0</version>
 </dependency>
 ```
 

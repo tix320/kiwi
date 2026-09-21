@@ -44,7 +44,7 @@ javadoc {
 }
 
 group = 'com.github.tix320'
-version = '2.4.0'
+version = '3.0.0'
 
 sonatypeUsername = findProperty("sonatypeUsername")
 sonatypePassword = findProperty("sonatypePassword")
