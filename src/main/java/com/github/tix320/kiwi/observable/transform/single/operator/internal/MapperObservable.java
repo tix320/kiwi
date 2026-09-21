@@ -5,6 +5,7 @@ import com.github.tix320.kiwi.observable.MinorSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -17,8 +18,8 @@ public final class MapperObservable<S, R> extends Observable<R> {
 	private final Function<? super S, ? extends R> mapper;
 
 	public MapperObservable(Observable<S> observable, Function<? super S, ? extends R> mapper) {
-		this.observable = observable;
-		this.mapper = mapper;
+		this.observable = Objects.requireNonNull(observable);
+		this.mapper = Objects.requireNonNull(mapper);
 	}
 
 	@Override
@@ -31,7 +32,14 @@ public final class MapperObservable<S, R> extends Observable<R> {
 
 			@Override
 			public void onNext(S item) {
-				subscriber.publish(mapper.apply(item));
+				R mapped;
+				try {
+					mapped = Objects.requireNonNull(mapper.apply(item), "Mapper result must not be null");
+				} catch (Exception exception) {
+					replaceDemandAndRethrow(exception);
+					return;
+				}
+				subscriber.publish(mapped);
 			}
 
 			@Override

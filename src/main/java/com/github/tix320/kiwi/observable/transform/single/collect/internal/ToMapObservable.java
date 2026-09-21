@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.observable.transform.single.collect.internal;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -19,8 +20,8 @@ public final class ToMapObservable<T, K, V> extends CollectorObservable<T, Map<K
 	public ToMapObservable(Observable<T> observable, Function<? super T, ? extends K> keyMapper,
 						   Function<? super T, ? extends V> valueMapper) {
 		super(observable);
-		this.keyMapper = keyMapper;
-		this.valueMapper = valueMapper;
+		this.keyMapper = Objects.requireNonNull(keyMapper);
+		this.valueMapper = Objects.requireNonNull(valueMapper);
 	}
 
 	@Override

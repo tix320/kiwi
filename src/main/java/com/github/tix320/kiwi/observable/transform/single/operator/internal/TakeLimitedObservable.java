@@ -7,6 +7,7 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -26,7 +27,7 @@ public final class TakeLimitedObservable<T> extends Observable<T> {
 		if (count < 0) {
 			throw new IllegalArgumentException("Count must not be negative");
 		}
-		this.observable = observable;
+		this.observable = Objects.requireNonNull(observable);
 		this.count = count;
 	}
 

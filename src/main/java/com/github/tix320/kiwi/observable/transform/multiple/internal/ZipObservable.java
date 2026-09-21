@@ -7,10 +7,12 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
+import com.github.tix320.skimp.exception.ExceptionUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ZipObservable<T> extends Observable<List<T>> {
@@ -58,7 +60,8 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 		int sourcesCount = observables.size();
 		List<Source<T>> sources = new ArrayList<>(sourcesCount);
 
-		var sharedContext = new SharedContext<>(generalSubscription, sources, subscriptions, new AtomicInteger(0));
+		var sharedContext = new SharedContext<>(generalSubscription, sources, subscriptions, new AtomicInteger(0),
+			new AtomicBoolean(false));
 
 		List<Subscriber<T>> subscribers = new ArrayList<>(sourcesCount);
 		for (int i = 0; i < sourcesCount; i++) {
@@ -100,6 +103,9 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 
 		@Override
 		public void onNext(T item) {
+			if (context.terminated.get()) {
+				return;
+			}
 			source.items.add(item);
 			boolean notAllReady = context.sources.stream().anyMatch(Source::isEmpty);
 
@@ -120,35 +126,67 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 				}
 			}
 
-			parent().publish(zip);
+			Exception failure = null;
+			try {
+				parent().publish(List.copyOf(zip));
+			} catch (Exception exception) {
+				failure = exception;
+			}
 
-			if (someSourceEnded) {
-				SubscriptionUtils.cancelAllThen(context.subscriptions,
-					UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
-					() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
+			if (someSourceEnded && context.terminated.compareAndSet(false, true)) {
+				try {
+					SubscriptionUtils.cancelAllThen(context.subscriptions,
+						UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
+						() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
+				} catch (Exception exception) {
+					if (failure == null) {
+						failure = exception;
+					} else {
+						failure.addSuppressed(exception);
+					}
+				}
+			}
+
+			if (failure != null) {
+				ExceptionUtils.sneakyThrow(failure);
 			}
 		}
 
 		@Override
 		public void onComplete(Completion completion) {
+			if (context.terminated.get()) {
+				return;
+			}
 			var compCount = context.completedCaughtCount.incrementAndGet();
 			source.completeCaught = true;
 
-			if (completion instanceof SourceCompletion) { // todo java 21 switch
-				if (compCount == context.sourcesCount()) {
-					parent().complete(ALL_COMPLETED);
-				} else if (source.isEmpty()) {
-					SubscriptionUtils.cancelAllThen(context.subscriptions,
-						UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
-						() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
+			switch (completion) {
+				case SourceCompletion ignored -> {
+					if (compCount == context.sourcesCount() && context.terminated.compareAndSet(false, true)) {
+						parent().complete(ALL_COMPLETED);
+					} else if (source.isEmpty() && context.terminated.compareAndSet(false, true)) {
+						SubscriptionUtils.cancelAllThen(context.subscriptions,
+							UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED,
+							() -> parent().complete(COMPLETED_BECAUSE_SOME_SOURCE_ENDED));
+					}
 				}
-			} else if (completion instanceof UserUnsubscription userUnsubscription) {
-				if (compCount == context.sourcesCount()) {
-					var realUnsubscription = userUnsubscription.realUnsubscription();
-					parent().complete(realUnsubscription);
+				case UserUnsubscription userUnsubscription -> {
+					if (compCount == context.sourcesCount() && context.terminated.compareAndSet(false, true)) {
+						parent().complete(userUnsubscription.realUnsubscription());
+					}
 				}
-			} else if (completion != UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED) {
-				throw new IllegalStateException("Unexpected completion from source in zip: " + completion);
+				case Unsubscription ignored -> {
+					if (completion != UNSUBSCRIPTION_BECAUSE_SOME_SOURCE_ENDED) {
+						throw new IllegalStateException("Unexpected completion from source in zip: " + completion);
+					}
+				}
+			}
+		}
+
+		@Override
+		protected void onError(Throwable error) {
+			if (context.terminated.compareAndSet(false, true)) {
+				SubscriptionUtils.failAll(context.subscriptions, parent(), error);
 			}
 		}
 
@@ -157,7 +195,8 @@ public final class ZipObservable<T> extends Observable<List<T>> {
 	private record SharedContext<T>(Subscription generalSubscription,
 									List<Source<T>> sources,
 									List<Subscription> subscriptions,
-									AtomicInteger completedCaughtCount) {
+									AtomicInteger completedCaughtCount,
+									AtomicBoolean terminated) {
 
 		private int sourcesCount() {
 			return sources.size();

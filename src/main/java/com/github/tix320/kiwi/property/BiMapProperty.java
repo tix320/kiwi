@@ -14,21 +14,21 @@ public final class BiMapProperty<K, V> extends AbstractMutableProperty<MutableBi
 	}
 
 	public void put(K key, V value) {
-		publisher.modifyValue(map -> {
+		modifyValue(map -> {
 			map.put(key, value);
 			return new ModifyResult<>(null, true);
 		});
 	}
 
 	public V remove(K key) {
-		return publisher.modifyValue(map -> {
+		return modifyValue(map -> {
 			var prevValue = map.remove(key);
 			return new ModifyResult<>(prevValue, prevValue != null);
 		});
 	}
 
 	public K removeInverse(V key) {
-		return publisher.modifyValue(map -> {
+		return modifyValue(map -> {
 			var prevValue = map.removeInverse(key);
 			return new ModifyResult<>(prevValue, prevValue != null);
 		});

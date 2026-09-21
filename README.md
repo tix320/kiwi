@@ -94,6 +94,11 @@ observable.subscribe(new FlexibleSubscriber<>() {
     }
 
     @Override
+    protected void onError(Throwable error) {
+        error.printStackTrace();
+    }
+
+    @Override
     public void onComplete(Completion completion) {
         System.out.println(completion);
     }
@@ -116,11 +121,20 @@ observable.subscribe(new Subscriber<>() {
     }
 
     @Override
+    protected void onError(Throwable error) {
+        error.printStackTrace();
+    }
+
+    @Override
     protected void onComplete(Completion completion) {
         System.out.println(completion);
     }
 });
 ```
+
+`onError` receives explicit source failures and is terminal. Exceptions thrown
+by subscriber callbacks or operator functions are reported separately as
+callback failures and do not terminate the stream.
 
 ## Operators
 

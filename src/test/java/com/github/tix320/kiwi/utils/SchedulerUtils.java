@@ -20,8 +20,15 @@ public class SchedulerUtils {
 	}
 
 	public static void awaitTermination() throws InterruptedException {
-		Thread.sleep(100);
-		var scheduler = (InternalDefaultScheduler) KiwiSchedulerHolder.get();
+		var currentScheduler = KiwiSchedulerHolder.get();
+		if (currentScheduler instanceof TestScheduler testScheduler) {
+			assertThat(testScheduler.awaitIdle(Duration.ofSeconds(30)))
+				.isTrue()
+				.describedAs("Scheduler did not become idle after 30 seconds");
+			return;
+		}
+
+		var scheduler = (InternalDefaultScheduler) currentScheduler;
 		var terminated = scheduler.shutdownAndAwaitTermination(30, TimeUnit.SECONDS);
 		assertThat(terminated).isTrue().describedAs("Scheduler did not terminate after 30 seconds");
 	}

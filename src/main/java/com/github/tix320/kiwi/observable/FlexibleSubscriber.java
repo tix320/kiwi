@@ -16,22 +16,9 @@ public abstract class FlexibleSubscriber<T> extends Subscriber<T> {
 		// No-op
 	}
 
-	// @Override
-	// protected void onError(Throwable error) {
-	// 	ExceptionUtils.applyToUncaughtExceptionHandler(new UnhandledObservableException(error));
-	// }
-
 	@Override
 	public void onComplete(Completion completion) {
 		// No-op
-	}
-
-	private static final class UnhandledObservableException extends RuntimeException {
-
-		public UnhandledObservableException(Throwable cause) {
-			super(cause);
-		}
-
 	}
 
 }

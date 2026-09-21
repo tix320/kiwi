@@ -8,6 +8,7 @@ import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,8 +27,8 @@ public final class UntilObservable<T> extends Observable<T> {
 	private final Observable<?> untilSource;
 
 	public UntilObservable(Observable<T> mainSource, Observable<?> untilSource) {
-		this.mainSource = mainSource;
-		this.untilSource = untilSource;
+		this.mainSource = Objects.requireNonNull(mainSource);
+		this.untilSource = Objects.requireNonNull(untilSource);
 	}
 
 	@Override
@@ -92,6 +93,12 @@ public final class UntilObservable<T> extends Observable<T> {
 				() -> downstream.complete(SOURCE_COMPLETED_VIA_UNTIL));
 		}
 
+		private void fail(Throwable error) {
+			if (terminated.compareAndSet(false, true)) {
+				SubscriptionUtils.failAll(subscriptions, downstream, error);
+			}
+		}
+
 	}
 
 	private static final class UntilSubscriber<T> extends MinorSubscriber<Object, T> {
@@ -118,6 +125,11 @@ public final class UntilObservable<T> extends Observable<T> {
 			if (completion instanceof SourceCompletion) {
 				context.stopFromUntil();
 			}
+		}
+
+		@Override
+		protected void onError(Throwable error) {
+			context.fail(error);
 		}
 
 	}
@@ -158,6 +170,11 @@ public final class UntilObservable<T> extends Observable<T> {
 				SubscriptionUtils.cancelAllThen(List.of(context.untilSubscription), Unsubscription.DEFAULT,
 					() -> context.downstream.complete(completion));
 			}
+		}
+
+		@Override
+		protected void onError(Throwable error) {
+			context.fail(error);
 		}
 
 	}

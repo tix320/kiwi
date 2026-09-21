@@ -1,10 +1,13 @@
 package com.github.tix320.kiwi.observable.transform.multiple.internal;
 
 import com.github.tix320.kiwi.observable.Subscription;
+import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Unsubscription;
 import com.github.tix320.skimp.exception.ExceptionUtils;
 
 final class SubscriptionUtils {
+
+	private static final Unsubscription SOURCE_ERROR = new Unsubscription("MULTI_SOURCE_ERROR");
 
 	private SubscriptionUtils() {
 	}
@@ -38,6 +41,10 @@ final class SubscriptionUtils {
 		if (failure != null) {
 			ExceptionUtils.sneakyThrow(failure);
 		}
+	}
+
+	static void failAll(Iterable<Subscription> subscriptions, Subscriber<?> subscriber, Throwable error) {
+		cancelAllThen(subscriptions, SOURCE_ERROR, () -> subscriber.completeWithError(error));
 	}
 
 	private static Exception cancelAllAndGetFailure(

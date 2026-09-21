@@ -8,6 +8,7 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
+import java.util.Objects;
 
 /**
  * @author Tigran Sargsyan on 22-Feb-19
@@ -21,7 +22,7 @@ public final class OnceObservable<T> extends MonoObservable<T> {
 	private final Observable<T> observable;
 
 	public OnceObservable(Observable<T> observable) {
-		this.observable = observable;
+		this.observable = Objects.requireNonNull(observable);
 	}
 
 	@Override

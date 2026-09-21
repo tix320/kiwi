@@ -7,6 +7,8 @@ import com.github.tix320.kiwi.observable.SourceCompletion;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
 import com.github.tix320.kiwi.observable.Unsubscription;
+import com.github.tix320.skimp.exception.ExceptionUtils;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
@@ -19,7 +21,7 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 	private final Observable<S> observable;
 
 	CollectorObservable(Observable<S> observable) {
-		this.observable = observable;
+		this.observable = Objects.requireNonNull(observable);
 	}
 
 	@Override
@@ -55,10 +57,31 @@ public abstract class CollectorObservable<S, R> extends Observable<R> {
 
 			@Override
 			public void onComplete(Completion completion) {
-				if (completion instanceof SourceCompletion) {
-					subscriber.publish(collect(objects.stream()));
+				if (!(completion instanceof SourceCompletion)) {
+					subscriber.complete(completion);
+					return;
 				}
-				subscriber.complete(completion);
+
+				Exception failure = null;
+				try {
+					subscriber.publish(collect(objects.stream()));
+				} catch (Exception exception) {
+					failure = exception;
+				}
+
+				try {
+					subscriber.complete(completion);
+				} catch (Exception exception) {
+					if (failure == null) {
+						failure = exception;
+					} else {
+						failure.addSuppressed(exception);
+					}
+				}
+
+				if (failure != null) {
+					ExceptionUtils.sneakyThrow(failure);
+				}
 			}
 		}));
 	}

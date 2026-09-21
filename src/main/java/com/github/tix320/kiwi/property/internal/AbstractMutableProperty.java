@@ -66,6 +66,14 @@ public abstract class AbstractMutableProperty<T> implements MutableProperty<T>, 
 		publisher.unfreeze();
 	}
 
+	protected final <R> R modifyValue(Function<T, SinglePublisher.ModifyResult<R>> function) {
+		try {
+			return publisher.modifyValue(function);
+		} catch (PublisherClosedException exception) {
+			throw createClosedException();
+		}
+	}
+
 	private void publishValue(T value) {
 		try {
 			publisher.publish(value);

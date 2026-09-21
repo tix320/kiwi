@@ -15,12 +15,18 @@ the subscription through the subscriber's `onSubscribe` callback.
   `subscribe`, before `subscribe` returns.
 - `onSubscribe` MUST be called exactly once for a subscriber.
 - The subscription supplied to `onSubscribe` MUST NOT be `null`.
-- The subscriber MUST NOT receive an item or a completion signal before
+- The subscriber MUST NOT receive an item, completion, or error signal before
   `onSubscribe` has completed successfully.
 - If `onSubscribe` throws, the subscriber MUST NOT be registered with the
   observable. The failure MUST be propagated to the caller of `subscribe`.
 - A `Subscriber` instance accepts only one subscription. Reusing it for another
   subscription MUST fail.
+- Configuration objects and callbacks retained for later asynchronous use MUST
+  reject `null` when the operation is configured, rather than failing later
+  during signal processing.
+- Mutable state that controls one subscription MUST NOT be shared with another
+  subscription to the same observable unless that sharing is an explicit part
+  of the observable's contract.
 
 ## Items and demand
 
@@ -36,6 +42,9 @@ the subscription through the subscriber's `onSubscribe` callback.
 - A source MUST NOT call `onNext` more times than requested. Operators that
   consume an item without forwarding it MUST replace that unit of upstream
   demand.
+- When a user-supplied operator function fails while processing an item, the
+  operator MUST replace that unit of upstream demand before reporting the
+  callback failure.
 - Terminal completion is not subject to item demand. Once a source has no
   buffered items left to drain, it MUST deliver completion without waiting for
   another request.
@@ -48,9 +57,10 @@ the subscription through the subscriber's `onSubscribe` callback.
 - Subscriber callbacks within one pipeline MUST be serialized.
 - Signals from the same source with equal priority MUST be delivered in creation
   order.
-- Cancellation MUST take priority over queued item and source-completion
-  signals. Queued items MUST take priority over source completion so accepted
-  buffered items are drained before `onComplete`.
+- Cancellation MUST take priority over queued errors, items, and
+  source-completion signals. Errors MUST take priority over queued items. Queued
+  items MUST take priority over source completion so accepted buffered items
+  are drained before `onComplete`.
 - Across multiple sources, the synchronizer MUST select the oldest current
   source-head signal after applying each source's local priority ordering.
 - A terminal signal MUST remove its token and all remaining queued signals.
@@ -63,6 +73,24 @@ the subscription through the subscriber's `onSubscribe` callback.
 - A callback exception MUST NOT leave already-queued signals for other active
   subscriptions permanently unscheduled.
 - The library MUST NOT catch or wrap `Error` instances.
+
+## Error termination
+
+- An explicit source failure MUST be delivered through `onError` with the
+  original failure instance.
+- `onError` is terminal and mutually exclusive with `onComplete`. No callback
+  may follow it for the same subscription.
+- Competing completion, error, and cancellation attempts MUST produce exactly
+  one terminal callback for a subscription.
+- An `Exception` thrown by a subscriber callback or a user-supplied operator
+  function is a callback failure. It MUST be reported through the scheduler's
+  uncaught-exception path and MUST NOT be converted into `onError`. Later
+  signals MUST remain eligible for processing.
+- If a terminal aggregation callback fails, the operator MUST still attempt
+  downstream completion before reporting the callback failure.
+- When one source of a multi-source operation fails, the operation MUST cancel
+  every active source and terminate downstream through `onError` exactly once.
+- An error value MUST NOT be `null`.
 
 ## Cancellation
 
@@ -91,22 +119,35 @@ completion future or a blocking cancellation barrier.
   publication is discarded.
 - An atomic property update batches publications; it does not roll back
   mutations when its action fails.
-- A mutable collection property MUST retain and mutate its supplied collection.
-  Its current value is that collection, while values delivered to subscribers
-  MUST be unmodifiable views rather than defensive snapshots.
+- An atomic property update MUST unfreeze every property it successfully froze,
+  including when a later freeze or the update action fails. Cleanup MUST be
+  attempted for every such property.
+- If both an atomic update action and cleanup fail, the action failure MUST
+  remain primary and cleanup failures MUST be attached as suppressed
+  exceptions.
+- Every mutating operation on a closed property MUST fail with the property's
+  closed-state exception, regardless of whether the mutation replaces the
+  value or modifies a retained collection.
+- A mutable collection property MUST retain and mutate its supplied collection
+  rather than replacing it with defensive copies.
+- Whether subscribers receive a mutable or read-only view is part of the
+  property's declared observable type and MUST NOT be disguised behind a type
+  that promises mutation support.
 
 ## Publisher termination
 
 - A publisher MUST reject `publish`, `complete`, and `abort` after it has been
   closed.
+- Publisher completion and abort are mutually exclusive. If they race, exactly
+  one terminal state MUST win.
 - Completion values and explicitly published failures MUST NOT be `null`.
 - Any transformation required to prepare a published value MUST succeed before
   the new current and observable state is committed. A preparation failure MUST
   leave the previous state intact.
 - Source completion MUST drain already accepted buffered items according to
   demand before delivering `onComplete`.
-- Abort and error delivery are intentionally not specified yet. They will be
-  defined together with the subscriber error callback contract.
+- Aborting a publisher MUST terminate current and future subscribers through
+  `onError` with the supplied failure.
 
 ## Multi-source operator subscription
 
@@ -148,10 +189,19 @@ downstream observable.
   without an item.
 - A timeout or interruption MUST request cancellation before throwing. That
   cancellation is non-blocking and follows the normal cancellation race rules.
+- If the observable terminates with an error, a blocking helper MUST throw that
+  original failure.
 
 ## Timeout fallback
 
 - A timeout fallback starts its clock when the fallback observable is created,
   not when that observable is later subscribed.
+- A timeout duration MUST NOT be negative. Positive sub-millisecond durations
+  MUST retain their precision rather than being truncated to zero.
+- Each subscription MUST have independent timeout and cancellation state. One
+  subscriber's source result or cancellation MUST NOT disable another
+  subscriber's fallback.
 - The first item from either the source or fallback wins and the other source
   MUST be cancelled.
+- If the source wins before the fallback value factory starts, that factory
+  MUST NOT be invoked.

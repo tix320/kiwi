@@ -20,28 +20,28 @@ public final class SetProperty<T> extends AbstractMutableProperty<Set<T>> {
 	}
 
 	public boolean add(T value) {
-		return Boolean.TRUE.equals(publisher.modifyValue(set -> {
+		return Boolean.TRUE.equals(modifyValue(set -> {
 			var changed = set.add(value);
 			return new SinglePublisher.ModifyResult<>(changed, changed);
 		}));
 	}
 
 	public boolean addAll(Collection<? extends T> values) {
-		return Boolean.TRUE.equals(publisher.modifyValue(set -> {
+		return Boolean.TRUE.equals(modifyValue(set -> {
 			var changed = set.addAll(values);
 			return new SinglePublisher.ModifyResult<>(changed, changed);
 		}));
 	}
 
 	public boolean remove(T key) {
-		return Boolean.TRUE.equals(publisher.modifyValue(set -> {
+		return Boolean.TRUE.equals(modifyValue(set -> {
 			var changed = set.remove(key);
 			return new SinglePublisher.ModifyResult<>(changed, changed);
 		}));
 	}
 
 	public void clear() {
-		publisher.modifyValue(set -> {
+		modifyValue(set -> {
 			set.clear();
 			return new SinglePublisher.ModifyResult<>(null, true);
 		});

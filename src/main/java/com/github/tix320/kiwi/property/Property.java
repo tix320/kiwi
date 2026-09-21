@@ -4,8 +4,10 @@ import com.github.tix320.kiwi.observable.ObservableCandidate;
 import com.github.tix320.skimp.collection.map.MutableBiMap;
 import com.github.tix320.skimp.exception.ExceptionUtils;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public interface Property<T> extends ObservableCandidate<T> {
@@ -62,19 +64,54 @@ public interface Property<T> extends ObservableCandidate<T> {
 	}
 
 	private static void updateAtomic(CheckedAction runnable, Collection<FreezeableProperty> properties) {
-		for (FreezeableProperty property : properties) {
-			property.freeze();
+		Objects.requireNonNull(runnable);
+		List<FreezeableProperty> propertyList = List.copyOf(properties);
+		List<FreezeableProperty> frozenProperties = new ArrayList<>(propertyList.size());
+		try {
+			for (FreezeableProperty property : propertyList) {
+				property.freeze();
+				frozenProperties.add(property);
+			}
+		} catch (Exception exception) {
+			Exception cleanupFailure = unfreezeAll(frozenProperties);
+			if (cleanupFailure != null) {
+				exception.addSuppressed(cleanupFailure);
+			}
+			ExceptionUtils.sneakyThrow(exception);
 		}
 
+		Exception failure = null;
 		try {
 			runnable.run();
 		} catch (Exception exception) {
-			ExceptionUtils.sneakyThrow(exception);
+			failure = exception;
 		} finally {
-			for (FreezeableProperty property : properties) {
-				property.unfreeze();
+			Exception cleanupFailure = unfreezeAll(frozenProperties);
+			if (failure != null) {
+				if (cleanupFailure != null) {
+					failure.addSuppressed(cleanupFailure);
+				}
+				ExceptionUtils.sneakyThrow(failure);
+			} else if (cleanupFailure != null) {
+				ExceptionUtils.sneakyThrow(cleanupFailure);
 			}
 		}
+	}
+
+	private static Exception unfreezeAll(List<FreezeableProperty> properties) {
+		Exception failure = null;
+		for (int i = properties.size() - 1; i >= 0; i--) {
+			try {
+				properties.get(i).unfreeze();
+			} catch (Exception exception) {
+				if (failure == null) {
+					failure = exception;
+				} else {
+					failure.addSuppressed(exception);
+				}
+			}
+		}
+		return failure;
 	}
 
 }

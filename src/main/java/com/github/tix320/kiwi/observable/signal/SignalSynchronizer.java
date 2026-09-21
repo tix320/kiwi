@@ -117,14 +117,11 @@ public final class SignalSynchronizer {
 				|| signal instanceof CancelSignal
 				|| signal instanceof ErrorSignal;
 			try {
-				if (signal instanceof PublishSignal publishSignal) { // todo: java 21 switch
-					subscriber.publish(publishSignal.getItem());
-				} else if (signal instanceof CompleteSignal completeSignal) {
-					subscriber.complete(completeSignal.completion());
-				} else if (signal instanceof ErrorSignal errorSignal) {
-					// subscriber.completeWithError(errorSignal.error());
-				} else if (signal instanceof CancelSignal cancelSignal) {
-					subscriber.complete(cancelSignal.unsubscription());
+				switch (signal) {
+					case PublishSignal publishSignal -> subscriber.publish(publishSignal.getItem());
+					case CompleteSignal completeSignal -> subscriber.complete(completeSignal.completion());
+					case ErrorSignal errorSignal -> subscriber.completeWithError(errorSignal.error());
+					case CancelSignal cancelSignal -> subscriber.complete(cancelSignal.unsubscription());
 				}
 			} catch (Exception exception) {
 				tryRunWorker();

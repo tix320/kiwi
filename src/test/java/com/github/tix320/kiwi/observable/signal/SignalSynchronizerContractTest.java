@@ -1,6 +1,7 @@
 package com.github.tix320.kiwi.observable.signal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.tix320.kiwi.observable.Completion;
@@ -14,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 public class SignalSynchronizerContractTest {
@@ -46,6 +48,54 @@ public class SignalSynchronizerContractTest {
 			scheduler.runNext();
 
 			assertEquals(1, received.get());
+		} finally {
+			KiwiSchedulerHolder.changeTo(previousScheduler);
+		}
+	}
+
+	@Test
+	public void cancellationOutranksQueuedErrorAndItems() {
+		Scheduler previousScheduler = KiwiSchedulerHolder.get();
+		ManualScheduler scheduler = new ManualScheduler();
+		KiwiSchedulerHolder.changeTo(scheduler);
+		try {
+			SignalSynchronizer synchronizer = new SignalSynchronizer();
+			AtomicInteger items = new AtomicInteger();
+			AtomicInteger errors = new AtomicInteger();
+			AtomicReference<Completion> terminal = new AtomicReference<>();
+			Subscriber<Object> subscriber = new Subscriber<>() {
+				@Override
+				protected void onSubscribe(Subscription subscription) {
+				}
+
+				@Override
+				protected void onNext(Object item) {
+					items.incrementAndGet();
+				}
+
+				@Override
+				protected void onError(Throwable error) {
+					errors.incrementAndGet();
+				}
+
+				@Override
+				protected void onComplete(Completion completion) {
+					terminal.set(completion);
+				}
+			};
+			subscriber.setSubscription(new EmptySubscription());
+			SignalSynchronizer.Token token = synchronizer.createToken(subscriber);
+			Unsubscription cancellation = new Unsubscription("test");
+			token.addSignal(new PublishSignal<>("value"));
+			token.addSignal(new ErrorSignal(new IllegalStateException("failure")));
+			token.addSignal(new CancelSignal(cancellation));
+			token.activate();
+
+			scheduler.runNext();
+
+			assertSame(cancellation, terminal.get());
+			assertEquals(0, items.get());
+			assertEquals(0, errors.get());
 		} finally {
 			KiwiSchedulerHolder.changeTo(previousScheduler);
 		}

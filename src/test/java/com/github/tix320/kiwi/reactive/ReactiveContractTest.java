@@ -23,9 +23,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -188,6 +191,61 @@ public class ReactiveContractTest {
 	}
 
 	@Test
+	public void nullCallbacksAreRejectedWhenConfigured() {
+		Observable<Integer> source = Observable.of(1);
+
+		assertThrows(NullPointerException.class, () -> source.map(null));
+		assertThrows(NullPointerException.class, () -> source.filter(null));
+		assertThrows(NullPointerException.class, () -> source.takeWhile(null));
+		assertThrows(NullPointerException.class, () -> source.peek(null));
+		assertThrows(NullPointerException.class,
+			() -> source.toMap((Function<Integer, Integer>) null, Function.identity()));
+		assertThrows(NullPointerException.class,
+			() -> source.toMap(Function.identity(), (Function<Integer, Integer>) null));
+		assertThrows(NullPointerException.class,
+			() -> source.join((Function<Integer, String>) null, ","));
+		assertThrows(NullPointerException.class, () -> source.subscribe((Consumer<Integer>) null));
+		assertThrows(NullPointerException.class,
+			() -> source.waitAndApply(Duration.ofSeconds(1), null));
+		assertThrows(NullPointerException.class,
+			() -> source.getOnTimeout(Duration.ofSeconds(1), null));
+	}
+
+	@Test
+	public void competingTerminalOperationsDeliverExactlyOneTerminalCallback() throws Exception {
+		AtomicInteger terminalCallbacks = new AtomicInteger();
+		int iterations = 50;
+
+		for (int i = 0; i < iterations; i++) {
+			Publisher<Integer> publisher = Publisher.simple();
+			publisher.asObservable().subscribe(new FlexibleSubscriber<>() {
+				@Override
+				public void onComplete(Completion completion) {
+					terminalCallbacks.incrementAndGet();
+				}
+
+				@Override
+				protected void onError(Throwable error) {
+					terminalCallbacks.incrementAndGet();
+				}
+			});
+
+			CountDownLatch start = new CountDownLatch(1);
+			Thread complete = new Thread(() -> runTerminalAction(start, publisher::complete));
+			Thread abort = new Thread(() -> runTerminalAction(start,
+				() -> publisher.abort(new IllegalStateException("expected race failure"))));
+			complete.start();
+			abort.start();
+			start.countDown();
+			complete.join();
+			abort.join();
+		}
+
+		SchedulerUtils.awaitTermination();
+		assertEquals(iterations, terminalCallbacks.get());
+	}
+
+	@Test
 	public void timeoutCancelsSourceSubscription() {
 		AtomicInteger cancellations = new AtomicInteger();
 		Observable<Object> observable = observableWithCancellation(cancellations, false);
@@ -204,6 +262,7 @@ public class ReactiveContractTest {
 		KiwiSchedulerHolder.changeTo(scheduler);
 		try {
 			AtomicBoolean completed = new AtomicBoolean(false);
+			AtomicInteger errors = new AtomicInteger();
 			Observable.of(1).subscribe(new Subscriber<>() {
 				@Override
 				protected void onSubscribe(Subscription subscription) {
@@ -216,6 +275,11 @@ public class ReactiveContractTest {
 				}
 
 				@Override
+				protected void onError(Throwable error) {
+					errors.incrementAndGet();
+				}
+
+				@Override
 				protected void onComplete(Completion completion) {
 					completed.set(true);
 				}
@@ -224,6 +288,7 @@ public class ReactiveContractTest {
 			assertEquals(1, scheduler.failures.size());
 			assertEquals(2, scheduler.scheduledTasks.get());
 			assertEquals(true, completed.get());
+			assertEquals(0, errors.get());
 		} finally {
 			KiwiSchedulerHolder.changeTo(previous);
 		}
@@ -339,6 +404,18 @@ public class ReactiveContractTest {
 
 		SchedulerUtils.awaitTermination();
 		return items;
+	}
+
+	private static void runTerminalAction(CountDownLatch start, Runnable action) {
+		try {
+			start.await();
+			action.run();
+		} catch (InterruptedException exception) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException(exception);
+		} catch (RuntimeException ignored) {
+			// The operation that loses the terminal race observes the already closed publisher.
+		}
 	}
 
 	private static Observable<Object> observableWithCancellation(AtomicInteger cancellations, boolean fail) {

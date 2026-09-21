@@ -7,7 +7,7 @@ public class SignalPriorities {
 
 	public static final int COMPLETE_PRIORITY = 100;
 	public static final int PUBLISH_PRIORITY = 200;
-	public static final int CANCEL_PRIORITY = 300;
-	public static final int ERROR_PRIORITY = 400;
+	public static final int ERROR_PRIORITY = 300;
+	public static final int CANCEL_PRIORITY = 400;
 
 }

@@ -5,6 +5,7 @@ import com.github.tix320.kiwi.observable.MinorSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -17,8 +18,8 @@ public final class FilterObservable<T> extends Observable<T> {
 	private final Predicate<? super T> filter;
 
 	public FilterObservable(Observable<T> observable, Predicate<? super T> filter) {
-		this.observable = observable;
-		this.filter = filter;
+		this.observable = Objects.requireNonNull(observable);
+		this.filter = Objects.requireNonNull(filter);
 	}
 
 	@Override
@@ -31,7 +32,15 @@ public final class FilterObservable<T> extends Observable<T> {
 
 			@Override
 			public void onNext(T item) {
-				if (filter.test(item)) {
+				boolean accepted;
+				try {
+					accepted = filter.test(item);
+				} catch (Exception exception) {
+					replaceDemandAndRethrow(exception);
+					return;
+				}
+
+				if (accepted) {
 					subscriber.publish(item);
 				} else {
 					subscription().request(1);

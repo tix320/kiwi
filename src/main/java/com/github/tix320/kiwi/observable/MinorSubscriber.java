@@ -1,5 +1,7 @@
 package com.github.tix320.kiwi.observable;
 
+import com.github.tix320.skimp.exception.ExceptionUtils;
+
 /**
  * @author Tigran Sargsyan on 25.02.25
  */
@@ -13,6 +15,10 @@ public abstract class MinorSubscriber<T, P> {
 	protected abstract void onNext(T item);
 
 	protected abstract void onComplete(Completion completion);
+
+	protected void onError(Throwable error) {
+		parent.completeWithError(error);
+	}
 
 	void setDelegate(Subscriber<? extends T> delegate) {
 		this.delegate = delegate;
@@ -28,6 +34,15 @@ public abstract class MinorSubscriber<T, P> {
 
 	protected final Subscription subscription() {
 		return delegate.subscription();
+	}
+
+	protected final void replaceDemandAndRethrow(Exception failure) {
+		try {
+			subscription().request(1);
+		} catch (Exception requestFailure) {
+			failure.addSuppressed(requestFailure);
+		}
+		ExceptionUtils.sneakyThrow(failure);
 	}
 
 }

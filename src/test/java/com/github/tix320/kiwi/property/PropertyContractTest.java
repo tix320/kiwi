@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.tix320.kiwi.extension.AsyncExceptionCheckerExtension;
 import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
+import com.github.tix320.kiwi.property.internal.PropertyClosedException;
+import com.github.tix320.skimp.collection.map.BiConcurrentHashMap;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +64,23 @@ public class PropertyContractTest {
 
 		assertEquals(Map.of(1, "one", 2, "two"), original);
 		assertEquals(Map.of(1, "one", 2, "two"), published);
+	}
+
+	@Test
+	public void collectionMutatorsReportClosedPropertyConsistently() {
+		ListProperty<Integer> list = Property.forList(new ArrayList<>());
+		SetProperty<Integer> set = Property.forSet(new HashSet<>());
+		MapProperty<Integer, Integer> map = Property.forMap(new HashMap<>());
+		BiMapProperty<Integer, Integer> biMap = Property.forBiMap(new BiConcurrentHashMap<>());
+		list.close();
+		set.close();
+		map.close();
+		biMap.close();
+
+		assertThrows(PropertyClosedException.class, () -> list.add(1));
+		assertThrows(PropertyClosedException.class, () -> set.add(1));
+		assertThrows(PropertyClosedException.class, () -> map.put(1, 1));
+		assertThrows(PropertyClosedException.class, () -> biMap.put(1, 1));
 	}
 
 }

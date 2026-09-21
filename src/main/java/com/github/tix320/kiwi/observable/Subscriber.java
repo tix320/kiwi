@@ -2,6 +2,7 @@ package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.kiwi.observable.signal.SignalSynchronizer;
 import com.github.tix320.kiwi.observable.signal.SignalSynchronizer.Token;
+import com.github.tix320.skimp.exception.ExceptionUtils;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -138,7 +139,7 @@ public abstract class Subscriber<T> {
 					throw new SubscriberIllegalStateException(
 						"Cannot complete subscriber, because it does not subscribed yet.");
 				} else if (s instanceof CompletedSubscriptionImpl completedSubscription) {
-					throw new SubscriberIllegalStateException(completedSubscription.completion, completion);
+					throw new SubscriberIllegalStateException(completedSubscription.terminal, completion);
 				}
 
 				return new CompletedSubscriptionImpl(completion);
@@ -157,29 +158,32 @@ public abstract class Subscriber<T> {
 		}
 	}
 
-	// public final void completeWithError(Throwable error) {
-	// 	setConcurrencyFlag();
-	// 	try {
-	// 		subscription.updateAndGet(this, s -> {
-	// 			if (s == INITIAL_STATE) {
-	// 				throw new SubscriberIllegalStateException(
-	// 					"Cannot complete subscriber, because it does not subscribed yet.");
-	// 			} else if (s == COMPLETED_STATE) {
-	// 				throw new SubscriberIllegalStateException("Subscriber already completed");
-	// 			}
-	//
-	// 			return COMPLETED_STATE;
-	// 		});
-	//
-	// 		try {
-	// 			onError(error);
-	// 		} catch (Exception e) {
-	// 			ExceptionUtils.applyToUncaughtExceptionHandler(new ErrorHandlerException(e));
-	// 		}
-	// 	} finally {
-	// 		clearConcurrencyFlag();
-	// 	}
-	// }
+	public final void completeWithError(Throwable error) {
+		Objects.requireNonNull(error, "Error must not be null");
+		setConcurrencyFlag(ERROR);
+		try {
+			SUB_HANDLE.updateAndGet(this, subscription -> {
+				if (subscription == INITIAL_STATE) {
+					throw new SubscriberIllegalStateException(
+						"Cannot fail subscriber, because it does not subscribed yet.");
+				} else if (subscription instanceof CompletedSubscriptionImpl completedSubscription) {
+					throw new SubscriberIllegalStateException(completedSubscription.terminal, error);
+				}
+
+				return new CompletedSubscriptionImpl(error);
+			});
+
+			try {
+				onError(error);
+			} catch (SubscriberCallbackException | SubscriberIllegalStateException e) {
+				throw e;
+			} catch (Exception e) {
+				throw new SubscriberCallbackException(e);
+			}
+		} finally {
+			clearConcurrencyFlag();
+		}
+	}
 
 	public final Subscription subscription() {
 		return this._subscription;
@@ -197,13 +201,18 @@ public abstract class Subscriber<T> {
 	 */
 	protected abstract void onNext(T item);
 
-	// /**
-	//  * Handle subscription error.
-	//  * After calling this method, no more methods will be called.
-	//  *
-	//  * @param error contains information about error.
-	//  */
-	// protected abstract void onError(Throwable error);
+	/**
+	 * Handle subscription error.
+	 * After calling this method, no more methods will be called.
+	 *
+	 * @param error contains information about error.
+	 */
+	protected void onError(Throwable error) {
+		if (error instanceof Error fatalError) {
+			throw fatalError;
+		}
+		ExceptionUtils.applyToUncaughtExceptionHandler(new UnhandledObservableException(error));
+	}
 
 	/**
 	 * Handle subscription completeness.
@@ -245,6 +254,11 @@ public abstract class Subscriber<T> {
 			}
 
 			@Override
+			protected void onError(Throwable error) {
+				minorSubscriber.onError(error);
+			}
+
+			@Override
 			protected void onComplete(Completion completion) {
 				minorSubscriber.onComplete(completion);
 			}
@@ -257,6 +271,14 @@ public abstract class Subscriber<T> {
 	public static final class SubscriberCallbackException extends RuntimeException {
 
 		private SubscriberCallbackException(Throwable cause) {
+			super(cause);
+		}
+
+	}
+
+	private static final class UnhandledObservableException extends RuntimeException {
+
+		private UnhandledObservableException(Throwable cause) {
 			super(cause);
 		}
 
@@ -283,20 +305,20 @@ public abstract class Subscriber<T> {
 
 	private static final class CompletedSubscriptionImpl extends Subscription {
 
-		private final Completion completion;
+		private final Object terminal;
 
-		private CompletedSubscriptionImpl(Completion completion) {
-			this.completion = completion;
+		private CompletedSubscriptionImpl(Object terminal) {
+			this.terminal = terminal;
 		}
 
 		@Override
 		protected void onRequest(long count) {
-			throw new SubscriberIllegalStateException(completion);
+			throw new SubscriberIllegalStateException(terminal);
 		}
 
 		@Override
 		protected void onUnboundRequest() {
-			throw new SubscriberIllegalStateException(completion);
+			throw new SubscriberIllegalStateException(terminal);
 		}
 
 		@Override
@@ -312,14 +334,14 @@ public abstract class Subscriber<T> {
 			super(s);
 		}
 
-		public SubscriberIllegalStateException(Completion existingCompletion) {
-			super("Subscriber already completed with %s. New items request is prohibited"
-					  .formatted(existingCompletion));
+		public SubscriberIllegalStateException(Object existingTerminal) {
+			super("Subscriber already terminated with %s. New items request is prohibited"
+					  .formatted(existingTerminal));
 		}
 
-		public SubscriberIllegalStateException(Completion existingCompletion, Completion newCompletion) {
-			super("Subscriber already completed with %s. New completion with %s is prohibited"
-					  .formatted(existingCompletion, newCompletion));
+		public SubscriberIllegalStateException(Object existingTerminal, Object newTerminal) {
+			super("Subscriber already terminated with %s. New terminal signal %s is prohibited"
+					  .formatted(existingTerminal, newTerminal));
 		}
 
 	}

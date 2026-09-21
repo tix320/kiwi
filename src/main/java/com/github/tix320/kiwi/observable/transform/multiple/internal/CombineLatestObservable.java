@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class CombineLatestObservable<T> extends Observable<List<T>> {
@@ -58,7 +59,7 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 		List<Source<T>> sources = new ArrayList<>(sourcesCount);
 
 		var sharedContext = new SharedContext<>(generalSubscription, sources, subscriptions,
-												new AtomicInteger(0));
+												new AtomicInteger(0), new AtomicBoolean(false));
 
 		List<Subscriber<T>> subscribers = new ArrayList<>(sourcesCount);
 		for (int i = 0; i < sourcesCount; i++) {
@@ -100,6 +101,9 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 		@Override
 		public void onNext(T item) {
+			if (context.terminated.get()) {
+				return;
+			}
 			itemHolder.item = item;
 
 			List<T> combined = context.sources.stream()
@@ -116,23 +120,39 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 
 		@Override
 		public void onComplete(Completion completion) {
+			if (context.terminated.get()) {
+				return;
+			}
 			var compCount = context.completedCaughtCount.incrementAndGet();
 
-			if (completion instanceof SourceCompletion) { // todo: java 21 switch
-				if (compCount == context.sourcesCount()) {
-					parent().complete(ALL_COMPLETED);
-				} else if (itemHolder.isEmpty()) {
-					SubscriptionUtils.cancelAllThen(context.subscriptions,
-						UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS,
-						() -> parent().complete(COMPLETED_BY_ONE_WITH_NO_ITEMS));
+			switch (completion) {
+				case SourceCompletion ignored -> {
+					if (compCount == context.sourcesCount() && context.terminated.compareAndSet(false, true)) {
+						parent().complete(ALL_COMPLETED);
+					} else if (itemHolder.isEmpty() && context.terminated.compareAndSet(false, true)) {
+						SubscriptionUtils.cancelAllThen(context.subscriptions,
+							UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS,
+							() -> parent().complete(COMPLETED_BY_ONE_WITH_NO_ITEMS));
+					}
 				}
-			} else if (completion instanceof UserUnsubscription userUnsubscription) {
-				if (compCount == context.sourcesCount()) {
-					var realUnsubscription = userUnsubscription.realUnsubscription();
-					parent().complete(realUnsubscription);
+				case UserUnsubscription userUnsubscription -> {
+					if (compCount == context.sourcesCount() && context.terminated.compareAndSet(false, true)) {
+						parent().complete(userUnsubscription.realUnsubscription());
+					}
 				}
-			} else if (completion != UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS) {
-				throw new IllegalStateException("Unexpected completion from source in combineLatest: " + completion);
+				case Unsubscription ignored -> {
+					if (completion != UNSUBSCRIPTION_BY_ONE_WITH_NO_ITEMS) {
+						throw new IllegalStateException(
+							"Unexpected completion from source in combineLatest: " + completion);
+					}
+				}
+			}
+		}
+
+		@Override
+		protected void onError(Throwable error) {
+			if (context.terminated.compareAndSet(false, true)) {
+				SubscriptionUtils.failAll(context.subscriptions, parent(), error);
 			}
 		}
 
@@ -141,7 +161,8 @@ public final class CombineLatestObservable<T> extends Observable<List<T>> {
 	private record SharedContext<T>(Subscription generalSubscription,
 									List<Source<T>> sources,
 									List<Subscription> subscriptions,
-									AtomicInteger completedCaughtCount) {
+									AtomicInteger completedCaughtCount,
+									AtomicBoolean terminated) {
 
 		private int sourcesCount() {
 			return sources.size();

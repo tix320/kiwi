@@ -1,5 +1,6 @@
 package com.github.tix320.kiwi.observable;
 
+import com.github.tix320.skimp.exception.ExceptionUtils;
 import com.github.tix320.skimp.exception.ThreadInterruptedException;
 import java.time.Duration;
 import java.util.Objects;
@@ -27,9 +28,15 @@ final class ObservableWaiter {
 			public void onComplete(Completion completion) {
 				state.finish();
 			}
+
+			@Override
+			protected void onError(Throwable error) {
+				state.fail(error);
+			}
 		});
 
 		state.await(timeout);
+		state.rethrowFailure();
 	}
 
 	static <T> T get(Observable<T> observable, Duration timeout) {
@@ -39,6 +46,7 @@ final class ObservableWaiter {
 	}
 
 	static <T> void waitAndApply(Observable<T> observable, Duration timeout, Consumer<T> consumer) {
+		Objects.requireNonNull(consumer, "Consumer must not be null");
 		WaitState state = new WaitState();
 
 		observable.toMono().subscribe(new FlexibleSubscriber<>() {
@@ -62,9 +70,15 @@ final class ObservableWaiter {
 			public void onComplete(Completion completion) {
 				state.finish();
 			}
+
+			@Override
+			protected void onError(Throwable error) {
+				state.fail(error);
+			}
 		});
 
 		state.await(timeout);
+		state.rethrowFailure();
 	}
 
 	private static final class WaitState {
@@ -72,6 +86,7 @@ final class ObservableWaiter {
 		private final CountDownLatch latch = new CountDownLatch(1);
 		private final AtomicBoolean finished = new AtomicBoolean(false);
 		private final AtomicReference<Subscription> subscription = new AtomicReference<>();
+		private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
 		void subscribe(Subscription value) {
 			subscription.set(value);
@@ -81,6 +96,20 @@ final class ObservableWaiter {
 		void finish() {
 			if (tryFinish()) {
 				signal();
+			}
+		}
+
+		void fail(Throwable error) {
+			if (tryFinish()) {
+				failure.set(error);
+				signal();
+			}
+		}
+
+		void rethrowFailure() {
+			Throwable error = failure.get();
+			if (error != null) {
+				ExceptionUtils.sneakyThrow(error);
 			}
 		}
 

@@ -5,6 +5,7 @@ import com.github.tix320.kiwi.observable.MinorSubscriber;
 import com.github.tix320.kiwi.observable.Observable;
 import com.github.tix320.kiwi.observable.Subscriber;
 import com.github.tix320.kiwi.observable.Subscription;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -17,8 +18,8 @@ public final class PeekObservable<T> extends Observable<T> {
 	private final Consumer<? super T> action;
 
 	public PeekObservable(Observable<T> observable, Consumer<? super T> action) {
-		this.observable = observable;
-		this.action = action;
+		this.observable = Objects.requireNonNull(observable);
+		this.action = Objects.requireNonNull(action);
 	}
 
 	@Override
@@ -31,7 +32,12 @@ public final class PeekObservable<T> extends Observable<T> {
 
 			@Override
 			public void onNext(T item) {
-				action.accept(item);
+				try {
+					action.accept(item);
+				} catch (Exception exception) {
+					replaceDemandAndRethrow(exception);
+					return;
+				}
 				subscriber.publish(item);
 			}
 

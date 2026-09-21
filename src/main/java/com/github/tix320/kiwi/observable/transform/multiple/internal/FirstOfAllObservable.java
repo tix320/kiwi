@@ -127,6 +127,13 @@ public final class FirstOfAllObservable<T> extends MonoObservable<T> {
 			}
 		}
 
+		@Override
+		protected void onError(Throwable error) {
+			if (context.terminated.compareAndSet(false, true)) {
+				SubscriptionUtils.failAll(context.subscriptions, parent(), error);
+			}
+		}
+
 	}
 
 	private record SharedContext(int sourcesCount,

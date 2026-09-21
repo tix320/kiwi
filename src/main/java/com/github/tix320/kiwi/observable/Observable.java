@@ -2,7 +2,7 @@ package com.github.tix320.kiwi.observable;
 
 import com.github.tix320.kiwi.observable.plain.StaticValueObservable;
 import com.github.tix320.kiwi.observable.plain.StaticValuesObservable;
-import com.github.tix320.kiwi.observable.scheduler.KiwiSchedulerHolder;
+import com.github.tix320.kiwi.observable.plain.TimeoutFallbackObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.CombineLatestObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.FirstOfAllObservable;
 import com.github.tix320.kiwi.observable.transform.multiple.internal.MergeObservable;
@@ -18,7 +18,6 @@ import com.github.tix320.kiwi.observable.transform.single.operator.internal.Peek
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.SkipObservable;
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.TakeLimitedObservable;
 import com.github.tix320.kiwi.observable.transform.single.operator.internal.TakeWhileObservable;
-import com.github.tix320.kiwi.publisher.Publisher;
 import com.github.tix320.kiwi.publisher.SimplePublisher;
 import com.github.tix320.skimp.collection.Tuple;
 import com.github.tix320.skimp.exception.ThreadInterruptedException;
@@ -28,7 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -54,6 +53,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param consumer for processing items
 	 */
 	public final void subscribe(Consumer<? super T> consumer) {
+		Objects.requireNonNull(consumer);
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onNext(T item) {
@@ -68,6 +68,8 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param consumer for processing items
 	 */
 	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer) {
+		Objects.requireNonNull(onSubscribe);
+		Objects.requireNonNull(consumer);
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -88,6 +90,9 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 */
 	public final void subscribe(Consumer<Subscription> onSubscribe, Consumer<? super T> consumer,
 								Consumer<Completion> onComplete) {
+		Objects.requireNonNull(onSubscribe);
+		Objects.requireNonNull(consumer);
+		Objects.requireNonNull(onComplete);
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onSubscribe(Subscription subscription) {
@@ -112,6 +117,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @param onComplete for processing completeness
 	 */
 	public final void subscribeOnComplete(Consumer<Completion> onComplete) {
+		Objects.requireNonNull(onComplete);
 		subscribe(new FlexibleSubscriber<>() {
 			@Override
 			public void onComplete(Completion completion) {
@@ -196,22 +202,7 @@ public abstract class Observable<T> implements ObservableCandidate<T> {
 	 * @return new observable
 	 */
 	public final MonoObservable<T> getOnTimeout(Duration timeout, Supplier<T> factory) {
-		var publisher = Publisher.<T>mono();
-		KiwiSchedulerHolder.get()
-			.schedule(timeout.toMillis(), TimeUnit.MILLISECONDS,
-					  () -> {
-						  T item;
-						  try {
-							  item = factory.get();
-						  } catch (Exception e) {
-							  publisher.abort(e);
-							  return;
-						  }
-
-						  publisher.publish(item);
-					  });
-
-		return new FirstOfAllObservable<>(List.of(this, publisher.asObservable()));
+		return new FirstOfAllObservable<>(List.of(this, new TimeoutFallbackObservable<>(timeout, factory)));
 	}
 	// endregion
 

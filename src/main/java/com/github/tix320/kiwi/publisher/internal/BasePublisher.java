@@ -28,7 +28,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 	protected final Object lock;
 
 	private volatile CompleteSignal completion;
-	private volatile ErrorSignal abortion;
+	private volatile ErrorSignal error;
 
 	protected BasePublisher() {
 		this.subscriptions = new CopyOnWriteArrayList<>();
@@ -74,7 +74,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 				throw new PublisherClosedException("Publisher is already closed, abortion is prohibited");
 			}
 
-			abortion = new ErrorSignal(throwable);
+			error = new ErrorSignal(throwable);
 
 			subscriptions.forEach(PublisherSubscription::doAction);
 			subscriptions.clear();
@@ -83,7 +83,7 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 	@Override
 	public final boolean isClosed() {
-		return completion != null || abortion != null;
+		return completion != null || error != null;
 	}
 
 	@Override
@@ -177,8 +177,8 @@ public abstract class BasePublisher<T> extends Publisher<T> {
 
 				var hasPublish = publisherCursor.hasNext();
 
-				if (abortion != null) {
-					token.addSignal(abortion);
+				if (error != null) {
+					token.addSignal(error);
 					subscriptions.remove(this);
 					signalProductionEnded.set(true);
 					break;

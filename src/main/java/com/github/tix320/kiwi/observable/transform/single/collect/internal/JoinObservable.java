@@ -1,5 +1,6 @@
 package com.github.tix320.kiwi.observable.transform.single.collect.internal;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,10 +27,10 @@ public final class JoinObservable<T> extends CollectorObservable<T, String> {
 	public JoinObservable(Observable<T> observable, Function<? super T, ? extends String> toString, String delimiter,
 						  String prefix, String suffix) {
 		super(observable);
-		this.toString = toString;
-		this.delimiter = delimiter;
-		this.suffix = suffix;
-		this.prefix = prefix;
+		this.toString = Objects.requireNonNull(toString);
+		this.delimiter = Objects.requireNonNull(delimiter);
+		this.suffix = Objects.requireNonNull(suffix);
+		this.prefix = Objects.requireNonNull(prefix);
 	}
 
 	@Override

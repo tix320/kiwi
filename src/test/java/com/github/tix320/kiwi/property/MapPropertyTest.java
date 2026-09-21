@@ -5,6 +5,8 @@ import com.github.tix320.kiwi.extension.KiwiSchedulerRefreshExtension;
 import com.github.tix320.kiwi.utils.SchedulerUtils;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -63,6 +65,20 @@ public class MapPropertyTest {
 		assertTrue(tested[0]);
 		assertTrue(tested[1]);
 		assertTrue(tested[2]);
+	}
+
+	@Test
+	public void removingExistingNullValuePublishesChange() throws InterruptedException {
+		Map<Integer, String> source = new HashMap<>();
+		source.put(1, null);
+		MapProperty<Integer, String> property = Property.forMap(source);
+		AtomicInteger publications = new AtomicInteger();
+		property.asObservable().subscribe(ignored -> publications.incrementAndGet());
+
+		property.remove(1);
+		SchedulerUtils.awaitTermination();
+
+		assertEquals(2, publications.get());
 	}
 
 }

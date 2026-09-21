@@ -10,6 +10,7 @@ import com.github.tix320.kiwi.observable.Unsubscription;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -53,7 +54,7 @@ public final class MergeObservable<T> extends Observable<T> {
 
 		int sourcesCount = observables.size();
 		SharedContext sharedContext = new SharedContext(sourcesCount, generalSubscription,
-														subscriptions, new AtomicInteger(0));
+												subscriptions, new AtomicInteger(0), new AtomicBoolean(false));
 
 		List<Subscriber<T>> subscribers = new ArrayList<>(sourcesCount);
 		for (int i = 0; i < sourcesCount; i++) {
@@ -89,12 +90,19 @@ public final class MergeObservable<T> extends Observable<T> {
 
 		@Override
 		public void onNext(T item) {
-			parent().publish(item);
+			if (!context.terminated.get()) {
+				parent().publish(item);
+			}
 		}
 
 		@Override
 		public void onComplete(Completion completion) {
-			if (context.completedCaughtCount.incrementAndGet() == context.sourcesCount) {
+			if (context.terminated.get()) {
+				return;
+			}
+
+			if (context.completedCaughtCount.incrementAndGet() == context.sourcesCount
+				&& context.terminated.compareAndSet(false, true)) {
 				if (completion instanceof UserUnsubscription userUnsubscription) {
 					Unsubscription realUnsubscription = userUnsubscription.realUnsubscription();
 					parent().complete(realUnsubscription);
@@ -104,12 +112,20 @@ public final class MergeObservable<T> extends Observable<T> {
 			}
 		}
 
+		@Override
+		protected void onError(Throwable error) {
+			if (context.terminated.compareAndSet(false, true)) {
+				SubscriptionUtils.failAll(context.subscriptions, parent(), error);
+			}
+		}
+
 	}
 
 	private record SharedContext(int sourcesCount,
 								 Subscription generalSubscription,
 								 List<Subscription> subscriptions,
-								 AtomicInteger completedCaughtCount) {
+								 AtomicInteger completedCaughtCount,
+								 AtomicBoolean terminated) {
 
 	}
 
